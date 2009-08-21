@@ -1,0 +1,13 @@
+TODO for codec2
+---------------
+
+[X] Convert files from DOS to Unix
+[X] Get sinenc and sinedec to build and run under gcc
+[ ] refactor
+    [ ] each source file has it's own header
+    [ ] no globals
+    [ ] Consistent file headers
+    [X] GPL2 notice in each file
+[ ] Replace Numerical Recipes in C (NRC) four1.c and four1.h with Gnu
+    Science Lib (GSL) SL FFT as NRC code has restrictive licencing
+[ ] change speech files from raw 16 bit files to wave files
