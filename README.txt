@@ -39,6 +39,8 @@ Plan
 Directories
 -----------
 
+script   - shell scripts to simply common operations
+speex    - LSP quantisation code borrowed from Speex for testing
 src      - C source code
 octave   - Matlab/Octave scripts
 pitch    - pitch estimator output files
