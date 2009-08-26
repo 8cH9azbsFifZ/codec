@@ -32,6 +32,7 @@
 void dump_on(char filename_prefix[]);
 void dump_off();
 void dump_Sn(float Sn[]);
+void dump_Sw(COMP Sw[]);
 void dump_model(MODEL *m);
 void dump_quantised_model(MODEL *m);
 void dump_Pw(COMP Pw[]);

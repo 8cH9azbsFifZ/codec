@@ -36,6 +36,32 @@ Plan
 [ ] Milestone 2 - Spectral amplitudes quantised 
 [ ] Milestone 3 - Prototype 2400 bit/s codec
 
+LPC Modelling
+-------------
+
+$ ./sinedec ../raw/hts1a.raw hts1a.mdl --lpc 10 - hts1a_lpc10.raw
+
+Disucss why LPC modelling works so well when Am recovered via RMS method
+(Section 5.1 of thesis).  Equal area model of LPC spectra versus harmonic?
+Seems to work remarkably well, especially compared to sampling.  SNRs up to
+30dB on female frames.
+
+Octave Scripts
+--------------
+
+pl.m    - plot a segment from a raw file
+
+pl2.m   - plot the same segments from two different files to compare
+
+plamp.m - menu based GUI interface to "dump" files, move back and forward
+          through file exaimining time and frequency domain parameters, lpc 
+          model etc
+  
+          $ ./sinedec ../raw/hts1a.raw hts1a.mdl --lpc 10 --dump hts1a
+          $ cd ../octave
+          $ octave
+          octave:1> plamp("../src/hts1",25)
+
 Directories
 -----------
 

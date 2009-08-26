@@ -54,7 +54,7 @@ float lpc_model_amplitudes(
   float ak[MAX_ORDER+1];
   float E;
   int   i;
-  float sd;			/* spectral distortion for this frame */
+  float snr;	
 
   for(i=0; i<AW_ENC; i++)
       Wn[i] = Sn[i]*w[i];
@@ -64,9 +64,9 @@ float lpc_model_amplitudes(
   for(i=0; i<=order; i++)
       E += ak[i]*R[i];
   
-  aks_to_M2(ak,order,model,E,&sd);   /* {ak} -> {Am} LPC decode */
+  aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
 
-  return sd;
+  return snr;
 }
 
 /*---------------------------------------------------------------------------*\
@@ -84,7 +84,7 @@ void aks_to_M2(
   int   order,
   MODEL *model,	/* sinusoidal model parameters for this frame */
   float E,	/* energy term */
-  float *sd	/* spectral distortion for this frame in dB */
+  float *snr	/* signal to noise ratio for this frame in dB */
 )
 {
   COMP Pw[FFT_DEC];	/* power spectrum */
@@ -93,7 +93,7 @@ void aks_to_M2(
   float r;		/* no. rads/bin */
   float Em;		/* energy in band */
   float Am;		/* spectral amplitude sample */
-  float noise;
+  float signal, noise;
 
   r = TWO_PI/(FFT_DEC);
 
@@ -116,7 +116,7 @@ void aks_to_M2(
 
   /* Determine magnitudes by linear interpolation of P(w) -------------------*/
 
-  noise = 0.0;
+  signal = noise = 0.0;
   for(m=1; m<=model->L; m++) {
     am = floor((m - 0.5)*model->Wo/r + 0.5);
     bm = floor((m + 0.5)*model->Wo/r + 0.5);
@@ -126,9 +126,9 @@ void aks_to_M2(
       Em += Pw[i].real;
     Am = sqrt(Em);
 
-    noise += pow(log10(Am/model->A[m]),2.0);
+    signal += pow(model->A[m],2.0);
+    noise  += pow(model->A[m] - Am,2.0);
     model->A[m] = Am;
   }
-  *sd = 20.0*sqrt(noise/model->L);
-
+  *snr = 10.0*log10(signal/noise);
 }

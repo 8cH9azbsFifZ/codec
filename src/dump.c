@@ -32,6 +32,7 @@
 static int dumpon = 0;
 
 static FILE *fsn;
+static FILE *fsw;
 static FILE *fmodel;
 static FILE *fqmodel;
 static FILE *fpw;
@@ -44,6 +45,10 @@ void dump_on(char prefix[]) {
     sprintf(s,"%s_sn.txt", prefix);
     fsn = fopen(s, "wt");
     assert(fsn != NULL);
+
+    sprintf(s,"%s_sw.txt", prefix);
+    fsw = fopen(s, "wt");
+    assert(fsw != NULL);
 
     sprintf(s,"%s_model.txt", prefix);
     fmodel = fopen(s, "wt");
@@ -79,6 +84,17 @@ void dump_Sn(float Sn[]) {
     for(i=AW_ENC/2; i<AW_ENC; i++)
 	fprintf(fsn,"%f\t",Sn[i]);
     fprintf(fsn,"\n");    
+}
+
+void dump_Sw(COMP Sw[]) {
+    int i;
+
+    if (!dumpon) return;
+
+    for(i=0; i<FFT_ENC/2; i++)
+	fprintf(fsw,"%f\t",
+		10.0*log10(Sw[i].real*Sw[i].real + Sw[i].imag*Sw[i].imag));
+    fprintf(fsw,"\n");    
 }
 
 void dump_model(MODEL *model) {

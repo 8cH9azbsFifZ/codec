@@ -72,8 +72,8 @@ int main(int argc, char *argv[])
 
   char  out_file[MAX_STR];
   int   arg;
-  float sd;
-  float sum_sd;
+  float snr;
+  float sum_snr;
 
   int lpc_model, order;
   int dump;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
   /* Main loop ------------------------------------------------------------*/
 
   frames = 0;
-  sum_sd = 0;
+  sum_snr = 0;
   while(fread(&model,sizeof(model),1,fmodel)) {
     frames++;
 
@@ -161,14 +161,15 @@ int main(int argc, char *argv[])
     for(i=0; i<N; i++)
       Sn[i+N+AW_ENC/2] = buf[i];
     dump_Sn(Sn);
- 
+    dft_speech(); dump_Sw(Sw);   
+
     dump_model(&model);
 
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	sd = lpc_model_amplitudes(Sn, &model, order, 0);
-	sum_sd += sd;
+	snr = lpc_model_amplitudes(Sn, &model, order, 0);
+	sum_snr += snr;
     }
 
     dump_quantised_model(&model);
@@ -197,7 +198,7 @@ int main(int argc, char *argv[])
     fclose(fout);
 
   if (lpc_model)
-      printf("sd av = %5.2f dB\n", sum_sd/frames);
+      printf("SNR av = %5.2f dB\n", sum_snr/frames);
 
   if (dump)
       dump_off();
