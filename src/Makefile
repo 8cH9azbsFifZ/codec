@@ -2,7 +2,8 @@ CC=gcc
 CFLAGS=-g -Wall
 
 SINENC_OBJ  = sinenc.o globals.o initenc.o four1.o refine.o spec.o
-SINEDEC_OBJ = sinedec.o globals.o initenc.o initdec.o four1.o synth.o
+SINEDEC_OBJ = sinedec.o globals.o initenc.o initdec.o four1.o synth.o \
+              quantise.o lpc.o dump.o
 
 all: sinenc sinedec
 

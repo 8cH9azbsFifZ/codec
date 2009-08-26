@@ -28,6 +28,8 @@
 
 #include <string.h>
 #include "sine.h"
+#include "quantise.h"
+#include "dump.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -68,11 +70,17 @@ int main(int argc, char *argv[])
   int i;		/* loop variable */
   int length;		/* number of frames so far */
 
-  char out_file[MAX_STR];
-  int arg;
+  char  out_file[MAX_STR];
+  int   arg;
+  float sd;
+  float sum_sd;
+
+  int lpc_model, order;
+  int dump;
 
   if (argc < 3) {
-    printf("usage: sinedec InputFile ModelFile [-o OutputFile]\n");
+    printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
+    printf("       [--dump DumpFilePrefix]\n");
     exit(0);
   }
 
@@ -116,6 +124,21 @@ int main(int argc, char *argv[])
   else
     length = 32000;
 
+  lpc_model = 0;
+  if ((arg = switch_present("--lpc",argc,argv))) {
+      lpc_model = 1;
+      order = atoi(argv[arg+1]);
+      if ((order < 4) || (order > 20)) {
+        printf("Error in lpc order: %d\n", order);
+        exit(1);
+      }	  
+  }
+
+  dump = switch_present("--dump",argc,argv);
+  if (dump) {
+      dump_on(argv[dump+1]);
+  }
+
   /* Initialise ------------------------------------------------------------*/
 
   init_decoder();
@@ -126,7 +149,8 @@ int main(int argc, char *argv[])
   /* Main loop ------------------------------------------------------------*/
 
   frames = 0;
-  while(fread(&model,sizeof(model),1,fmodel) /*&& frames < 1200*/) {
+  sum_sd = 0;
+  while(fread(&model,sizeof(model),1,fmodel)) {
     frames++;
 
     /* Read input speech */
@@ -136,6 +160,18 @@ int main(int argc, char *argv[])
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
       Sn[i+N+AW_ENC/2] = buf[i];
+    dump_Sn(Sn);
+ 
+    dump_model(&model);
+
+    /* optional LPC model amplitudes */
+
+    if (lpc_model) {
+	sd = lpc_model_amplitudes(Sn, &model, order, 0);
+	sum_sd += sd;
+    }
+
+    dump_quantised_model(&model);
 
     /* Synthesise speech */
 
@@ -154,12 +190,17 @@ int main(int argc, char *argv[])
 		buf[i] = Sn_[i];
 	}
 	fwrite(buf,sizeof(short),N,fout);
-    }
-
+    }    
   }
 
   if (fout != NULL)
     fclose(fout);
+
+  if (lpc_model)
+      printf("sd av = %5.2f dB\n", sum_sd/frames);
+
+  if (dump)
+      dump_off();
 
   return 0;
 }

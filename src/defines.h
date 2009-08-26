@@ -26,6 +26,9 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#ifndef __SINE__
+#define __SINE__
+
 /*---------------------------------------------------------------------------*\
                                                                              
 				DEFINES                                       
@@ -71,7 +74,6 @@ typedef struct {
   float imag;
 } COMP;
 
-
 /* Structure to hold unquantised model parameters for one frame */
 
 typedef struct {
@@ -81,3 +83,5 @@ typedef struct {
   float A[MAX_AMP];	/* average magnitude/unit frequency samples */
   float phi[MAX_AMP];	/* phase of each harmonic */
 } MODEL;
+
+#endif
