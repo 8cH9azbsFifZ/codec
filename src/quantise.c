@@ -24,12 +24,87 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include <assert.h>
 #include "sine.h"
 #include "quantise.h"
 #include "lpc.h"
 #include "dump.h"
+#include <lsp.h>
+#include <speex_bits.h>
+#include <quant_lsp.h>
 
 #define MAX_ORDER 20
+
+#define LPC_FLOOR 0.0002        /* autocorrelation floor */
+#define LSP_DELTA1 0.2          /* grid spacing for LSP root searches */
+
+/* Speex lag window */
+
+const float lag_window[11] = {
+   1.00000, 0.99716, 0.98869, 0.97474, 0.95554, 0.93140, 0.90273, 0.86998, 
+   0.83367, 0.79434, 0.75258
+};
+
+/*---------------------------------------------------------------------------*\
+									      
+  quantise_uniform
+
+  Simulates uniform quantising of a float.
+
+\*---------------------------------------------------------------------------*/
+
+void quantise_uniform(float *val, float min, float max, int bits)
+{
+    int   levels = 1 << (bits-1);
+    float norm;
+    int   index;
+
+    /* hard limit to quantiser range */
+
+    printf("min: %f  max: %f  val: %f  ", min, max, val[0]);
+    if (val[0] < min) val[0] = min;
+    if (val[0] > max) val[0] = max;
+
+    norm = (*val - min)/(max-min);
+    printf("%f  norm: %f  ", val[0], norm);
+    index = fabs(levels*norm + 0.5);
+
+    *val = min + index*(max-min)/levels;
+
+    printf("index %d  val_: %f\n", index, val[0]);
+}
+
+/*---------------------------------------------------------------------------*\
+									      
+  lsp_quantise
+
+  Differential lsp quantiser
+
+\*---------------------------------------------------------------------------*/
+
+void lsp_quantise(
+  float lsp[], 
+  float lsp_[],
+  int   order
+) 
+{
+    int   i;
+    float dlsp[MAX_ORDER];
+    float dlsp_[MAX_ORDER];
+
+    dlsp[0] = lsp[0];
+    for(i=1; i<order; i++)
+	dlsp[i] = lsp[i] - lsp[i-1];
+
+    for(i=0; i<order; i++)
+	dlsp_[i] = dlsp[i];
+
+    quantise_uniform(&dlsp_[0], 0.1, 0.5, 5);
+
+    lsp_[0] = dlsp_[0];
+    for(i=1; i<order; i++)
+	lsp_[i] = lsp_[i-1] + dlsp_[i];
+}
 
 /*---------------------------------------------------------------------------*\
 									      
@@ -46,7 +121,7 @@ float lpc_model_amplitudes(
   float  Sn[],			/* Input frame of speech samples */
   MODEL *model,			/* sinusoidal model parameters */
   int    order,                 /* LPC model order */
-  int    lsp                    /* optional LSP quantisation if non-zero */
+  int    lsp_quantisation       /* optional LSP quantisation if non-zero */
 )
 {
   float Wn[AW_ENC];
@@ -55,15 +130,27 @@ float lpc_model_amplitudes(
   float E;
   int   i;
   float snr;	
+  float lsp[MAX_ORDER];
+  float lsp_[MAX_ORDER];  /* quantised LSPs */
+  int   roots;            /* number of LSP roots found */
+  SpeexBits bits;
 
   for(i=0; i<AW_ENC; i++)
       Wn[i] = Sn[i]*w[i];
   autocorrelate(Wn,R,AW_ENC,order);
+
   levinson_durbin(R,ak,order);
   E = 0.0;
   for(i=0; i<=order; i++)
       E += ak[i]*R[i];
   
+  if (lsp_quantisation) {
+    roots = lpc_to_lsp(&ak[1], order , lsp, 10, LSP_DELTA1, NULL);
+    lsp_quantise(lsp, lsp_, order);
+    lsp_to_lpc(lsp_, &ak[1], order, NULL);
+    dump_lsp(lsp_);
+  }
+
   aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
 
   return snr;

@@ -36,6 +36,7 @@ static FILE *fsw;
 static FILE *fmodel;
 static FILE *fqmodel;
 static FILE *fpw;
+static FILE *flsp;
 
 void dump_on(char prefix[]) {
     char s[MAX_STR];
@@ -61,13 +62,19 @@ void dump_on(char prefix[]) {
     sprintf(s,"%s_pw.txt", prefix);
     fpw = fopen(s, "wt");
     assert(fpw != NULL);
+
+    sprintf(s,"%s_lsp.txt", prefix);
+    flsp = fopen(s, "wt");
+    assert(flsp != NULL);
 }
 
 void dump_off(){
     fclose(fsn);
+    fclose(fsw);
     fclose(fmodel);
     fclose(fqmodel);
     fclose(fpw);
+    fclose(flsp);
 }
 
 void dump_Sn(float Sn[]) {
@@ -131,6 +138,16 @@ void dump_Pw(COMP Pw[]) {
     for(i=0; i<FFT_DEC/2; i++)
 	fprintf(fpw,"%f\t",Pw[i].real);
     fprintf(fpw,"\n");    
+}
+
+void dump_lsp(float lsp[]) {
+    int i;
+
+    if (!dumpon) return;
+
+    for(i=0; i<10; i++)
+	fprintf(flsp,"%f\t",lsp[i]);
+    fprintf(flsp,"\n");    
 }
 
 

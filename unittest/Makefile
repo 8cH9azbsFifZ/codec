@@ -1,6 +1,6 @@
 CFLAGS = -I. -I../src -I../speex -Wall -g -DFLOATING_POINT -DVAR_ARRAYS
 
-all: genres lsptest
+all: genres lsptest genlsp extract vqtrain
 
 genres: genres.o ../src/lpc.o
 	gcc $(CFLAGS) -o genres genres.o ../src/lpc.o -lm
@@ -11,6 +11,15 @@ LSP_TEST_OBJ = lsptest.o ../src/lpc.o ../speex/lsp.o sd.o ../src/four1.o \
 
 lsptest: $(LSP_TEST_OBJ)
 	gcc $(CFLAGS) -o lsptest $(LSP_TEST_OBJ) -lm
+
+genlsp: genlsp.o ../src/lpc.o ../speex/lsp.o
+	gcc $(CFLAGS) -o genlsp genlsp.o ../src/lpc.o ../speex/lsp.o -lm
+
+extract: extract.o
+	gcc $(CFLAGS) -o extract extract.o -lm
+
+vqtrain: vqtrain.o
+	gcc $(CFLAGS) -o vqtrain vqtrain.o -lm
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@

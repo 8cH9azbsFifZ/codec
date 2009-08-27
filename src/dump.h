@@ -36,5 +36,6 @@ void dump_Sw(COMP Sw[]);
 void dump_model(MODEL *m);
 void dump_quantised_model(MODEL *m);
 void dump_Pw(COMP Pw[]);
+void dump_lsp(float lsp[]);
 
 #endif

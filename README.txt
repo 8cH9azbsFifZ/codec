@@ -41,12 +41,18 @@ LPC Modelling
 
 $ ./sinedec ../raw/hts1a.raw hts1a.mdl --lpc 10 - hts1a_lpc10.raw
 
-Disucss why LPC modelling works so well when Am recovered via RMS method
+Discuss why LPC modelling works so well when Am recovered via RMS method
 (Section 5.1 of thesis).  Equal area model of LPC spectra versus harmonic?
 Seems to work remarkably well, especially compared to sampling.  SNRs up to
 30dB on female frames.
 
-Octave Scripts
+m=1 harmonic problem for males when LPC modelled. The amplitude of this harmonic
+comes up by as much as 30dB after LP modelling as (I think) LPC spectra must
+have zero derivative at DC.  This means it's poor at modelling very low freq
+harmonics which unfortunately ear is very sensitive to.  Consider automatic
+lowering for 20dB of this harmonic or maybe an extra few bits to quantise error.
+
+Octave Scripts 
 --------------
 
 pl.m    - plot a segment from a raw file

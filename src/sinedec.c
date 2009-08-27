@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
   float sum_snr;
 
   int lpc_model, order;
+  int lsp, lsp_quantiser;
   int dump;
 
   if (argc < 3) {
@@ -135,9 +136,12 @@ int main(int argc, char *argv[])
   }
 
   dump = switch_present("--dump",argc,argv);
-  if (dump) {
+  if (dump) 
       dump_on(argv[dump+1]);
-  }
+
+  lsp = switch_present("--lsp",argc,argv);
+  if (lsp) 
+      lsp_quantiser = atoi(argv[lsp+1]);
 
   /* Initialise ------------------------------------------------------------*/
 
@@ -168,7 +172,7 @@ int main(int argc, char *argv[])
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, &model, order, 0);
+	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser);
 	sum_snr += snr;
     }
 
