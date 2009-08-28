@@ -39,7 +39,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 files=0
-items="0 QUIT "
+items="Q-Quit "
 while [ ! -z "$1" ]
 do
   case "$1" in
@@ -47,7 +47,7 @@ do
      *) files=`expr 1 + $files`;
         new_file=$1;
         file[$files]=$new_file;
-        items="${items} ${files} ${new_file}";;
+        items="${items} ${files}-${new_file}";;
   esac
   shift
 done

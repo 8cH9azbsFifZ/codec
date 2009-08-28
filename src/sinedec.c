@@ -149,6 +149,7 @@ int main(int argc, char *argv[])
   init_encoder();
   Nw = 220;
   make_window(Nw);
+  quantise_init();
 
   /* Main loop ------------------------------------------------------------*/
 

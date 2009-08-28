@@ -25,6 +25,7 @@
 */
 
 #include <assert.h>
+#include <ctype.h>
 #include "sine.h"
 #include "quantise.h"
 #include "lpc.h"
@@ -44,6 +45,22 @@ const float lag_window[11] = {
    1.00000, 0.99716, 0.98869, 0.97474, 0.95554, 0.93140, 0.90273, 0.86998, 
    0.83367, 0.79434, 0.75258
 };
+
+/* 10 + 9 + 9 + 9 = 37 bit quantiser (1850 bit/s with 20ms frames) */
+ 
+#define LSP_12_K  2
+#define LSP_12_M  1024
+#define LSP_34_K  2
+#define LSP_34_M  512
+#define LSP_57_K  3
+#define LSP_57_M  512
+#define LSP_810_K 3
+#define LSP_810_M 512
+
+static float cb12[LSP_12_K*LSP_12_M];
+static float cb34[LSP_34_K*LSP_34_M];
+static float cb57[LSP_57_K*LSP_57_M];
+static float cb810[LSP_810_K*LSP_810_M];
 
 /*---------------------------------------------------------------------------*\
 									      
@@ -76,9 +93,9 @@ void quantise_uniform(float *val, float min, float max, int bits)
 
 /*---------------------------------------------------------------------------*\
 									      
-  lsp_quantise
+  lspd_quantise
 
-  Differential lsp quantiser
+  Simulates differential lsp quantiser
 
 \*---------------------------------------------------------------------------*/
 
@@ -104,6 +121,112 @@ void lsp_quantise(
     lsp_[0] = dlsp_[0];
     for(i=1; i<order; i++)
 	lsp_[i] = lsp_[i-1] + dlsp_[i];
+}
+
+/*---------------------------------------------------------------------------*\
+
+  scan_line()
+
+  This function reads a vector of floats from a line in a text file.
+
+\*---------------------------------------------------------------------------*/
+
+void scan_line(FILE *fp, float f[], int n)
+/*  FILE   *fp;		file ptr to text file 		*/
+/*  float  f[]; 	array of floats to return 	*/
+/*  int    n;		number of floats in line 	*/
+{
+    char   s[MAX_STR];
+    char   *ps,*pe;
+    int	   i;
+
+    fgets(s,MAX_STR,fp);
+    ps = pe = s;
+    for(i=0; i<n; i++) {
+	while( isspace(*pe)) pe++;
+	while( !isspace(*pe)) pe++;
+	sscanf(ps,"%f",&f[i]);
+	ps = pe;
+    }
+}
+
+/*---------------------------------------------------------------------------*\
+
+  load_cb
+
+  Quantises vec by choosing the nearest vector in codebook cb, and
+  returns the vector index.  The squared error of the quantised vector
+  is added to se.
+
+\*---------------------------------------------------------------------------*/
+
+void load_cb(char *filename, float *cb, int k, int m)
+{
+    FILE *ftext;
+    int   lines;
+    int   i;
+
+    ftext = fopen(filename,"rt");
+    if (ftext == NULL) {
+	printf("Error opening text file: %s\n",filename);
+	exit(1);
+    }
+
+    lines = 0;
+    for(i=0; i<m; i++) {
+	scan_line(ftext, &cb[k*lines++], k);
+    }
+    printf("%d lines\n",lines);
+
+    fclose(ftext);
+}
+
+void quantise_init()
+{
+    load_cb("../unittest/lsp12.txt", cb12,  LSP_12_K,  LSP_12_M);
+    load_cb("../unittest/lsp34.txt", cb34,  LSP_34_K,  LSP_34_M);
+    load_cb("../unittest/lsp57.txt", cb57, LSP_57_K, LSP_57_M);
+    load_cb("../unittest/lsp810.txt", cb810, LSP_810_K, LSP_810_M);
+}
+
+/*---------------------------------------------------------------------------*\
+
+  quantise
+
+  Quantises vec by choosing the nearest vector in codebook cb, and
+  returns the vector index.  The squared error of the quantised vector
+  is added to se.
+
+\*---------------------------------------------------------------------------*/
+
+long quantise(float cb[], float vec[], int k, int m, float *se)
+/* float   cb[][K];	current VQ codebook		*/
+/* float   vec[];	vector to quantise		*/
+/* int	   k;		dimension of vectors		*/
+/* int     m;		size of codebook		*/
+/* float   *se;		accumulated squared error 	*/
+{
+   float   e;		/* current error		*/
+   long	   besti;	/* best index so far		*/
+   float   beste;	/* best error so far		*/
+   long	   j;
+   int     i;
+
+   besti = 0;
+   beste = 1E32;
+   for(j=0; j<m; j++) {
+	e = 0.0;
+	for(i=0; i<k; i++)
+	    e += pow(cb[j*k+i]-vec[i],2.0);
+	if (e < beste) {
+	    beste = e;
+	    besti = j;
+	}
+   }
+
+   *se += beste;
+
+   return(besti);
 }
 
 /*---------------------------------------------------------------------------*\
@@ -133,7 +256,8 @@ float lpc_model_amplitudes(
   float lsp[MAX_ORDER];
   float lsp_[MAX_ORDER];  /* quantised LSPs */
   int   roots;            /* number of LSP roots found */
-  SpeexBits bits;
+  int   index;
+  float se;
 
   for(i=0; i<AW_ENC; i++)
       Wn[i] = Sn[i]*w[i];
@@ -145,10 +269,28 @@ float lpc_model_amplitudes(
       E += ak[i]*R[i];
   
   if (lsp_quantisation) {
-    roots = lpc_to_lsp(&ak[1], order , lsp, 10, LSP_DELTA1, NULL);
-    lsp_quantise(lsp, lsp_, order);
-    lsp_to_lpc(lsp_, &ak[1], order, NULL);
-    dump_lsp(lsp_);
+    roots = lpc_to_lsp(&ak[1], order, lsp, 10, LSP_DELTA1, NULL);
+
+    index = quantise(cb12, &lsp[0], LSP_12_K, LSP_12_M, &se);
+    lsp[0] = cb12[index*LSP_12_K+0];
+    lsp[1] = cb12[index*LSP_12_K+1];
+    
+    index = quantise(cb34, &lsp[2], LSP_34_K, LSP_34_M, &se);
+    lsp[2] = cb34[index*LSP_34_K+0];
+    lsp[3] = cb34[index*LSP_34_K+1];
+    
+    index = quantise(cb57, &lsp[4], LSP_57_K, LSP_57_M, &se);
+    lsp[4] = cb57[index*LSP_57_K+0];
+    lsp[5] = cb57[index*LSP_57_K+1];
+    lsp[6] = cb57[index*LSP_57_K+2];
+    
+    index = quantise(cb810, &lsp[7], LSP_810_K, LSP_810_M, &se);
+    lsp[7] = cb810[index*LSP_810_K+0];
+    lsp[8] = cb810[index*LSP_810_K+1];
+    lsp[9] = cb810[index*LSP_810_K+2];
+
+    lsp_to_lpc(lsp, &ak[1], order, NULL);
+    dump_lsp(lsp);
   }
 
   aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */

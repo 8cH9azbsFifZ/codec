@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
 	FUNCTION....: scan_line()
 
 	AUTHOR......: David Rowe
-	DATE CREATED: 20/9/96
+	DATE CREATED: 20/2/95
 
 	This function reads a vector of floats from a line in a text file.
 

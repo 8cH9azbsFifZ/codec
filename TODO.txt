@@ -12,3 +12,5 @@ TODO for codec2
     Science Lib (GSL) SL FFT as NRC code has restrictive licencing
 [ ] A way to handle m=1 harmonic for males when LPC modelling
 [ ] Is BW expansion and Rk noise floor required before LSP quant
+[ ] test split VQ to make sure no silly errors
+    + for example test MSE or index historgram for training data

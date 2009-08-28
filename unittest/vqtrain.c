@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 	FUNCTION....: zero()
 
 	AUTHOR......: David Rowe
-	DATE CREATED: 27/9/96
+	DATE CREATED: 23/2/95
 
 	Zeros a vector of length k.
 
@@ -213,7 +213,7 @@ void zero(float v[], int k)
 	FUNCTION....: acc()
 
 	AUTHOR......: David Rowe
-	DATE CREATED: 27/9/96
+	DATE CREATED: 23/2/95
 
 	Adds k dimensional vectors v1 to v2 and stores the result back in v1.
 
@@ -235,7 +235,7 @@ void acc(float v1[], float v2[], int k)
 	FUNCTION....: norm()
 
 	AUTHOR......: David Rowe
-	DATE CREATED: 27/9/96
+	DATE CREATED: 23/2/95
 
 	Divides each element in k dimensional vector v by n.
 
@@ -257,7 +257,7 @@ void norm(float v[], int k, long n)
 	FUNCTION....: quantise()
 
 	AUTHOR......: David Rowe
-	DATE CREATED: 27/9/96
+	DATE CREATED: 23/2/95
 
 	Quantises vec by choosing the nearest vector in codebook cb, and
 	returns the vector index.  The squared error of the quantised vector

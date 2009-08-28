@@ -29,6 +29,7 @@
 
 #include "sine.h"
 
+void quantise_init();
 float lpc_model_amplitudes(float Sn[], MODEL *model, int order, int lsp);
 void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr);
 
