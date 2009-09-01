@@ -27,10 +27,36 @@
 */
 
 #include "sine.h"
+#include "dump.h"
+#include <string.h>
+
+/*---------------------------------------------------------------------------*\
+                                                                             
+ switch_present()                                                            
+                                                                             
+ Searches the command line arguments for a "switch".  If the switch is       
+ found, returns the command line argument where it ws found, else returns    
+ NULL.                                                                       
+                                                                             
+\*---------------------------------------------------------------------------*/
+
+int switch_present(sw,argc,argv)
+register char sw[];     /* switch in string form */
+register int argc;      /* number of command line arguments */
+register char *argv[];  /* array of command line arguments in string form */
+{
+  register int i;       /* loop variable */
+
+  for(i=1; i<argc; i++)
+    if (!strcmp(sw,argv[i]))
+      return(i);
+
+  return 0;
+}
 
 /*---------------------------------------------------------------------------*\
                                                                             
-				MAIN                                          
+				    MAIN                                          
                                                                              
 \*---------------------------------------------------------------------------*/
 
@@ -44,7 +70,10 @@ int main(int argc, char *argv[])
   float pitch;		/* current pitch estimate from external pitch file */
   int i;		/* loop variable */
   FILE *fref;		/* optional output file with refined pitch estimate */
-  
+  int   arg;
+  int   dump;
+  int   frames;
+
   if (argc < 5) {
     printf("usage: sinenc InputFile ModelFile Frames PitchFile\n");
     exit(1);
@@ -69,8 +98,12 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  if (argc > 5) {
-    if ((fref = fopen(argv[5],"wt")) == NULL) {
+  dump = switch_present("--dump",argc,argv);
+  if (dump) 
+      dump_on(argv[dump+1]);
+
+  if ((arg == switch_present("--ref",argc,argv))) {
+    if ((fref = fopen(argv[arg+1],"wt")) == NULL) {
       printf("Error opening output pitch refinement file: %s\n",argv[5]);
       exit(1);
     }
@@ -84,7 +117,8 @@ int main(int argc, char *argv[])
 
   /* Main loop ------------------------------------------------------------*/
 
-  while(fread(buf,sizeof(short),N,fin) == N && frames != length) {
+  frames = 0;
+  while((fread(buf,sizeof(short),N,fin) == N) && (frames != length)) {
     frames++;
 
     /* Update input speech buffers */
@@ -110,9 +144,10 @@ int main(int argc, char *argv[])
 
     /* estimate and model parameters */
 
-    dft_speech();
+    dft_speech(); 
     two_stage_pitch_refinement();
     estimate_amplitudes();
+    dump_Sn(Sn); dump_Sw(Sw); dump_Sw_(Sw_); dump_model(&model);
 
     /* save model parameters */
 
@@ -127,6 +162,9 @@ int main(int argc, char *argv[])
   if (fref != NULL) fclose(fref);
   fclose(fin);
   fclose(fmodel);
+
+  if (dump)
+      dump_off();
 
   return 0;
 }

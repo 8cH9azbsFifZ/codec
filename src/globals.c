@@ -39,6 +39,7 @@ float sig;		/* energy of current frame */
 /* Globals used in encoder */
 
 float w[AW_ENC];	/* time domain hamming window */
+COMP W[FFT_ENC];	/* DFT of w[] */
 COMP Sw[FFT_ENC];	/* DFT of current frame */
 
 /* Globals used in decoder */

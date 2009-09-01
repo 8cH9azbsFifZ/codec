@@ -35,7 +35,6 @@ MODEL *model;		/* ptr to model parameters for this frame */
 float Sn_[];		/* time domain synthesised signal */
 {
   int i,l,j,b;	        /* loop variables */
-  COMP Nw[FFT_DEC];	/* DFT of noise signal */
   COMP Sw_[FFT_DEC];	/* DFT of synthesised signal */
 
   /* Update memories */

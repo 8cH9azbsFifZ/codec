@@ -52,8 +52,15 @@ void estimate_amplitudes()
   int b;		/* DFT bin of centre of current harmonic */
   float den;		/* denominator of amplitude expression */
   float r;		/* number of rads/bin */
+  float E;
+  int   offset;
+  COMP  Am;
 
   r = TWO_PI/FFT_ENC;
+  for(i=0; i<FFT_ENC; i++) {
+      Sw_[i].real = 1.0;
+      Sw_[i].imag = 0.0;
+  }
 
   for(m=1; m<=model.L; m++) {
     den = 0.0;
@@ -64,8 +71,12 @@ void estimate_amplitudes()
     /* Estimate ampltude of harmonic */
 
     den = 0.0;
+    Am.real = Am.imag = 0.0;
     for(i=am; i<bm; i++) {
       den += Sw[i].real*Sw[i].real + Sw[i].imag*Sw[i].imag;
+      offset = i + FFT_ENC/2 - floor(m*model.Wo/r + 0.5);
+      Am.real += Sw[i].real*W[offset].real;
+      Am.imag += Sw[i].imag*W[offset].real;
     }
 
     model.A[m] = sqrt(den);
@@ -73,6 +84,17 @@ void estimate_amplitudes()
     /* Estimate phase of harmonic */
 
     model.phi[m] = atan2(Sw[b].imag,Sw[b].real);
+
+    /* construct all voiced model spectrum and estimate voicing */
+
+    E = 0.0;
+    for(i=am; i<bm; i++) {
+      offset = FFT_ENC/2 + i - floor(m*model.Wo/r + 0.5);
+      Sw_[i].real = Am.real*W[offset].real;
+      Sw_[i].imag = Am.imag*W[offset].real;
+      E = pow(Sw[i].real - Sw_[i].real, 2.0) + pow(Sw[i].imag - Sw_[i].imag, 2.0);
+    }
+    model.v[m] = E/den;
   }
 }
 

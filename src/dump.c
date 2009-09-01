@@ -28,59 +28,52 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 static int dumpon = 0;
 
-static FILE *fsn;
-static FILE *fsw;
-static FILE *fmodel;
-static FILE *fqmodel;
-static FILE *fpw;
-static FILE *flsp;
+static FILE *fsn = NULL;
+static FILE *fsw = NULL;
+static FILE *fsw_ = NULL;
+static FILE *fmodel = NULL;
+static FILE *fqmodel = NULL;
+static FILE *fpw = NULL;
+static FILE *flsp = NULL;
+static char  prefix[MAX_STR];
 
-void dump_on(char prefix[]) {
-    char s[MAX_STR];
-
+void dump_on(char p[]) {
     dumpon = 1;
-
-    sprintf(s,"%s_sn.txt", prefix);
-    fsn = fopen(s, "wt");
-    assert(fsn != NULL);
-
-    sprintf(s,"%s_sw.txt", prefix);
-    fsw = fopen(s, "wt");
-    assert(fsw != NULL);
-
-    sprintf(s,"%s_model.txt", prefix);
-    fmodel = fopen(s, "wt");
-    assert(fmodel != NULL);
-
-    sprintf(s,"%s_qmodel.txt", prefix);
-    fqmodel = fopen(s, "wt");
-    assert(fqmodel != NULL);
-
-    sprintf(s,"%s_pw.txt", prefix);
-    fpw = fopen(s, "wt");
-    assert(fpw != NULL);
-
-    sprintf(s,"%s_lsp.txt", prefix);
-    flsp = fopen(s, "wt");
-    assert(flsp != NULL);
+    strcpy(prefix, p);
 }
 
 void dump_off(){
-    fclose(fsn);
-    fclose(fsw);
-    fclose(fmodel);
-    fclose(fqmodel);
-    fclose(fpw);
-    fclose(flsp);
+    if (fsn != NULL)
+	fclose(fsn);
+    if (fsw != NULL)
+	fclose(fsw);
+    if (fsw_ != NULL)
+	fclose(fsw_);
+    if (fmodel != NULL)
+	fclose(fmodel);
+    if (fqmodel != NULL)
+	fclose(fqmodel);
+    if (fpw != NULL)
+	fclose(fpw);
+    if (flsp != NULL)
+	fclose(flsp);
 }
 
 void dump_Sn(float Sn[]) {
     int i;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (fsn == NULL) {
+	sprintf(s,"%s_sn.txt", prefix);
+	fsn = fopen(s, "wt");
+	assert(fsn != NULL);
+    }
 
     /* split across two lines to avoid max line length problems */
     /* reconstruct in Octave */
@@ -95,8 +88,15 @@ void dump_Sn(float Sn[]) {
 
 void dump_Sw(COMP Sw[]) {
     int i;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (fsw == NULL) {
+	sprintf(s,"%s_sw.txt", prefix);
+	fsw = fopen(s, "wt");
+	assert(fsw != NULL);
+    }
 
     for(i=0; i<FFT_ENC/2; i++)
 	fprintf(fsw,"%f\t",
@@ -104,14 +104,43 @@ void dump_Sw(COMP Sw[]) {
     fprintf(fsw,"\n");    
 }
 
-void dump_model(MODEL *model) {
-    int l;
+void dump_Sw_(COMP Sw_[]) {
+    int i;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (fsw_ == NULL) {
+	sprintf(s,"%s_sw_.txt", prefix);
+	fsw_ = fopen(s, "wt");
+	assert(fsw_ != NULL);
+    }
+
+    for(i=0; i<FFT_ENC/2; i++)
+	fprintf(fsw_,"%f\t",
+		10.0*log10(Sw_[i].real*Sw_[i].real + Sw_[i].imag*Sw_[i].imag));
+    fprintf(fsw_,"\n");    
+}
+
+void dump_model(MODEL *model) {
+    int l;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fmodel == NULL) {
+	sprintf(s,"%s_model.txt", prefix);
+	fmodel = fopen(s, "wt");
+	assert(fmodel != NULL);
+    }
 
     fprintf(fmodel,"%f\t%d\t", model->Wo, model->L);    
     for(l=1; l<=model->L; l++)
 	fprintf(fmodel,"%f\t",model->A[l]);
+    for(l=model->L+1; l<MAX_AMP; l++)
+	fprintf(fmodel,"0.0\t");
+    for(l=1; l<=model->L; l++)
+	fprintf(fmodel,"%f\t",model->v[l]);
     for(l=model->L+1; l<MAX_AMP; l++)
 	fprintf(fmodel,"0.0\t");
     fprintf(fmodel,"\n");    
@@ -119,8 +148,15 @@ void dump_model(MODEL *model) {
 
 void dump_quantised_model(MODEL *model) {
     int l;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (fqmodel == NULL) {
+	sprintf(s,"%s_qmodel.txt", prefix);
+	fqmodel = fopen(s, "wt");
+	assert(fqmodel != NULL);
+    }
 
     fprintf(fqmodel,"%f\t%d\t", model->Wo, model->L);    
     for(l=1; l<=model->L; l++)
@@ -132,8 +168,15 @@ void dump_quantised_model(MODEL *model) {
 
 void dump_Pw(COMP Pw[]) {
     int i;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (fpw == NULL) {
+	sprintf(s,"%s_pw.txt", prefix);
+	fpw = fopen(s, "wt");
+	assert(fpw != NULL);
+    }
 
     for(i=0; i<FFT_DEC/2; i++)
 	fprintf(fpw,"%f\t",Pw[i].real);
@@ -142,8 +185,15 @@ void dump_Pw(COMP Pw[]) {
 
 void dump_lsp(float lsp[]) {
     int i;
+    char s[MAX_STR];
 
     if (!dumpon) return;
+
+    if (flsp == NULL) {
+	sprintf(s,"%s_lsp.txt", prefix);
+	flsp = fopen(s, "wt");
+	assert(flsp != NULL);
+    }
 
     for(i=0; i<10; i++)
 	fprintf(flsp,"%f\t",lsp[i]);

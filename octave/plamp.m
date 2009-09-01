@@ -8,14 +8,28 @@ function plamp(samname, f)
   
   sn_name = strcat(samname,"_sn.txt");
   Sn = load(sn_name);
+
   sw_name = strcat(samname,"_sw.txt");
   Sw = load(sw_name);
+
+  sw__name = strcat(samname,"_sw_.txt");
+  if (file_in_path(".",sw__name))
+    Sw_ = load(sw__name);
+  endif
+
   model_name = strcat(samname,"_model.txt");
   model = load(model_name);
+
   modelq_name = strcat(samname,"_qmodel.txt");
-  modelq = load(modelq_name);
+  if (file_in_path(".",modelq_name))
+    modelq = load(modelq_name);
+  endif
+
   pw_name = strcat(samname,"_pw.txt");
-  Pw = load(pw_name);
+  if (file_in_path(".",pw_name))
+    Pw = load(pw_name);
+  endif
+
   lsp_name = strcat(samname,"_lsp.txt");
   if (file_in_path(".",lsp_name))
     lsp = load(lsp_name);
@@ -36,19 +50,28 @@ function plamp(samname, f)
     axis([1 4000 -10 80]);
     hold on;
     plot((0:255)*4000/256, Sw(f,:),";Sw;");
-    Amq = modelq(f,3:(L+2));
-    plot((1:L)*Wo*4000/pi, 20*log10(Amq),";Amq;" );
-    plot((0:255)*4000/256, 10*log10(Pw(f,:)),";Pw;");
-    signal = Am * Am';
-    noise = (Am-Amq) * (Am-Amq)'; 
-    snr = 10*log10(signal/noise);
-    Am_err_label = sprintf(";Am_err SNR %4.2f dB;",snr);
-    plot((1:L)*Wo*4000/pi, 20*log10(Amq) - 20*log10(Am), Am_err_label);
+
+    if (file_in_path(".",sw__name))
+      plot((0:255)*4000/256, Sw_(f,:),";Sw_;");
+    endif
+
+    if (file_in_path(".",modelq_name))
+      Amq = modelq(f,3:(L+2));
+      plot((1:L)*Wo*4000/pi, 20*log10(Amq),";Amq;" );
+      plot((0:255)*4000/256, 10*log10(Pw(f,:)),";Pw;");
+      signal = Am * Am';
+      noise = (Am-Amq) * (Am-Amq)'; 
+      snr = 10*log10(signal/noise);
+      Am_err_label = sprintf(";Am_err SNR %4.2f dB;",snr);
+      plot((1:L)*Wo*4000/pi, 20*log10(Amq) - 20*log10(Am), Am_err_label);
+    endif
+
     if (file_in_path(".",lsp_name))
       for l=1:10
         plot([lsp(f,l)*4000/pi lsp(f,l)*4000/pi], [60 80], 'r');
       endfor
     endif
+
     hold off;
 
     % interactive menu

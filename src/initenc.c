@@ -44,7 +44,8 @@ void init_encoder()
 float make_window(int Nw)
 {
   float m;
-  int i,j;
+  COMP  temp;
+  int   i,j;
 
   /* Generate Hamming window centered on analysis window */
 
@@ -58,11 +59,35 @@ float make_window(int Nw)
   for(i=AW_ENC/2+Nw/2; i<AW_ENC; i++)
     w[i] = 0.0;
 
-  /* Normalise - this might be useful later on */
+  /* Normalise - make amplitude estimation straight forward */
 
   m = 1.0/sqrt(m*FFT_ENC);
   for(i=0; i<AW_ENC; i++) {
     w[i] *= m;
+  }
+
+  /* Generate DFT of analysis window, used for voicing estimation */
+
+  for(i=0; i<FFT_ENC; i++) {
+    W[i].real = 0.0;
+    W[i].imag = 0.0;
+  }
+  for(i=0; i<AW_ENC/2; i++)
+    W[i].real = w[i+AW_ENC/2];
+  for(i=FFT_ENC-AW_ENC/2; i<FFT_ENC; i++)
+    W[i].real = w[i-FFT_ENC+AW_ENC/2];
+
+  four1(&W[-1].imag,FFT_ENC,-1);         /* "Numerical Recipes in C" FFT */
+
+  /* re-arrange so that W is symmetrical about FFT_ENC/2 */
+
+  for(i=0; i<FFT_ENC/2; i++) {
+    temp.real = W[i].real;
+    temp.imag = W[i].imag;
+    W[i].real = W[i+FFT_ENC/2].real;
+    W[i].imag = W[i+FFT_ENC/2].imag;
+    W[i+FFT_ENC/2].real = temp.real;
+    W[i+FFT_ENC/2].imag = temp.imag;
   }
 
   return(m);
