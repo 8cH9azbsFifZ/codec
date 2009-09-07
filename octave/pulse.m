@@ -1,21 +1,33 @@
 % pulse.m
 % David Rowe August 2009
-% experiments with human pulse perception for sinusoidal codecs
-% lets try some pulses in noise
+%
+% Experiments with human pulse perception for sinusoidal codecs
 
-function pulse(samname, F0, snr)
+function pulse(samname)
 
-  N = 16000;
-  s = zeros(1,N);
-  Wo  = 2*pi*F0/8000;
-  L  = floor(pi/Wo);
-  A  = 10000;
-  phi = zeros(1,L);
-  for m=1:L
-    s = s + (A/L)*cos(m*Wo*(1:N) + phi(m));
+  A = 1000;
+  K = 16000;
+  N = 80;
+  frames = K/N;
+  s = zeros(1,K);
+
+  for f=1:frames
+    % lets try placing np random pulses in every frame
+
+    P = 20 + (160-20)*rand(1,1);
+    Wo = 2*pi/P;
+    L = floor(pi/Wo);
+    sf = zeros(1,N);
+    for m=1:L/2:L
+      pos = floor(rand(1,1)*N)+1;
+      %pos = 50;
+      for l=m:m+L/2-1
+        sf = sf + A*cos(l*Wo*((f-1)*N+1:f*N) - pos*l*Wo);
+      endfor
+    endfor
+    s((f-1)*N+1:f*N) = sf;
   endfor
-  randn("seed", 0);
-  s = s + A*(10 .^(-snr/20))*randn(1,N);
+
   plot(s(1:250));
 
   fs=fopen(samname,"wb");
