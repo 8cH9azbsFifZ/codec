@@ -26,10 +26,13 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include <assert.h>
 #include <string.h>
 #include "sine.h"
 #include "quantise.h"
 #include "dump.h"
+#include "phase.h"
+#include "lpc.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -78,6 +81,9 @@ int main(int argc, char *argv[])
   int lpc_model, order;
   int lsp, lsp_quantiser;
   int dump;
+  
+  int phase, phase_model;
+  float prev_Wo, ex_phase;
 
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
@@ -143,6 +149,13 @@ int main(int argc, char *argv[])
   if (lsp) 
       lsp_quantiser = atoi(argv[lsp+1]);
 
+  /* phase_model 0: zero phase
+     phase_model 1: 1st order polynomial */
+  phase = switch_present("--phase",argc,argv);
+  if (phase)
+      phase_model = atoi(argv[phase+1]);
+  assert((phase_model == 0) || (phase_model == 1));
+
   /* Initialise ------------------------------------------------------------*/
 
   init_decoder();
@@ -170,14 +183,44 @@ int main(int argc, char *argv[])
 
     dump_model(&model);
 
+    /* optional phase modelling */
+
+    if (phase) {
+	float Wn[AW_ENC];		/* windowed speech samples */
+	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
+	float aks[PHASE_LPC_ORD+1];
+        COMP  H[MAX_AMP];               /* LPC freq domain samples */
+	int   i_min;
+	COMP  min_Am;
+	
+	dump_phase(&model.phi[0]);
+
+	/* Determine LPC model using time domain LPC.  A little
+	   further down the development track optionally LPCs from lpc
+	   modelling/LSP quant for phase modelling */
+
+	for(i=0; i<AW_ENC; i++)
+	    Wn[i] = Sn[i]*w[i];
+	autocorrelate(Wn,Rk,AW_ENC,PHASE_LPC_ORD);
+	levinson_durbin(Rk,aks,PHASE_LPC_ORD);
+
+	snr = phase_model_first_order(aks, H, &i_min, &min_Am);
+	if (phase_model == 0)
+	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
+	if (phase_model == 1)
+	    phase_synth_first_order(snr, H, i_min, min_Am);
+	
+        dump_phase_(&model.phi[0]);
+    }
+
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
 	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser);
 	sum_snr += snr;
+        dump_quantised_model(&model);
     }
 
-    dump_quantised_model(&model);
 
     /* Synthesise speech */
 

@@ -1,14 +1,16 @@
 /*---------------------------------------------------------------------------*\
                                                                              
-  FILE........: dump.h
-  AUTHOR......: David Rowe                                                          
-  DATE CREATED: 25/8/09                                                       
+  FILE........: phase.h                                          
+  AUTHOR......: David Rowe                                             
+  DATE CREATED: 1/2/09                                                 
                                                                              
-  Routines to dump data to text files for Octave analysis.
-
+  Functions for modelling phase.
+                                                                             
 \*---------------------------------------------------------------------------*/
 
 /*
+  Copyright (C) 2009 David Rowe
+
   All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
@@ -24,21 +26,13 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef __DUMP__
-#define __DUMP__
+#ifndef __PHASE__
+#define __PHASE__
 
-#include "sine.h"
+#define PHASE_LPC_ORD 10
 
-void dump_on(char filename_prefix[]);
-void dump_off();
-void dump_Sn(float Sn[]);
-void dump_Sw(COMP Sw[]);
-void dump_Sw_(COMP Sw_[]);
-void dump_model(MODEL *m);
-void dump_quantised_model(MODEL *m);
-void dump_Pw(COMP Pw[]);
-void dump_lsp(float lsp[]);
-void dump_phase(float phase[]);
-void dump_phase_(float phase[]);
+float phase_model_first_order(float aks[], COMP H[], int *i_min, COMP *min_Am);
+void phase_synth_zero_order(float snr, COMP H[], float *prev_Wo, float *ex_phase);
+void phase_synth_first_order(float snr, COMP H[], int i_min, COMP min_Am);
 
 #endif

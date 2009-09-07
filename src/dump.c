@@ -39,6 +39,9 @@ static FILE *fmodel = NULL;
 static FILE *fqmodel = NULL;
 static FILE *fpw = NULL;
 static FILE *flsp = NULL;
+static FILE *fphase = NULL;
+static FILE *fphase_ = NULL;
+
 static char  prefix[MAX_STR];
 
 void dump_on(char p[]) {
@@ -61,6 +64,10 @@ void dump_off(){
 	fclose(fpw);
     if (flsp != NULL)
 	fclose(flsp);
+    if (fphase != NULL)
+	fclose(fphase);
+    if (fphase_ != NULL)
+	fclose(fphase_);
 }
 
 void dump_Sn(float Sn[]) {
@@ -164,6 +171,44 @@ void dump_quantised_model(MODEL *model) {
     for(l=model->L+1; l<MAX_AMP; l++)
 	fprintf(fqmodel,"0.0\t");
     fprintf(fqmodel,"\n");    
+}
+
+void dump_phase(float phase[]) {
+    int l;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fphase == NULL) {
+	sprintf(s,"%s_phase.txt", prefix);
+	fphase = fopen(s, "wt");
+	assert(fphase != NULL);
+    }
+
+    for(l=1; l<=model.L; l++)
+	fprintf(fphase,"%f\t",phase[l]);
+    for(l=model.L+1; l<MAX_AMP; l++)
+	fprintf(fphase,"%f\t",0.0);
+    fprintf(fphase,"\n");    
+}
+
+void dump_phase_(float phase_[]) {
+    int l;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fphase_ == NULL) {
+	sprintf(s,"%s_phase_.txt", prefix);
+	fphase_ = fopen(s, "wt");
+	assert(fphase_ != NULL);
+    }
+
+    for(l=1; l<=model.L; l++)
+	fprintf(fphase_,"%f\t",phase_[l]);
+    for(l=model.L+1; l<MAX_AMP; l++)
+	fprintf(fphase_,"%f\t",0.0);
+    fprintf(fphase_,"\n");    
 }
 
 void dump_Pw(COMP Pw[]) {
