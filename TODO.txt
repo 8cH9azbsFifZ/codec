@@ -14,3 +14,7 @@ TODO for codec2
 [ ] Is BW expansion and Rk noise floor required before LSP quant
 [ ] test split VQ to make sure no silly errors
     + for example test MSE or index historgram for training data
+
+[ ] Go through papers referenced in thesis and credit various
+    techniques to papers.
+      + sure there was somthing about zero phase synthesis is those papers
