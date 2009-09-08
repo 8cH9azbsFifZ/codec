@@ -45,6 +45,7 @@
 #define PI          3.141592654	/* mathematical constant                */
 #define T           0.1         /* threshold for local minima candidate */
 #define F0_MAX      500
+#define CNLP 0.5		/* post processor constant              */
 
 /*---------------------------------------------------------------------------*\
                                                                             
@@ -106,19 +107,39 @@ float nlp_fir[] = {
 };
 
 float test_candidate_mbe(COMP Sw[], float f0);
+float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax);
+float post_process_sub_multiples(COMP Fw[], 
+				 int pmin, int pmax, float gmax, int gmax_bin);
 extern int frames;
 
 /*---------------------------------------------------------------------------*\
                                                                              
-  void nlp()                                                                  
+  nlp()                                                                  
                                                                              
-  Determines the pitch in samples using the NLP algorithm. Returns the
-  fundamental in Hz.  Note that the actual pitch estimate is for the
-  centre of the M sample Sn[] vector, not the current N sample input
-  vector.  This is (I think) a delay of 2.5 frames with N=80 samples.
-  You should align further analysis using this pitch estimate to be
-  centred on the middle of Sn[].
-                                                                             
+  Determines the pitch in samples using the Non Linear Pitch (NLP)
+  algorithm [1]. Returns the fundamental in Hz.  Note that the actual
+  pitch estimate is for the centre of the M sample Sn[] vector, not
+  the current N sample input vector.  This is (I think) a delay of 2.5
+  frames with N=80 samples.  You should align further analysis using
+  this pitch estimate to be centred on the middle of Sn[].
+
+  Two post processors have been tried, the MBE version (as discussed
+  in [1]), and a post processor that checks sub-multiples.  Both
+  suffer occasional gross pitch errors (i.e. neither are perfect).  In
+  the presence of background noise the sub-multiple algorithm tends
+  towards low F0 which leads to better sounding background noise than
+  the MBE post processor.
+
+  A good way to test and develop the NLP pitch estimator is using the
+  tnlp (codec2/unittest) and the codec2/octave/plnlp.m Octave script.
+
+  A pitch tracker searching a few frames forward and backward in time
+  would be a useful addition.
+
+  References:
+
+    [1] http://www.itr.unisa.edu.au/~steven/thesis/dgr.pdf Chapter 4
+                                                              
 \*---------------------------------------------------------------------------*/
 
 float nlp(
@@ -138,13 +159,9 @@ float nlp(
   static float mem_fir[NLP_NTAP];/* decimation FIR filter memory */
   COMP   Fw[PE_FFT_SIZE];	/* DFT of squared signal */
   float  gmax;
- 
-  float candidate_f0;
-  float f0,best_f0;		/* fundamental frequency */
-  float e,e_min;                /* MBE cost function */
-  int i,j;
-  float e_hz[F0_MAX];
-  int bin;
+  int    gmax_bin;
+  int   i,j;
+  float best_f0;
 
   /* Square, notch filter at DC, and LP filter vector */
 
@@ -190,8 +207,118 @@ float nlp(
   for(i=PE_FFT_SIZE*DEC/pmax; i<=PE_FFT_SIZE*DEC/pmin; i++) {
     if (Fw[i].real > gmax) {
       gmax = Fw[i].real;
+      gmax_bin = i;
     }
   }
+
+  #ifdef POST_PROCESS_MBE
+  best_f0 = post_process_mbe(Fw, pmin, pmax, gmax);
+  #else
+  best_f0 = post_process_sub_multiples(Fw, pmin, pmax, gmax, gmax_bin);
+  #endif
+
+  /* Shift samples in buffer to make room for new samples */
+
+  for(i=0; i<m-n+d; i++)
+    sq[i] = sq[i+n];
+
+  /* return pitch and F0 estimate */
+
+  *pitch = (float)SAMPLE_RATE/best_f0;
+  return(best_f0);  
+}
+
+/*---------------------------------------------------------------------------*\
+                                                                             
+  post_process_sub_multiples() 
+                                                                           
+  Given the global maximma of Fw[] we search interger submultiples for
+  local maxima.  If local maxima exist and they are above an
+  experimentally derived threshold (OK a magic number I pulled out of
+  the air) we choose the submultiple as the F0 estimate.
+
+  The rational for this is that the lowest frequency peak of Fw[]
+  should be F0, as Fw[] can be considered the autocorrelation function
+  of Sw[] (the speech spectrum).  However sometimes due to phase
+  effects the lowest frequency maxima may not be the global maxima.
+
+  This works OK in practice and favours low F0 values in the presence
+  of background noise which means the sinusoidal codec does an OK job
+  of synthesising the background noise.  High F0 in background noise
+  tends to sound more periodic introducing annoying artifacts.
+
+\*---------------------------------------------------------------------------*/
+
+float post_process_sub_multiples(COMP Fw[], 
+				 int pmin, int pmax, float gmax, int gmax_bin)
+{
+    int   min_bin, cmax_bin;
+    int   mult;
+    float thresh, best_f0;
+    int   b, bmin, bmax, lmax_bin;
+    float lmax, cmax;
+
+    /* post process estimate by searching submultiples */
+
+    mult = 2;
+    min_bin = PE_FFT_SIZE*DEC/pmax;
+    thresh = CNLP*gmax;
+    cmax_bin = gmax_bin;
+
+    while(gmax_bin/mult >= min_bin) {
+
+	b = gmax_bin/mult;			/* determine search interval */
+	bmin = 0.8*b;
+	bmax = 1.2*b;
+	if (bmin < min_bin)
+	    bmin = min_bin;
+      
+	lmax = 0;
+	for (b=bmin; b<=bmax; b++) 		/* look for maximum in interval */
+	    if (Fw[b].real > lmax) {
+		lmax = Fw[b].real;
+		lmax_bin = b;
+	    }
+
+	if (lmax > thresh)
+	    if (lmax > Fw[lmax_bin-1].real && lmax > Fw[lmax_bin+1].real) {
+		cmax = lmax;
+		cmax_bin = lmax_bin;
+	    }
+
+	mult++;
+    }
+
+    best_f0 = (float)cmax_bin*SAMPLE_RATE/(PE_FFT_SIZE*DEC);
+
+    return best_f0;
+}
+  
+/*---------------------------------------------------------------------------*\
+                                                                             
+  post_process_mbe() 
+                                                                           
+  Use the MBE pitch estimation algorithm to evaluate pitch candidates.  This
+  works OK but the accuracy at low F0 is affected by NW, the analysis window
+  size used for the DFT of the input speech Sw[].  Also favours high F0 in
+  the presence of background noise which causes periodic artifacts in the
+  synthesised speech.
+
+\*---------------------------------------------------------------------------*/
+
+float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax)
+{
+  float candidate_f0;
+  float f0,best_f0;		/* fundamental frequency */
+  float e,e_min;                /* MBE cost function */
+  int   i;
+  float e_hz[F0_MAX];
+  int   bin;
+  float f0_min, f0_max;
+  float f0_start, f0_end;
+
+  f0_min = (float)SAMPLE_RATE/pmax;
+  f0_max = (float)SAMPLE_RATE/pmin;
 
   /* Now look for local maxima.  Each local maxima is a candidate
      that we test using the MBE pitch estimation algotithm */
@@ -210,15 +337,15 @@ float nlp(
 	    /* OK, sample MBE cost function over +/- 10Hz range in 2.5Hz steps */
 
 	    candidate_f0 = (float)i*SAMPLE_RATE/(PE_FFT_SIZE*DEC);
-	    if (frames == 29)
-	      printf("candidate F0: %f\n", candidate_f0);
-	    for(f0=candidate_f0-20; f0<=candidate_f0+20; f0+= 2.5) {
+	    f0_start = candidate_f0-20;
+	    f0_end = candidate_f0+20;
+	    if (f0_start < f0_min) f0_start = f0_min;
+	    if (f0_end > f0_max) f0_end = f0_max;
+
+	    for(f0=f0_start; f0<=f0_end; f0+= 2.5) {
 		e = test_candidate_mbe(Sw, f0);
 		bin = floor(f0); assert((bin > 0) && (bin < F0_MAX));
 		e_hz[bin] = e;
-		if (frames == 29)
-		    printf("f0: %f e: %f e_min: %f best_f0: %f\n", 
-			   f0, e, e_min, best_f0);
 		if (e < e_min) {
 		    e_min = e;
 		    best_f0 = f0;
@@ -230,17 +357,9 @@ float nlp(
   }
   dump_e(e_hz);
 
-  /* Shift samples in buffer to make room for new samples */
-
-  for(i=0; i<m-n+d; i++)
-    sq[i] = sq[i+n];
-
-  /* return pitch and F0 estimate */
-
-  *pitch = (float)SAMPLE_RATE/best_f0;
-  return(best_f0);  
+  return best_f0;
 }
-    
+
 /*---------------------------------------------------------------------------*\
                                                                              
   test_candidate_mbe()          
@@ -264,10 +383,10 @@ float test_candidate_mbe(
     float den;            /* denominator of Am expression */
     float error;          /* accumulated error between originl and synthesised */
     float Wo;             /* current "test" fundamental freq. */
-    int   L;              /* number of bands */
-
+    int   L;
+    
+    L = floor((SAMPLE_RATE/2.0)/f0);
     Wo = f0*(2*PI/SAMPLE_RATE);
-    L = floor(PI/Wo);;   
 
     error = 0.0;
 
