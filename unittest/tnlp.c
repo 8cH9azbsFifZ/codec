@@ -26,49 +26,42 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#define N 160		/* frame size */
+#define N 80		/* frame size */
 #define M 320		/* pitch analysis window size */
 #define PITCH_MIN 20
-#define PITCH_MAX 133
+#define PITCH_MAX 160
 #define TNLP
-
-int frames;
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "four1.c"
-#include "nlpl.c"
+#include "nlp.h"
+#include "dump.h"
+
+int   frames;
 
 /*---------------------------------------------------------------------------*\
-
-                                    FUNCTIONS
-
+                                                                             
+ switch_present()                                                            
+                                                                             
+ Searches the command line arguments for a "switch".  If the switch is       
+ found, returns the command line argument where it ws found, else returns    
+ NULL.                                                                       
+                                                                             
 \*---------------------------------------------------------------------------*/
 
-void swap(buf,n)
-short buf[];	/* array of speech samples */
-int n;		/* number of speech samples */
+int switch_present(sw,argc,argv)
+  char sw[];     /* switch in string form */
+  int argc;      /* number of command line arguments */
+  char *argv[];  /* array of command line arguments in string form */
 {
-  int i;
-  short a,b;
-  
-  for(i=0; i<n; i++) {
-    a = buf[i] & 0xff;
-    b = (buf[i] >> 8) & 0xff;
-    buf[i] = (a << 8) | b;
-  }
-}
+  int i;       /* loop variable */
 
-void short_to_float(b,s,n)
-short b[];	/* buffer of short speech samples */
-float s[];	/* buffer of float speech samples */
-int n;		/* number of speech samples */
-{
-  int i;
-  
-  for(i=0; i<n; i++)
-    s[i] = (float)b[i];
+  for(i=1; i<argc; i++)
+    if (!strcmp(sw,argv[i]))
+      return(i);
+
+  return 0;
 }
 
 /*---------------------------------------------------------------------------*\
@@ -77,18 +70,21 @@ int n;		/* number of speech samples */
 
 \*---------------------------------------------------------------------------*/
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char *argv[];
 {
-  FILE *fin,*fout;
-  short buf[N];
-  float Sn[N];
-  float pitch;
-  int i;
-  int pbin;
-
-  if (argc == 3) {
+    FILE *fin,*fout;
+    short buf[N];
+    float pitch;
+    int   i; 
+    int   dump;
+    
+    if (argc < 3) {
+	printf("\nusage: tnlp InputRawSpeechFile OutputPitchTextFile "
+	       "[--dump DumpFile]\n");
+        exit(0);
+    }
 
     /* Input file */
 
@@ -104,28 +100,40 @@ char *argv[];
       exit(1);
     }
 
+    dump = switch_present("--dump",argc,argv);
+    if (dump) 
+      dump_on(argv[dump+1]);
+
+    init_encoder();
+    make_window(NW);
+
+    /* align with current version of sinenc.c, fix this later */
+
     frames = 0;
-    pbin = 102;
     while(fread(buf,sizeof(short),N,fin)) {
       frames++;
-      short_to_float(buf,Sn,N);
-      nlpl(Sn,N,M,N-NTAP/2,PITCH_MIN,PITCH_MAX,&pitch,&pbin);
 
-      /* Compensate for delay in C version compared to Matlab */
+      /* Update input speech buffers */
 
-      if (frames > 2)
-	fprintf(fout,"%f\n",pitch);
+      for(i=0; i<M-N; i++)
+        Sn[i] = Sn[i+N];
+      for(i=0; i<N; i++)
+        Sn[i+M-N] = buf[i];
+      dft_speech();
+      dump_Sn(Sn); dump_Sw(Sw); 
+
+      nlp(Sn,N,M,N-NLP_NTAP/2,PITCH_MIN,PITCH_MAX,&pitch,Sw);
+
+      fprintf(fout,"%f\n",pitch);
 
       printf("frame: %d  pitch: %f\n",frames,pitch);
-
     }
-    fprintf(fout,"0\n0\n");
 
     fclose(fin);
     fclose(fout);
-  }
-  else
-    printf("\nusage: tnlp InputFile OutputFile\n");
+    if (dump) dump_off();
+
+    return 0;
 }
  
 
