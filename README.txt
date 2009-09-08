@@ -31,7 +31,7 @@ Status
 3. Phase model developed that uses 0 bits for phase and 1 bit/frame
    for voiced/unvoiced decision.
 
-[[source code]]
+[[source]]
 The Source Code
 ---------------
 
@@ -270,14 +270,14 @@ References
 ----------
 
 [1] http://perens.com/[Bruce Perens] introducing the
-    http://codec2.org/[codec2 project concept]:
+    http://codec2.org/[codec2 project concept]
 
 [2] David's PhD Thesis,
     http://www.itr.unisa.edu.au/~steven/thesis/dgr.pdf["Techniques for
-    Harmonic Sinusoidal Coding"], used for baseline algorithm:
+    Harmonic Sinusoidal Coding"], used for baseline algorithm
 
 [3] http://www.rowetel.com/blog/?p=128[Open Source Low rate Speech
-    Codec Part 1 - Introduction:]
+    Codec Part 1 - Introduction]
     
 [4] http://www.rowetel.com/blog/?p=130[Open Source Low rate Speech
     Codec Part 1 - Spectral Magnitudes]

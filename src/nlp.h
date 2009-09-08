@@ -33,7 +33,6 @@
 
 #define NLP_NTAP 48	 /* Decimation LPF order */
 
-float nlp(float Sn[], int n, int m, int d, int pmin, int pmax, float *pitch,
-	  COMP  Sw[]);
+float nlp(float Sn[], int n, int m, int pmin, int pmax, float *pitch, COMP  Sw[]);
 
 #endif

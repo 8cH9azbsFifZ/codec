@@ -43,6 +43,8 @@ static FILE *fphase = NULL;
 static FILE *fphase_ = NULL;
 static FILE *ffw = NULL;
 static FILE *fe = NULL;
+static FILE *fsq = NULL;
+static FILE *fdec = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -74,6 +76,10 @@ void dump_off(){
 	fclose(ffw);
     if (fe != NULL)
 	fclose(fe);
+    if (fsq != NULL)
+	fclose(fsq);
+    if (fdec != NULL)
+	fclose(fdec);
 }
 
 void dump_Sn(float Sn[]) {
@@ -286,6 +292,43 @@ void dump_e(float e_hz[]) {
     for(i=500/2; i<500; i++)
 	fprintf(fe,"%f\t",e_hz[i]);
     fprintf(fe,"\n");    
+}
+
+void dump_sq(float sq[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fsq == NULL) {
+	sprintf(s,"%s_sq.txt", prefix);
+	fsq = fopen(s, "wt");
+	assert(fsq != NULL);
+    }
+
+    for(i=0; i<M/2; i++)
+	fprintf(fsq,"%f\t",sq[i]);
+    fprintf(fsq,"\n");    
+    for(i=M/2; i<M; i++)
+	fprintf(fsq,"%f\t",sq[i]);
+    fprintf(fsq,"\n");    
+}
+
+void dump_dec(COMP Fw[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fdec == NULL) {
+	sprintf(s,"%s_dec.txt", prefix);
+	fdec = fopen(s, "wt");
+	assert(fdec != NULL);
+    }
+
+    for(i=0; i<320/5; i++)
+	fprintf(fdec,"%f\t",Fw[i].real);
+    fprintf(fdec,"\n");    
 }
 
 

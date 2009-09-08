@@ -40,6 +40,11 @@ void dump_Pw(COMP Pw[]);
 void dump_lsp(float lsp[]);
 void dump_phase(float phase[]);
 void dump_phase_(float phase[]);
+
+/* NLP states */
+
+void dump_sq(float sq[]);
+void dump_dec(COMP Fw[]);
 void dump_Fw(COMP Fw[]);
 void dump_e(float e_hz[]);
 

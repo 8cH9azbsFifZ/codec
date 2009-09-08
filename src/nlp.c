@@ -146,7 +146,6 @@ float nlp(
   float  Sn[],			/* input speech vector */
   int    n,			/* frames shift (no. new samples in Sn[]) */
   int    m,			/* analysis window size */
-  int    d,			/* additional delay (used for testing) */
   int    pmin,			/* minimum pitch value */
   int    pmax,			/* maximum pitch value */
   float *pitch,			/* estimated pitch period in samples */
@@ -165,10 +164,10 @@ float nlp(
 
   /* Square, notch filter at DC, and LP filter vector */
 
-  for(i=0; i<n; i++) 		/* square speech samples */
-    sq[i+d+m-n] = Sn[i]*Sn[i];
+  for(i=m-n; i<M; i++) 		/* square latest speech samples */
+    sq[i] = Sn[i]*Sn[i];
 
-  for(i=m-n+d; i<m+d; i++) {	/* notch filter at DC */
+  for(i=m-n; i<m; i++) {	/* notch filter at DC */
     notch = sq[i] - mem_x;
     notch += COEFF*mem_y;
     mem_x = sq[i];
@@ -176,7 +175,7 @@ float nlp(
     sq[i] = notch;
   }
 
-  for(i=m-n+d; i<m+d; i++) {	/* FIR filter vector */
+  for(i=m-n; i<m; i++) {	/* FIR filter vector */
 
     for(j=0; j<NLP_NTAP-1; j++)
       mem_fir[j] = mem_fir[j+1];
@@ -195,10 +194,12 @@ float nlp(
   }
   for(i=0; i<m/DEC; i++)
     Fw[i].real = sq[i*DEC]*(0.5 - 0.5*cos(2*PI*i/(m/DEC-1)));
+  dump_dec(Fw);
   four1(&Fw[-1].imag,PE_FFT_SIZE,1);
   for(i=0; i<PE_FFT_SIZE; i++)
     Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
 
+  dump_sq(sq);
   dump_Fw(Fw);
 
   /* find global peak */
@@ -219,7 +220,7 @@ float nlp(
 
   /* Shift samples in buffer to make room for new samples */
 
-  for(i=0; i<m-n+d; i++)
+  for(i=0; i<m-n; i++)
     sq[i] = sq[i+n];
 
   /* return pitch and F0 estimate */

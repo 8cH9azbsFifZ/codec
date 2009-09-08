@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "nlp.h"
 #include "dump.h"
@@ -122,7 +123,7 @@ char *argv[];
       dft_speech();
       dump_Sn(Sn); dump_Sw(Sw); 
 
-      nlp(Sn,N,M,N-NLP_NTAP/2,PITCH_MIN,PITCH_MAX,&pitch,Sw);
+      nlp(Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw);
 
       fprintf(fout,"%f\n",pitch);
 
