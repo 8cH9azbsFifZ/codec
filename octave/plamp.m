@@ -48,7 +48,7 @@ function plamp(samname, f)
   do 
     figure(1);
     clg;
-    s = [ Sn(2*f+1,:) Sn(2*f+2,:) ];
+    s = [ Sn(2*f-1,:) Sn(2*f,:) ];
     plot(s);
     axis([1 length(s) -20000 20000]);
 
