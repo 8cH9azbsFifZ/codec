@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
 
   int lpc_model, order;
   int lsp, lsp_quantiser;
+  float ak[LPC_MAX_ORDER+1];
+
   int dump;
   
   int phase, phase_model;
@@ -152,9 +154,10 @@ int main(int argc, char *argv[])
   /* phase_model 0: zero phase
      phase_model 1: 1st order polynomial */
   phase = switch_present("--phase",argc,argv);
-  if (phase)
+  if (phase) {
       phase_model = atoi(argv[phase+1]);
-  assert((phase_model == 0) || (phase_model == 1));
+      assert((phase_model == 0) || (phase_model == 1));
+  }
 
   /* Initialise ------------------------------------------------------------*/
 
@@ -183,28 +186,39 @@ int main(int argc, char *argv[])
 
     dump_model(&model);
 
+    /* optional LPC model amplitudes */
+
+    if (lpc_model) {
+	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser, ak);
+	sum_snr += snr;
+        dump_quantised_model(&model);
+    }
+
     /* optional phase modelling */
 
     if (phase) {
 	float Wn[AW_ENC];		/* windowed speech samples */
 	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
-	float aks[PHASE_LPC_ORD+1];
         COMP  H[MAX_AMP];               /* LPC freq domain samples */
 	int   i_min;
 	COMP  min_Am;
 	
 	dump_phase(&model.phi[0]);
 
-	/* Determine LPC model using time domain LPC.  A little
-	   further down the development track optionally LPCs from lpc
-	   modelling/LSP quant for phase modelling */
+	if (!lpc_model) {
+	    /* Determine LPC model using time domain LPC if we don't have
+	       any LPCs yet */
 
-	for(i=0; i<AW_ENC; i++)
-	    Wn[i] = Sn[i]*w[i];
-	autocorrelate(Wn,Rk,AW_ENC,PHASE_LPC_ORD);
-	levinson_durbin(Rk,aks,PHASE_LPC_ORD);
+	    for(i=0; i<AW_ENC; i++)
+		Wn[i] = Sn[i]*w[i];
+	    autocorrelate(Wn,Rk,AW_ENC,PHASE_LPC_ORD);
+	    levinson_durbin(Rk,ak,PHASE_LPC_ORD);
+	}
+	else
+	    assert(order == PHASE_LPC_ORD);
 
-	snr = phase_model_first_order(aks, H, &i_min, &min_Am);
+	snr = phase_model_first_order(ak, H, &i_min, &min_Am);
+	snr = 5;
 	if (phase_model == 0)
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
 	if (phase_model == 1)
@@ -212,15 +226,6 @@ int main(int argc, char *argv[])
 	
         dump_phase_(&model.phi[0]);
     }
-
-    /* optional LPC model amplitudes */
-
-    if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser);
-	sum_snr += snr;
-        dump_quantised_model(&model);
-    }
-
 
     /* Synthesise speech */
 

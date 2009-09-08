@@ -31,7 +31,7 @@
 /* Globals used in encoder and decoder */
 
 int frames;		/* number of frames processed so far */
-float Sn[M+AW_ENC/2];	/* float input speech samples */
+float Sn[M];	        /* float input speech samples */
 MODEL model;		/* model parameters for the current frame */
 int Nw;			/* number of samples in analysis window */
 float sig;		/* energy of current frame */

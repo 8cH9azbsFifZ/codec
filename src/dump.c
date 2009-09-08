@@ -41,6 +41,8 @@ static FILE *fpw = NULL;
 static FILE *flsp = NULL;
 static FILE *fphase = NULL;
 static FILE *fphase_ = NULL;
+static FILE *ffw = NULL;
+static FILE *fe = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -68,6 +70,10 @@ void dump_off(){
 	fclose(fphase);
     if (fphase_ != NULL)
 	fclose(fphase_);
+    if (ffw != NULL)
+	fclose(ffw);
+    if (fe != NULL)
+	fclose(fe);
 }
 
 void dump_Sn(float Sn[]) {
@@ -85,10 +91,10 @@ void dump_Sn(float Sn[]) {
     /* split across two lines to avoid max line length problems */
     /* reconstruct in Octave */
 
-    for(i=0; i<AW_ENC/2; i++)
+    for(i=0; i<M/2; i++)
 	fprintf(fsn,"%f\t",Sn[i]);
     fprintf(fsn,"\n");    
-    for(i=AW_ENC/2; i<AW_ENC; i++)
+    for(i=M/2; i<M; i++)
 	fprintf(fsn,"%f\t",Sn[i]);
     fprintf(fsn,"\n");    
 }
@@ -243,6 +249,43 @@ void dump_lsp(float lsp[]) {
     for(i=0; i<10; i++)
 	fprintf(flsp,"%f\t",lsp[i]);
     fprintf(flsp,"\n");    
+}
+
+void dump_Fw(COMP Fw[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (ffw == NULL) {
+	sprintf(s,"%s_fw.txt", prefix);
+	ffw = fopen(s, "wt");
+	assert(ffw != NULL);
+    }
+
+    for(i=0; i<256; i++)
+	fprintf(ffw,"%f\t",Fw[i].real);
+    fprintf(ffw,"\n");    
+}
+
+void dump_e(float e_hz[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fe == NULL) {
+	sprintf(s,"%s_e.txt", prefix);
+	fe = fopen(s, "wt");
+	assert(fe != NULL);
+    }
+
+    for(i=0; i<500/2; i++)
+	fprintf(fe,"%f\t",e_hz[i]);
+    fprintf(fe,"\n");    
+    for(i=500/2; i<500; i++)
+	fprintf(fe,"%f\t",e_hz[i]);
+    fprintf(fe,"\n");    
 }
 
 

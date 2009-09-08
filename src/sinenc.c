@@ -41,11 +41,11 @@
 \*---------------------------------------------------------------------------*/
 
 int switch_present(sw,argc,argv)
-register char sw[];     /* switch in string form */
-register int argc;      /* number of command line arguments */
-register char *argv[];  /* array of command line arguments in string form */
+  char sw[];     /* switch in string form */
+  int argc;      /* number of command line arguments */
+  char *argv[];  /* array of command line arguments in string form */
 {
-  register int i;       /* loop variable */
+  int i;       /* loop variable */
 
   for(i=1; i<argc; i++)
     if (!strcmp(sw,argv[i]))
@@ -112,8 +112,7 @@ int main(int argc, char *argv[])
     fref = NULL;
 
   init_encoder();
-  Nw = 220;
-  make_window(Nw);
+  make_window(NW);
 
   /* Main loop ------------------------------------------------------------*/
 
@@ -123,20 +122,14 @@ int main(int argc, char *argv[])
 
     /* Update input speech buffers */
 
-    for(i=0; i<N+AW_ENC/2; i++)
+    for(i=0; i<M-N; i++)
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
-      Sn[i+N+AW_ENC/2] = buf[i];
+      Sn[i+M-N] = buf[i];
 
     /* Estimate pitch */
 
-    if (frames > 2) {
-      fscanf(fp,"%f\n",&pitch);
-      if (pitch > P_MAX) pitch = P_MAX;
-      if (pitch < P_MIN) pitch = P_MIN;
-    }
-    else
-      pitch = P_MIN;
+    fscanf(fp,"%f\n",&pitch);
 
     /* construct analysis window */
 

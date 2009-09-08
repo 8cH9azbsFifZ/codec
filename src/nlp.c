@@ -26,20 +26,25 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include "nlp.h"
+#include "sine.h"
+#include "dump.h"
+#include <assert.h>
+
 /*---------------------------------------------------------------------------*\
                                                                              
  				DEFINES                                       
                                                                              
 \*---------------------------------------------------------------------------*/
 
-#define PMAX_M 600		/* maximum NLP analysis window size */
-#define COEFF 0.95		/* noth filter parameter */
-#define NTAP 48			/* Decimation LPF order */
-#define PE_FFT_SIZE 512		/* DFT size for pitch estimation */
-#define DEC 5			/* decimation factor */
+#define PMAX_M      600		/* maximum NLP analysis window size     */
+#define COEFF       0.95	/* notch filter parameter               */
+#define PE_FFT_SIZE 512		/* DFT size for pitch estimation        */
+#define DEC         5		/* decimation factor                    */
 #define SAMPLE_RATE 8000
-#define PI 3.141592654		/* mathematical constant */
-#define CNLP 0.5		/* post processor constant */
+#define PI          3.141592654	/* mathematical constant                */
+#define T           0.1         /* threshold for local minima candidate */
+#define F0_MAX      500
 
 /*---------------------------------------------------------------------------*\
                                                                             
@@ -100,44 +105,46 @@ float nlp_fir[] = {
   -1.0818124e-03
 };
 
+float test_candidate_mbe(COMP Sw[], float f0);
+extern int frames;
+
 /*---------------------------------------------------------------------------*\
                                                                              
   void nlp()                                                                  
                                                                              
-  Determines the pitch in samples using the NLP algorithm. Returns the 	      
-  fundamental in Hz.						   	      
+  Determines the pitch in samples using the NLP algorithm. Returns the
+  fundamental in Hz.  Note that the actual pitch estimate is for the
+  centre of the M sample Sn[] vector, not the current N sample input
+  vector.  This is (I think) a delay of 2.5 frames with N=80 samples.
+  You should align further analysis using this pitch estimate to be
+  centred on the middle of Sn[].
                                                                              
 \*---------------------------------------------------------------------------*/
 
-float nlp(Sn,n,m,d,pmin,pmax,pitch)
-float Sn[];			/* input speech vector */
-int n;				/* frames shift (no. new samples in Sn[]) */
-int m;				/* analysis window size */
-int d;				/* additional delay (used for testing) */
-int pmin;			/* minimum pitch value */
-int pmax;			/* maximum pitch value */
-float *pitch;			/* estimated pitch */
+float nlp(
+  float  Sn[],			/* input speech vector */
+  int    n,			/* frames shift (no. new samples in Sn[]) */
+  int    m,			/* analysis window size */
+  int    d,			/* additional delay (used for testing) */
+  int    pmin,			/* minimum pitch value */
+  int    pmax,			/* maximum pitch value */
+  float *pitch,			/* estimated pitch period in samples */
+  COMP   Sw[]                   /* Freq domain version of Sn[] */
+)
 {
   static float sq[PMAX_M];	/* squared speech samples */
-  float notch;			/* current notch filter output */
+  float  notch;			/* current notch filter output */
   static float mem_x,mem_y;     /* memory for notch filter */
-  static float mem_fir[NTAP];	/* decimation FIR filter memory */
-  COMP Fw[PE_FFT_SIZE];		/* DFT of squared signal */
-
-  int gmax_bin;			/* DFT bin where global maxima occurs */
-  float gmax;			/* global maxima value */
-  float lmax;			/* current local maxima value */
-  int lmax_bin;			/* bin of current local maxima */
-  float cmax;			/* chosen local maxima value */
-  int cmax_bin;			/* bin of chosen local maxima */
-
-  int mult;			/* current submultiple */
-  int min_bin;			/* lowest possible bin */
-  int bmin,bmax;		/* range of local maxima search */
-  float thresh;			/* threshold for submultiple selection */
-
-  float F0;			/* fundamental frequency */
-  int i,j,b;
+  static float mem_fir[NLP_NTAP];/* decimation FIR filter memory */
+  COMP   Fw[PE_FFT_SIZE];	/* DFT of squared signal */
+  float  gmax;
+ 
+  float candidate_f0;
+  float f0,best_f0;		/* fundamental frequency */
+  float e,e_min;                /* MBE cost function */
+  int i,j;
+  float e_hz[F0_MAX];
+  int bin;
 
   /* Square, notch filter at DC, and LP filter vector */
 
@@ -154,12 +161,12 @@ float *pitch;			/* estimated pitch */
 
   for(i=m-n+d; i<m+d; i++) {	/* FIR filter vector */
 
-    for(j=0; j<NTAP-1; j++)
+    for(j=0; j<NLP_NTAP-1; j++)
       mem_fir[j] = mem_fir[j+1];
-    mem_fir[NTAP-1] = sq[i];
+    mem_fir[NLP_NTAP-1] = sq[i];
 
     sq[i] = 0.0;
-    for(j=0; j<NTAP; j++)
+    for(j=0; j<NLP_NTAP; j++)
       sq[i] += mem_fir[j]*nlp_fir[j];
   }
 
@@ -175,56 +182,128 @@ float *pitch;			/* estimated pitch */
   for(i=0; i<PE_FFT_SIZE; i++)
     Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
 
-  /* find global peak within limits, this corresponds to F0 estimate */
+  dump_Fw(Fw);
+
+  /* find global peak */
 
   gmax = 0.0;
   for(i=PE_FFT_SIZE*DEC/pmax; i<=PE_FFT_SIZE*DEC/pmin; i++) {
     if (Fw[i].real > gmax) {
       gmax = Fw[i].real;
-      gmax_bin = i;
     }
   }
 
-  /* Now post process estimate by searching submultiples */
+  /* Now look for local maxima.  Each local maxima is a candidate
+     that we test using the MBE pitch estimation algotithm */
 
-  mult = 2;
-  min_bin = PE_FFT_SIZE*DEC/pmax;
-  thresh = CNLP*gmax;
-  cmax_bin = gmax_bin;
+  for(i=0; i<F0_MAX; i++)
+      e_hz[i] = -1;
+  e_min = 1E32;
+  best_f0 = 50;
+  for(i=PE_FFT_SIZE*DEC/pmax; i<=PE_FFT_SIZE*DEC/pmin; i++) {
+    if ((Fw[i].real > Fw[i-1].real) && (Fw[i].real > Fw[i+1].real)) {
 
-  while(gmax_bin/mult >= min_bin) {
+	/* local maxima found, lets test if it's big enough */
 
-    b = gmax_bin/mult;			/* determine search interval */
-    bmin = 0.8*b;
-    bmax = 1.2*b;
-    if (bmin < min_bin)
-      bmin = min_bin;
-      
-    lmax = 0;
-    for (b=bmin; b<=bmax; b++) 		/* look for maximum in interval */
-      if (Fw[b].real > lmax) {
-        lmax = Fw[b].real;
-	lmax_bin = b;
-      }
+	if (Fw[i].real > T*gmax) {
 
-    if (lmax > thresh)
-      if (lmax > Fw[lmax_bin-1].real && lmax > Fw[lmax_bin+1].real) {
-	cmax = lmax;
-	cmax_bin = lmax_bin;
-      }
+	    /* OK, sample MBE cost function over +/- 10Hz range in 2.5Hz steps */
 
-    mult++;
+	    candidate_f0 = (float)i*SAMPLE_RATE/(PE_FFT_SIZE*DEC);
+	    if (frames == 29)
+	      printf("candidate F0: %f\n", candidate_f0);
+	    for(f0=candidate_f0-20; f0<=candidate_f0+20; f0+= 2.5) {
+		e = test_candidate_mbe(Sw, f0);
+		bin = floor(f0); assert((bin > 0) && (bin < F0_MAX));
+		e_hz[bin] = e;
+		if (frames == 29)
+		    printf("f0: %f e: %f e_min: %f best_f0: %f\n", 
+			   f0, e, e_min, best_f0);
+		if (e < e_min) {
+		    e_min = e;
+		    best_f0 = f0;
+		}
+	    }
+
+	}
+    }
   }
-
-  F0 = (float)cmax_bin*SAMPLE_RATE/(PE_FFT_SIZE*DEC);
-  *pitch = SAMPLE_RATE/F0;
+  dump_e(e_hz);
 
   /* Shift samples in buffer to make room for new samples */
 
   for(i=0; i<m-n+d; i++)
     sq[i] = sq[i+n];
 
-  return(F0);  
+  /* return pitch and F0 estimate */
+
+  *pitch = (float)SAMPLE_RATE/best_f0;
+  return(best_f0);  
 }
     
+/*---------------------------------------------------------------------------*\
+                                                                             
+  test_candidate_mbe()          
+                                                                             
+  Returns the error of the MBE cost function for the input f0.  
+
+  Note: I think a lot of the operations below can be simplified as
+  W[].imag = 0 and has been normalised such that den always equals 1.
+                                                                             
+\*---------------------------------------------------------------------------*/
+
+float test_candidate_mbe(
+    COMP  Sw[],
+    float f0
+)
+{
+    COMP  Sw_[FFT_ENC];   /* DFT of all voiced synthesised signal */
+    int   l,al,bl,m;      /* loop variables */
+    COMP  Am;             /* amplitude sample for this band */
+    int   offset;         /* centers Hw[] about current harmonic */
+    float den;            /* denominator of Am expression */
+    float error;          /* accumulated error between originl and synthesised */
+    float Wo;             /* current "test" fundamental freq. */
+    int   L;              /* number of bands */
+
+    Wo = f0*(2*PI/SAMPLE_RATE);
+    L = floor(PI/Wo);;   
+
+    error = 0.0;
+
+    /* Just test across the harmonics in the first 1000 Hz (L/4) */
+
+    for(l=1; l<L/4; l++) {
+	Am.real = 0.0;
+	Am.imag = 0.0;
+	den = 0.0;
+	al = ceil((l - 0.5)*Wo*FFT_ENC/TWO_PI);
+	bl = ceil((l + 0.5)*Wo*FFT_ENC/TWO_PI);
+
+	/* Estimate amplitude of harmonic assuming harmonic is totally voiced */
+
+	for(m=al; m<bl; m++) {
+	    offset = FFT_ENC/2 + m - l*Wo*FFT_ENC/TWO_PI + 0.5;
+	    Am.real += Sw[m].real*W[offset].real + Sw[m].imag*W[offset].imag;
+	    Am.imag += Sw[m].imag*W[offset].real - Sw[m].real*W[offset].imag;
+	    den += W[offset].real*W[offset].real + W[offset].imag*W[offset].imag;
+        }
+
+        Am.real = Am.real/den;
+        Am.imag = Am.imag/den;
+
+        /* Determine error between estimated harmonic and original */
+
+        for(m=al; m<bl; m++) {
+	    offset = FFT_ENC/2 + m - l*Wo*FFT_ENC/TWO_PI + 0.5;
+	    Sw_[m].real = Am.real*W[offset].real - Am.imag*W[offset].imag;
+	    Sw_[m].imag = Am.real*W[offset].imag + Am.imag*W[offset].real;
+	    error += (Sw[m].real - Sw_[m].real)*(Sw[m].real - Sw_[m].real);
+	    error += (Sw[m].imag - Sw_[m].imag)*(Sw[m].imag - Sw_[m].imag);
+	}
+    }
+
+    return error;
+}
+
 

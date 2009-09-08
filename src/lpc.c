@@ -244,7 +244,7 @@ void weight(
 {
   int i;
   
-  for(i=0; i<=order; i++)
+  for(i=1; i<=order; i++)
     akw[i] = ak[i]*pow(gamma,(float)i);
 }
     

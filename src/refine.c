@@ -50,12 +50,18 @@ void dft_speech()
     Sw[i].imag = 0.0;
   }
 
-  /* centre analysis window on time axis */
+  /* Centre analysis window on time axis, we need to arrange input
+     to FFT this way to make FFT phases correct */
   
-  for(i=0; i<AW_ENC/2; i++)
-    Sw[i].real = Sn[i+AW_ENC/2]*w[i+AW_ENC/2];
-  for(i=FFT_ENC-AW_ENC/2; i<FFT_ENC; i++)
-    Sw[i].real = Sn[i-FFT_ENC+AW_ENC/2]*w[i-FFT_ENC+AW_ENC/2];
+  /* move 2nd half to start of FFT input vector */
+
+  for(i=0; i<NW/2; i++)
+    Sw[i].real = Sn[i+M/2]*w[i+AW_ENC/2];
+
+  /* move 1st half to end of FFT input vector */
+
+  for(i=0; i<NW/2; i++)
+    Sw[FFT_ENC-NW/2+i].real = Sn[i+M/2-NW/2]*w[i+AW_ENC/2-NW/2];
 
   four1(&Sw[-1].imag,FFT_ENC,-1);
 }

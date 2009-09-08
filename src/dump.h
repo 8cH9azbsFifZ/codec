@@ -40,5 +40,7 @@ void dump_Pw(COMP Pw[]);
 void dump_lsp(float lsp[]);
 void dump_phase(float phase[]);
 void dump_phase_(float phase[]);
+void dump_Fw(COMP Fw[]);
+void dump_e(float e_hz[]);
 
 #endif

@@ -29,6 +29,8 @@
 #ifndef __LPC__
 #define __LPC__
 
+#define LPC_MAX_ORDER 20
+
 void hanning_window(float Sn[],	float Wn[], int Nsam);
 void autocorrelate(float Sn[], float Rn[], int Nsam, int order);
 void levinson_durbin(float R[],	float lpcs[], int order);

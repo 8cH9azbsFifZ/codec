@@ -176,7 +176,6 @@ void load_cb(char *filename, float *cb, int k, int m)
     for(i=0; i<m; i++) {
 	scan_line(ftext, &cb[k*lines++], k);
     }
-    printf("%d lines\n",lines);
 
     fclose(ftext);
 }
@@ -244,17 +243,16 @@ float lpc_model_amplitudes(
   float  Sn[],			/* Input frame of speech samples */
   MODEL *model,			/* sinusoidal model parameters */
   int    order,                 /* LPC model order */
-  int    lsp_quantisation       /* optional LSP quantisation if non-zero */
+  int    lsp_quantisation,      /* optional LSP quantisation if non-zero */
+  float  ak[]                   /* output aks */
 )
 {
   float Wn[AW_ENC];
   float R[MAX_ORDER+1];
-  float ak[MAX_ORDER+1];
   float E;
   int   i;
   float snr;	
   float lsp[MAX_ORDER];
-  float lsp_[MAX_ORDER];  /* quantised LSPs */
   int   roots;            /* number of LSP roots found */
   int   index;
   float se;
