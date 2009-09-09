@@ -45,6 +45,11 @@ function plamp(samname, f)
     phase_ = load(phase_name_);
   endif
 
+  snr_name = strcat(samname,"_snr.txt");
+  if (file_in_path(".",snr_name))
+    snr = load(snr_name);
+  endif
+
   do 
     figure(1);
     clg;
@@ -74,16 +79,21 @@ function plamp(samname, f)
       plot((1:L)*Wo*4000/pi, 20*log10(Amq) - 20*log10(Am), Am_err_label);
     endif
 
-    % phase model - determine SNR and error spectrum
+    if (file_in_path(".",snr_name))
+      snr_label = sprintf(";phase SNR %4.2f dB;",snr(f));
+      plot(1,1,snr_label);
+    endif
+
+    % phase model - determine SNR and error spectrum for phase model 1
 
     if (file_in_path(".",phase_name_))
       orig  = Am.*exp(j*phase(f,1:L));
       synth = Am.*exp(j*phase_(f,1:L));
-      signal = orig * orig'
-      noise = (orig-synth) * (orig-synth)'
-      snr = 10*log10(signal/noise);
+      signal = orig * orig';
+      noise = (orig-synth) * (orig-synth)';
+      snr_phase = 10*log10(signal/noise);
 
-      phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr);
+      phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr_phase);
       plot((1:L)*Wo*4000/pi, 20*log10(orig-synth), phase_err_label);
     endif
 
@@ -97,15 +107,27 @@ function plamp(samname, f)
 
     if (file_in_path(".",phase_name))
       figure(3);
-      plot((1:L)*Wo*4000/pi, unwrap(phase(f,1:L)), ";phase;");
+      plot((1:L)*Wo*4000/pi, phase(f,1:L), ";phase;");
       axis;
       if (file_in_path(".",phase_name_))
         hold on;
-        plot((1:L)*Wo*4000/pi, unwrap(phase_(f,1:L)), ";phase_;");
+        plot((1:L)*Wo*4000/pi, phase_(f,1:L), ";phase_;");
 	hold off;
       endif
       figure(2);
     endif
+
+    % autocorrelation function to research voicing est
+    
+    %M = length(s);
+    %sw = s .* hanning(M)';
+    %for k=0:159
+    %  R(k+1) = sw(1:320-k) * sw(1+k:320)';
+    %endfor
+    %figure(4);
+    %R_label = sprintf(";R(k) %3.2f;",max(R(20:159))/R(1));
+    %plot(R/R(1),R_label);
+    %grid
 
     % interactive menu
 

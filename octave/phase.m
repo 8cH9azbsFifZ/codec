@@ -10,7 +10,7 @@ function phase(samname, F0, randphase, png)
   A = 10000/L;
   phi = zeros(1,L);
   for m=1:L
-    phi(m) = m*Wo*0.3*m;
+    phi(m) = m*Wo*50.125;
   end
   if (randphase == 1) 
     rand("seed",0);

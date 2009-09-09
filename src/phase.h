@@ -31,8 +31,8 @@
 
 #define PHASE_LPC_ORD 10
 
-float phase_model_first_order(float aks[], COMP H[], int *i_min, COMP *min_Am);
+float phase_model_first_order(float aks[], COMP H[], float *n_min, COMP *min_Am);
 void phase_synth_zero_order(float snr, COMP H[], float *prev_Wo, float *ex_phase);
-void phase_synth_first_order(float snr, COMP H[], int i_min, COMP min_Am);
+void phase_synth_first_order(float snr, COMP H[], float n_min, COMP min_Am);
 
 #endif

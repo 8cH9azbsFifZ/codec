@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 	float Wn[AW_ENC];		/* windowed speech samples */
 	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
         COMP  H[MAX_AMP];               /* LPC freq domain samples */
-	int   i_min;
+	float n_min;
 	COMP  min_Am;
 	
 	dump_phase(&model.phi[0]);
@@ -217,14 +217,16 @@ int main(int argc, char *argv[])
 	else
 	    assert(order == PHASE_LPC_ORD);
 
-	snr = phase_model_first_order(ak, H, &i_min, &min_Am);
-	snr = 5;
-	if (phase_model == 0)
+	snr = phase_model_first_order(ak, H, &n_min, &min_Am);
+	dump_snr(snr);
+	if (phase_model == 0) {
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
-	if (phase_model == 1)
-	    phase_synth_first_order(snr, H, i_min, min_Am);
-	
-        dump_phase_(&model.phi[0]);
+	}
+
+	if (phase_model == 1) {
+	    phase_synth_first_order(snr, H, n_min, min_Am);
+            dump_phase_(&model.phi[0]);
+        }
     }
 
     /* Synthesise speech */

@@ -126,10 +126,10 @@ int    order;
 \*---------------------------------------------------------------------------*/
 
 float phase_model_first_order(
-  float aks[],                  /* LPC coeffs for this frame      */
-  COMP  H[],		        /* LPC filter freq doamin samples */
-  int  *i_min,                  /* pulse position for min error   */ 
-  COMP *minAm                   /* complex gain for min error     */
+  float  aks[],                  /* LPC coeffs for this frame      */
+  COMP   H[],		         /* LPC filter freq doamin samples */
+  float *n_min,                  /* pulse position for min error   */ 
+  COMP  *minAm                   /* complex gain for min error     */
 ) 
 {
   float G;			/* LPC gain */
@@ -144,11 +144,15 @@ float phase_model_first_order(
   COMP Em;  			/* error for m-th band */
   float den;     		/* energy of synthesised */
   float snr;		        /* snr of each excitation source */
+  int   Lmax;
+  float n;
+
+  Lmax = model.L;
 
   /* Construct target vector */
 
   sig = 0.0;
-  for(m=1; m<=model.L; m++) {
+  for(m=1; m<=Lmax; m++) {
     A[m].real = model.A[m]*cos(model.phi[m]);
     A[m].imag = model.A[m]*sin(model.phi[m]);
     sig += model.A[m]*model.A[m];
@@ -156,6 +160,11 @@ float phase_model_first_order(
 
   /* Sample LPC model at harmonics */
 
+  #ifdef NO_LPC_PHASE
+  /* useful for testing with Sn[] an impulse train */
+  for(i=1; i<=PHASE_LPC_ORD; i++)
+     aks[i] = 0;
+  #endif
   G = 1.0;
   aks_to_H(&model,aks,G,H,PHASE_LPC_ORD);
 
@@ -163,16 +172,16 @@ float phase_model_first_order(
 
   Emin = 1E32;
   P = floor(TWO_PI/model.Wo + 0.5);
-  for(i=0; i<P; i++) {
+  for(n=0; n<P; n+=0.25) {
 
     /* determine complex gain */
 
     Am.real = 0.0;
     Am.imag = 0.0;
     den = 0.0;
-    for(m=1; m<=model.L; m++) {
-      Ex[m].real = cos(model.Wo*m*i);
-      Ex[m].imag = sin(-model.Wo*m*i);
+    for(m=1; m<=Lmax; m++) {
+      Ex[m].real = cos(model.Wo*m*n);
+      Ex[m].imag = sin(-model.Wo*m*n);
       A_[m].real = H[m].real*Ex[m].real - H[m].imag*Ex[m].imag;
       A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
       Am.real += A[m].real*A_[m].real + A[m].imag*A_[m].imag;
@@ -186,17 +195,20 @@ float phase_model_first_order(
     /* determine error */
 
     E = 0.0;
-    for(m=1; m<=model.L; m++) {
+    for(m=1; m<=Lmax; m++) {
+      float new_phi;
 
       Em.real = A_[m].real*Am.real - A_[m].imag*Am.imag;
       Em.imag = A_[m].imag*Am.real + A_[m].real*Am.imag;
 	  
-      E += pow(A[m].real-Em.real,2.0) + pow(A[m].imag-Em.imag,2.0);
+      new_phi = atan2(Em.imag, Em.real+1E-12);
+      E += pow(model.A[m]*(cos(model.phi[m])-cos(new_phi)),2.0);
+      E += pow(model.A[m]*(sin(model.phi[m])-sin(new_phi)),2.0);
     }
 
     if (E < Emin) {
       Emin = E;
-      *i_min = i;
+      *n_min = n;
       minAm->real = Am.real;
       minAm->imag = Am.imag;
     }
@@ -370,7 +382,7 @@ void phase_synth_zero_order(
 void phase_synth_first_order(
   float snr,     /* SNR from first order model */
   COMP  H[],     /* LPC spectra samples        */
-  int   i_min,   /* best pulse position        */
+  float n_min,   /* best pulse position        */
   COMP  minAm    /* best complex gain          */
 )
 {
@@ -397,8 +409,8 @@ void phase_synth_first_order(
     /* generate excitation */
 
     if (m <= Lrand) {
-	Ex[m].real = cos(model.Wo*m*i_min);
-	Ex[m].imag = sin(-model.Wo*m*i_min);
+	Ex[m].real = cos(model.Wo*m*n_min);
+	Ex[m].imag = sin(-model.Wo*m*n_min);
     }
     else {
       float phi = TWO_PI*(float)rand()/RAND_MAX;

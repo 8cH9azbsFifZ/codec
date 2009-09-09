@@ -45,6 +45,7 @@ static FILE *ffw = NULL;
 static FILE *fe = NULL;
 static FILE *fsq = NULL;
 static FILE *fdec = NULL;
+static FILE *fsnr = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -80,6 +81,8 @@ void dump_off(){
 	fclose(fsq);
     if (fdec != NULL)
 	fclose(fdec);
+    if (fsnr != NULL)
+	fclose(fsnr);
 }
 
 void dump_Sn(float Sn[]) {
@@ -221,6 +224,20 @@ void dump_phase_(float phase_[]) {
     for(l=model.L+1; l<MAX_AMP; l++)
 	fprintf(fphase_,"%f\t",0.0);
     fprintf(fphase_,"\n");    
+}
+
+void dump_snr(float snr) {
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fphase_ == NULL) {
+	sprintf(s,"%s_snr.txt", prefix);
+	fsnr = fopen(s, "wt");
+	assert(fsnr != NULL);
+    }
+
+    fprintf(fsnr,"%f\n",snr);
 }
 
 void dump_Pw(COMP Pw[]) {

@@ -38,6 +38,10 @@ void dump_model(MODEL *m);
 void dump_quantised_model(MODEL *m);
 void dump_Pw(COMP Pw[]);
 void dump_lsp(float lsp[]);
+
+/* phase modelling */
+
+void dump_snr(float snr);
 void dump_phase(float phase[]);
 void dump_phase_(float phase[]);
 
