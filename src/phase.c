@@ -160,6 +160,7 @@ float phase_model_first_order(
 
   /* Sample LPC model at harmonics */
 
+  //#define NO_LPC_PHASE
   #ifdef NO_LPC_PHASE
   /* useful for testing with Sn[] an impulse train */
   for(m=1; m<=PHASE_LPC_ORD; m++)

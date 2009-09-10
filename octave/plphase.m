@@ -84,8 +84,9 @@ function plphase(samname, f)
 
       phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr_phase);
       plot((1:L)*Wo*4000/pi, 20*log10(orig-synth), phase_err_label);
-      hold off;
     endif
+
+    hold off;
 
     if (file_in_path(".",phase_name))
       figure(3);
