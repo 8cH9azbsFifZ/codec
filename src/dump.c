@@ -46,6 +46,7 @@ static FILE *fe = NULL;
 static FILE *fsq = NULL;
 static FILE *fdec = NULL;
 static FILE *fsnr = NULL;
+static FILE *fak = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -83,6 +84,8 @@ void dump_off(){
 	fclose(fdec);
     if (fsnr != NULL)
 	fclose(fsnr);
+    if (fak != NULL)
+	fclose(fak);
 }
 
 void dump_Sn(float Sn[]) {
@@ -231,7 +234,7 @@ void dump_snr(float snr) {
 
     if (!dumpon) return;
 
-    if (fphase_ == NULL) {
+    if (fsnr == NULL) {
 	sprintf(s,"%s_snr.txt", prefix);
 	fsnr = fopen(s, "wt");
 	assert(fsnr != NULL);
@@ -272,6 +275,23 @@ void dump_lsp(float lsp[]) {
     for(i=0; i<10; i++)
 	fprintf(flsp,"%f\t",lsp[i]);
     fprintf(flsp,"\n");    
+}
+
+void dump_ak(float ak[], int order) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fak == NULL) {
+	sprintf(s,"%s_ak.txt", prefix);
+	fak = fopen(s, "wt");
+	assert(fak != NULL);
+    }
+
+    for(i=0; i<=order; i++)
+	fprintf(fak,"%f\t",ak[i]);
+    fprintf(fak,"\n");    
 }
 
 void dump_Fw(COMP Fw[]) {

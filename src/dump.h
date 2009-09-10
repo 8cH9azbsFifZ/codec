@@ -38,6 +38,7 @@ void dump_model(MODEL *m);
 void dump_quantised_model(MODEL *m);
 void dump_Pw(COMP Pw[]);
 void dump_lsp(float lsp[]);
+void dump_ak(float ak[], int order);
 
 /* phase modelling */
 

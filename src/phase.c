@@ -32,8 +32,8 @@
 #include <assert.h>
 #include <string.h>
 
-#define VTHRESH1 3.0
-#define VTHRESH2 3.0
+#define VTHRESH1 2.0
+#define VTHRESH2 2.0
 
 /*---------------------------------------------------------------------------*\
 
@@ -133,7 +133,7 @@ float phase_model_first_order(
 ) 
 {
   float G;			/* LPC gain */
-  int i,m;
+  int   m;
 
   float E,Emin;			/* current and minimum error so far */
   int P;			/* current pitch period */
@@ -162,8 +162,8 @@ float phase_model_first_order(
 
   #ifdef NO_LPC_PHASE
   /* useful for testing with Sn[] an impulse train */
-  for(i=1; i<=PHASE_LPC_ORD; i++)
-     aks[i] = 0;
+  for(m=1; m<=PHASE_LPC_ORD; m++)
+     aks[m] = 0;
   #endif
   G = 1.0;
   aks_to_H(&model,aks,G,H,PHASE_LPC_ORD);

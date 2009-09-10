@@ -217,7 +217,9 @@ int main(int argc, char *argv[])
 	else
 	    assert(order == PHASE_LPC_ORD);
 
+	dump_ak(ak, PHASE_LPC_ORD);
 	snr = phase_model_first_order(ak, H, &n_min, &min_Am);
+
 	dump_snr(snr);
 	if (phase_model == 0) {
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);

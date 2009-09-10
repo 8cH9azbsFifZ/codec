@@ -1,6 +1,8 @@
 TODO for codec2
 ---------------
 
+Planned tasks and half formed ideas for codec2.....
+
 [X] Convert files from DOS to Unix
 [X] Get sinenc and sinedec to build and run under gcc
 [ ] refactor
@@ -18,3 +20,19 @@ TODO for codec2
 [ ] Go through papers referenced in thesis and credit various
     techniques to papers.
       + sure there was somthing about zero phase synthesis is those papers
+
+[ ] voicing errors can be clearly seen in synthesised speech using pl2.m
+
+[ ] Voicing improvement
+    + voicing tracker, if enery about the same in frame n-1,n,n+1, and n-1, n+1
+      are voiced then make frame n voiced.
+
+[ ] mmt1 with zero phase model
+    + male with lots of background noise
+    + zero order synth model sounds more "clicky" on mmt1, this suggests less
+      dispersion
+    + could be due to IRS filtering or background noise
+    + exploring this could lead to better understanding on phase, e.g. add
+      noise to clean samples and explore effect on zero phase model
+    + wrote plphase.m to start analysing this
+
