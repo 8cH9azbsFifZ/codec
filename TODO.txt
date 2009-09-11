@@ -1,38 +1,46 @@
 TODO for codec2
 ---------------
 
-Planned tasks and half formed ideas for codec2.....
+[ ] Important Open Issues
+    [ ] Why zero phase model doesn'y work for mmt1
+    [ ] Pitch errors on mmt1
+        + we may need a tracker
+    [ ] removal of LPC modelling errors for males
+        + first few haromic energies get raised
+    [ ] conversion to 20ms frames
+        + without significnat distortion
 
-[X] Convert files from DOS to Unix
-[X] Get sinenc and sinedec to build and run under gcc
-[ ] refactor
-    [ ] each source file has it's own header
-    [ ] no globals
-    [ ] Consistent file headers
-    [X] GPL2 notice in each file
-[ ] Replace Numerical Recipes in C (NRC) four1.c and four1.h with Gnu
-    Science Lib (GSL) SL FFT as NRC code has restrictive licencing
-[ ] A way to handle m=1 harmonic for males when LPC modelling
-[ ] Is BW expansion and Rk noise floor required before LSP quant
-[ ] test split VQ to make sure no silly errors
-    + for example test MSE or index historgram for training data
+[ ] Planned tasks and half formed ideas for codec2.....
+    [X] Convert files from DOS to Unix
+    [X] Get sinenc and sinedec to build and run under gcc
+    [ ] refactor
+        [ ] each source file has it's own header
+        [ ] no globals
+        [ ] Consistent file headers
+        [X] GPL2 notice in each file
+    [ ] Replace Numerical Recipes in C (NRC) four1.c and four1.h with Gnu
+        Science Lib (GSL) SL FFT as NRC code has restrictive licencing
+    [ ] A way to handle m=1 harmonic for males when LPC modelling
+    [ ] Is BW expansion and Rk noise floor required before LSP quant
+    [ ] test split VQ to make sure no silly errors
+        + for example test MSE or index historgram for training data
 
-[ ] Go through papers referenced in thesis and credit various
-    techniques to papers.
+    [ ] Go through papers referenced in thesis and credit various
+        techniques to papers.
       + sure there was somthing about zero phase synthesis is those papers
 
-[ ] voicing errors can be clearly seen in synthesised speech using pl2.m
+    [ ] voicing errors can be clearly seen in synthesised speech using pl2.m
 
-[ ] Voicing improvement
-    + voicing tracker, if enery about the same in frame n-1,n,n+1, and n-1, n+1
-      are voiced then make frame n voiced.
+    [ ] Voicing improvement
+        + voicing tracker, if enery about the same in frame n-1,n,n+1, and n-1, n+1
+          are voiced then make frame n voiced.
 
-[ ] mmt1 with zero phase model
-    + male with lots of background noise
-    + zero order synth model sounds more "clicky" on mmt1, this suggests less
-      dispersion
-    + could be due to IRS filtering or background noise
-    + exploring this could lead to better understanding on phase, e.g. add
-      noise to clean samples and explore effect on zero phase model
-    + wrote plphase.m to start analysing this
+    [ ] mmt1 with zero phase model
+        + male with lots of background noise
+        + zero order synth model sounds more "clicky" on mmt1, this suggests less
+          dispersion
+        + could be due to IRS filtering or background noise
+        + exploring this could lead to better understanding on phase, e.g. add
+          noise to clean samples and explore effect on zero phase model
+        + wrote plphase.m to start analysing this
 

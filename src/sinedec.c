@@ -177,10 +177,10 @@ int main(int argc, char *argv[])
     /* Read input speech */
 
     fread(buf,sizeof(short),N,fin);
-    for(i=0; i<N+AW_ENC/2; i++)
+    for(i=0; i<M-N; i++)
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
-      Sn[i+N+AW_ENC/2] = buf[i];
+      Sn[i+M-N] = buf[i];
     dump_Sn(Sn);
     dft_speech(); dump_Sw(Sw);   
 
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
     /* optional phase modelling */
 
     if (phase) {
-	float Wn[AW_ENC];		/* windowed speech samples */
+	float Wn[M];		        /* windowed speech samples */
 	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
         COMP  H[MAX_AMP];               /* LPC freq domain samples */
 	float n_min;
@@ -209,9 +209,9 @@ int main(int argc, char *argv[])
 	    /* Determine LPC model using time domain LPC if we don't have
 	       any LPCs yet */
 
-	    for(i=0; i<AW_ENC; i++)
+	    for(i=0; i<M; i++)
 		Wn[i] = Sn[i]*w[i];
-	    autocorrelate(Wn,Rk,AW_ENC,PHASE_LPC_ORD);
+	    autocorrelate(Wn,Rk,M,PHASE_LPC_ORD);
 	    levinson_durbin(Rk,ak,PHASE_LPC_ORD);
 	}
 	else

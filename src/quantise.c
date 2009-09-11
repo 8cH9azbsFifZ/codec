@@ -247,7 +247,7 @@ float lpc_model_amplitudes(
   float  ak[]                   /* output aks */
 )
 {
-  float Wn[AW_ENC];
+  float Wn[M];
   float R[MAX_ORDER+1];
   float E;
   int   i;
@@ -257,9 +257,9 @@ float lpc_model_amplitudes(
   int   index;
   float se;
 
-  for(i=0; i<AW_ENC; i++)
+  for(i=0; i<M; i++)
       Wn[i] = Sn[i]*w[i];
-  autocorrelate(Wn,R,AW_ENC,order);
+  autocorrelate(Wn,R,M,order);
 
   levinson_durbin(R,ak,order);
   E = 0.0;

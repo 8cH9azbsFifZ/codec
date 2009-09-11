@@ -56,12 +56,12 @@ void dft_speech()
   /* move 2nd half to start of FFT input vector */
 
   for(i=0; i<NW/2; i++)
-    Sw[i].real = Sn[i+M/2]*w[i+AW_ENC/2];
+    Sw[i].real = Sn[i+M/2]*w[i+M/2];
 
   /* move 1st half to end of FFT input vector */
 
   for(i=0; i<NW/2; i++)
-    Sw[FFT_ENC-NW/2+i].real = Sn[i+M/2-NW/2]*w[i+AW_ENC/2-NW/2];
+    Sw[FFT_ENC-NW/2+i].real = Sn[i+M/2-NW/2]*w[i+M/2-NW/2];
 
   four1(&Sw[-1].imag,FFT_ENC,-1);
 }

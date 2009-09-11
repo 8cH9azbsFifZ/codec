@@ -51,8 +51,7 @@
 
 /* Encoder defines */
 
-#define NW      280             /* analysis window size */
-#define AW_ENC  512		/* maximum encoder analysis window size */
+#define NW      279             /* analysis window size */
 #define FFT_ENC 512		/* size of FFT used for encoder analysis */
 
 /* Decoder defines */

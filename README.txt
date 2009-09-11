@@ -10,9 +10,9 @@ Introduction
 Codec2 is a open source low bit rate speech codec designed for
 communications quality speech at around 2400 kbit/s.  Applications
 include low bandwidth HF/VHF digital radio.  It fills a gap in open
-source, free as in speech voice codecs beneath 5000 bit/s.
+source, free-as-in-speech voice codecs beneath 5000 bit/s.
 
-The motivations behind the project are summarised on this
+The motivations behind the project are summarised in this
 link:/blog/?p=128[blog post].
 
 [[status]]
@@ -77,6 +77,8 @@ Development Roadmap
       [ ] Frame rate/quantisation schemes for 2400 bit/s developed
       [ ] Refactor to develop a encoder/decoder functions
       [ ] Test phone call over LAN
+      [ ] Fixed point port
+      [ ] codec2-on-a-chip embedded DSP/CPU port
 
 [[howitworks]]
 How it Works
@@ -113,7 +115,7 @@ update rate).
 
 The speech quality of the basic harmonic sinusoidal model is pretty
 good, close to transparent.  It is also relatively robust to Wo
-estimation errors.  Unvoiced Speech (e.g. consonants) are well
+estimation errors.  Unvoiced speech (e.g. consonants) are well
 modelled by a bunch of harmonics with random phases.  Speech corrupted
 with background noise also sounds OK, the background noise doesn't
 introduce any grossly unpleasant artifacts.
@@ -143,9 +145,10 @@ The tough bits of this project are:
    unvoiced (constants).  The voicing model needs to be accurate (not
    introduce distortion), and relatively low bit rate.
 
-4. Quantisation of the amplitudes { A } to a small number of bits while
-   maintaining speech quality.  For example 30 bits/frame is 1500
-   bits/s, a large part of our 2400 bit/s "budget".
+4. Quantisation of the amplitudes { A } to a small number of bits
+   while maintaining speech quality.  For example 30 bits/frame at a
+   20ms frame rate is 30/0.02 = 1500 bits/s, a large part of our 2400
+   bit/s "budget".
 
 5. Performance with different speakers and background noise
    conditions.  This is where you come in - as codec2 develops please
@@ -153,6 +156,20 @@ The tough bits of this project are:
    background noise conditions and together we will improve the
    algorithm.  This approach proved very powerful when developing
    link:oslec.html[Oslec].  One of the cool things about open source!
+
+[[help]]
+Can I help?
+-----------
+
+Maybe, check out the latest version of the
+http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/TODO.txt?view=log[TODO]
+list and the development roadmap above and see if there is anything
+that interests you.
+
+I will happily accept sponsorship for this project.  For example
+research grants, or development contracts for companies interested in
+seeing an open source low bit rate speech codec.  One interesting
+project would be funding a real time port to a single DSP/CPU chip.
 
 [[patents]]
 Is it Patent Free?
@@ -167,11 +184,11 @@ compare.
 Proprietary codecs typically have small, novel parts of the algorithm
 protected by patents.  However the designers of these codecs rely
 heavily on large bodies of existing, public domain work.  The patents
-cover perhaps 5% of the codec algorithms.  The designers of
-proprietary codecs did not invent most of the algorithms they use in
-their codec. Typically, the patents just cover enough to make
-designing an interoperable codec very difficult.  These also tend to
-be the parts that make their codecs sound good.
+cover perhaps 5% of the codec algorithms.  Proprietary codec designers
+did not invent most of the algorithms they use in their
+codec. Typically, the patents just cover enough to make designing an
+interoperable codec very difficult.  These also tend to be the parts
+that make their codecs sound good.
 
 However there are many ways to make a codec sound good, so we simply
 need to choose and develop other methods.
@@ -195,21 +212,36 @@ recovered via RMS method (Section 5.1 of thesis).  Equal area model of
 LPC spectra versus harmonic seems to work remarkably well, especially
 compared to sampling.  SNRs up to 30dB on female frames.
 
-m=1 harmonic problem for males when LPC modelled. The amplitude of
-this harmonic is raised by as much as 30dB after LPC modelling as (I
-think) LPC spectra must have zero derivative at DC.  This means it's
-poor at modelling very low freq harmonics which unfortunately the ear
-is very sensitive to.  Consider automatic lowering for 20dB of this
-harmonic or maybe a few extra bits to quantise error.
+There is a problem with modelling the low order (e.g. m=1,
+i.e. fundamental) harmonics for males. The amplitude of the m=1
+harmonic is raised by as much as 30dB after LPC modelling as (I think)
+LPC spectra must have zero derivative at DC.  This means it's poor at
+modelling very low freq harmonics which unfortunately the ear is very
+sensitive to.  Consider automatic lowering for 20dB of this harmonic
+or maybe a few extra bits to quantise error.  Or maybe just don't
+synthesise anything beneath 200Hz.
 
 [[phase]]
 Phase Modelling Notes
 ---------------------
 
-Phase modelling makes no attempt to match harmonic phases at frame
-edges.  This area would be worth experimenting with, as it could cause
-roughness.  Then again it might be responsible for effective mixed
-voicing modelling.
+"Zero order" and "First order" phase models have been developed to
+synthesise phases of each harmonic at the decoder side.  These are
+described in source code of
+http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/src/phase.c?view=log[phase.c].
+
+The zero phase model required just one voicing bit to be transmitted
+to the decoder, all other phase information is synthesised use a rule
+based model.  It seems to work OK for most speech samples.
+
+To determine voicing we attempt to fit a first order phase model, then
+measure SNR of the fit.  The frame is declared unvoiced if the SNR is
+beneath a threshold.
+
+Current phase modelling makes no attempt to match harmonic phases at
+frame edges.  This area would be worth experimenting with, as it could
+cause roughness.  Then again it might be responsible for effective
+mixed voicing modelling.
 
 Unvoiced speech can be represented well by random phases and a Wo
 estimate that jumps around randomly.  If Wo is small the number of
@@ -229,28 +261,38 @@ Zero Phase model (just one voicing bit/frame):
 
   $ ./sinedec ../raw/hts1a.raw hts1a.mdl --phase 0 - hts1a_phase0.raw
 
-First order Phase model (around 12 bits/frame bits for pulse position
-and phase):
+First order Phase model (when quantised around 13 bits/frame bits for
+pulse position, phase, and a voicing bit):
 
   $ ./sinedec ../raw/hts1a.raw hts1a.mdl --phase 1 - hts1a_phase1.raw
-
 
 [[octave]]
 Octave Scripts 
 --------------
 
-pl.m    - plot a segment from a raw file
+* pl.m    - plot a segment from a raw file
 
-pl2.m   - plot the same segments from two different files to compare
+* pl2.m   - plot the same segments from two different files to compare
 
-plamp.m - menu based GUI interface to "dump" files, move back and forward
+* plamp.m - menu based GUI interface to "dump" files, move back and forward
           through file examining time and frequency domain parameters, lpc 
           model etc
   
           $ ./sinedec ../raw/hts1a.raw hts1a.mdl --lpc 10 --dump hts1a
           $ cd ../octave
           $ octave
-          octave:1> plamp("../src/hts1",25)
+          octave:1> plamp("../src/hts1a",25)
+
+* plphase.m - similar to plamp.m but for analysing phase models
+
+          $ ./sinedec ../raw/hts1a.raw hts1a.mdl --phase [0|1] --dump hts1a_phase
+          $ cd ../octave
+          $ octave
+          octave:1> plphase("../src/hts1a_phase",25)
+
+* plpitch.m - plot two pitch contours (.p files) and compare
+
+* plnlp.m   - plots a bunch of NLP pitch estimator states.  link:/images/codec2/tnlp_screenshot.png[Screenshot]
 
 [[directories]]
 Directories
@@ -265,8 +307,31 @@ Directories
   unittest - Unit test source code
   wav      - speech files in wave file format
 
-[[refs]]
-References
+[[other]]
+Other Uses
+----------
+
+The DSP algorithms contained in codec2 may be useful for other DSP
+applications, for example:
+
+* The
+  http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/src/nlp.c?view=log[nlp.c]
+  pitch estimator is a working, tested, pitch estimator for human
+  speech.  NLP is an open source pitch estimator presented in C code
+  complete with a GUI debugging tool (plnlp.m
+  link:/images/codec2/tnlp_screenshot.png[screenshot]).  It can be run
+  stand-alone using the
+  http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/unittest/tnlp.c?view=log[tnlp.c]
+  unit test program. It could be applied to other speech coding
+  research.  Pitch estimation is a popular subject in academia,
+  however most pitch estimators are described in papers, with the fine
+  implementation details left out.
+
+* The basic analysis/synthesis framework could be used for high
+  quality speech synthesis.
+
+[[refs]] 
+References 
 ----------
 
 [1] http://perens.com/[Bruce Perens] introducing the
