@@ -19,6 +19,9 @@ link:/blog/?p=128[blog post].
 Status
 ------
 
+Still in experimental/development stage - no 2400 bit/s codec
+available yet.  Progress to date:
+
 1. Unquantised encoder (sinenc) and decoder (sinedec) running under
    Linux/gcc, pitch estimator untested.  The decoder (sinedec) is a
    test-bed for various modelling and quantisation options - these are
@@ -30,6 +33,9 @@ Status
 
 3. Phase model developed that uses 0 bits for phase and 1 bit/frame
    for voiced/unvoiced decision.
+
+4. Non-Linear Pitch (NLP) pitch estimator working OK, could use a pitch
+   tracker to improve a few problem frames.
 
 [[source]]
 The Source Code
@@ -69,16 +75,23 @@ Development Roadmap
 -------------------
 
   [X] Milestone 0 - Project kick off
-  [X] Milestone 1 - Baseline unquantised codec running under Linux/gcc
-  [ ] Milestone 3 - Prototype 2400 bit/s codec
+  [X] Milestone 1 - Alpha 2400 bits/s codec
       [X] Spectral amplitudes modelled and quantised 
       [X] Phase and voicing model developed
-      [ ] Pitch estimator integrated into encoder
+      [ ] Pitch estimator
       [ ] Frame rate/quantisation schemes for 2400 bit/s developed
-      [ ] Refactor to develop a encoder/decoder functions
+      [ ] Refactor to develop a seperate encoder/decoder functions
       [ ] Test phone call over LAN
-      [ ] Fixed point port
-      [ ] codec2-on-a-chip embedded DSP/CPU port
+      [ ] Release 0.1 for Alpha Testing
+  [ ] Milestone 2 - Beta codec for digital radio
+      [ ] Gather samples from the community with different speakers,
+          input filtering, and background noise conditions that break
+	  codec.
+      [ ] Further develop algorithm based on samples above
+      [ ] Design FEC scheme
+      [ ] Test over digital radio links
+  [ ] Milestone 3 - Fixed point port
+  [ ] Milestone 4 - codec2-on-a-chip embedded DSP/CPU port
 
 [[howitworks]]
 How it Works
@@ -161,7 +174,7 @@ The tough bits of this project are:
 Can I help?
 -----------
 
-Maybe, check out the latest version of the
+Maybe; check out the latest version of the
 http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/TODO.txt?view=log[TODO]
 list and the development roadmap above and see if there is anything
 that interests you.

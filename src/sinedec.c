@@ -33,6 +33,7 @@
 #include "dump.h"
 #include "phase.h"
 #include "lpc.h"
+#include "synth.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -86,6 +87,8 @@ int main(int argc, char *argv[])
   
   int phase, phase_model;
   float prev_Wo, ex_phase;
+  float phi_prev[MAX_AMP];
+  float Wo_prev;
 
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
@@ -148,6 +151,7 @@ int main(int argc, char *argv[])
       dump_on(argv[dump+1]);
 
   lsp = switch_present("--lsp",argc,argv);
+  lsp_quantiser = 0;
   if (lsp) 
       lsp_quantiser = atoi(argv[lsp+1]);
 
@@ -235,7 +239,10 @@ int main(int argc, char *argv[])
 
     if (fout != NULL) {
 
-	synthesise_mixed(Pn,&model,Sn_);
+	if (phase)
+	    synthesise_continuous_phase(Pn, &model, Sn_, (snr>2.0), &Wo_prev, phi_prev);
+	else
+	    synthesise_mixed(Pn,&model,Sn_);
 
 	/* Save output speech to disk */
 

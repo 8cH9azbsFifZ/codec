@@ -2,13 +2,23 @@ TODO for codec2
 ---------------
 
 [ ] Important Open Issues
-    [ ] Why zero phase model doesn'y work for mmt1
-    [ ] Pitch errors on mmt1
+    [ ] Why zero phase model doesn't work for mmt1
+    [ ] residual noise on zero phase model
+        + "navy" on hts1a, "frog" on morig
+        + perhaps due to mis-alignment of phases at frame boundaries?
+        + or possibly pitch errors
+        + need a way to research this
+    [ ] Pitch errors on mmt1, morig
         + we may need a tracker
+        + suggest manually step through each file, check for
+          pitch errors, design tracker and check again
+        + or develop manual pitch tracks and check estimator
+          with tracker against these.
     [ ] removal of LPC modelling errors for males
-        + first few haromic energies get raised
+        + first few haromic energies (e.g. mmt1, hts1a)  get raised
+    [ ] good quality LSP quantisation of {Am}
     [ ] conversion to 20ms frames
-        + without significnat distortion
+        + without significant distortion
 
 [ ] Planned tasks and half formed ideas for codec2.....
     [X] Convert files from DOS to Unix
