@@ -13,7 +13,7 @@ TNLP_OBJ     = tnlp.o ../src/nlp.o ../src/four1.o ../src/initenc.o ../src/dump.o
                ../src/globals.o  ../src/refine.o
 
 TCONTPHASE_OBJ = tcontphase.o ../src/globals.o ../src/dump.o ../src/synth.o \
-                 ../src/four1.c ../src/initdec.o
+                 ../src/four1.c ../src/initdec.o ../src/phase.o
 
 lsptest: $(LSP_TEST_OBJ)
 	gcc $(CFLAGS) -o lsptest $(LSP_TEST_OBJ) -lm

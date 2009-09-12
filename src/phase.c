@@ -344,6 +344,12 @@ void phase_synth_zero_order(
     if (m <= Lrand) {
         Ex[m].real = cos(ex_phase[0]*m);
 	Ex[m].imag = sin(ex_phase[0]*m);
+
+	/* following is an experiment in dispersing pulse energy over time,
+	   didn't really change sound at all, e.g. mmt1 still sounded
+	   "clicky"*/
+        //Ex[m].real = cos(ex_phase[0]*m + model.Wo*m*m*0.3);
+	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
     }
     else {
 	/* we probably don't need to LPC filter phase in unvoiced case,
@@ -362,12 +368,6 @@ void phase_synth_zero_order(
 
     new_phi = atan2(A_[m].imag, A_[m].real+1E-12);
     model.phi[m] = new_phi;
-
-    /* little bit of randomness to phase - possibly makes females
-       sound slightly better, need to do some more research.  May not
-       be needed */
-
-    model.phi[m] += (m*model.Wo)*rand()/RAND_MAX;
   }
 }
 

@@ -87,8 +87,6 @@ int main(int argc, char *argv[])
   
   int phase, phase_model;
   float prev_Wo, ex_phase;
-  float phi_prev[MAX_AMP];
-  float Wo_prev;
 
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
@@ -226,6 +224,9 @@ int main(int argc, char *argv[])
 
 	dump_snr(snr);
 	if (phase_model == 0) {
+	    /* just to make sure we are not cheating - kill all phases */
+	    for(i=0; i<MAX_AMP; i++)
+	    	model.phi[i] = 0;
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
 	}
 
@@ -239,10 +240,7 @@ int main(int argc, char *argv[])
 
     if (fout != NULL) {
 
-	if (phase)
-	    synthesise_continuous_phase(Pn, &model, Sn_, (snr>2.0), &Wo_prev, phi_prev);
-	else
-	    synthesise_mixed(Pn,&model,Sn_);
+	synthesise_mixed(Pn,&model,Sn_);
 
 	/* Save output speech to disk */
 
