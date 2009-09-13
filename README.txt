@@ -214,9 +214,55 @@ Nope - I don't think it's possible to build a compatible codec without
 infringing on patents or access to commercial in confidence
 information.
 
+[[hacking]]
+Hacking
+-------
+
+If you would like to work on the Codec2 code base here are some
+notes:
+
+* src/code.sh will perform the several processing steps
+  required to output speech files at various processing steps, for
+  example:
+
+  $ ./code.sh hts1a
++
+will produce hts1a_uq (unquantised, i.e. baseline sinusoidal model),
+hts1a_phase0 (zero phase model), hts1a_lpc10 (10th order LPC model).
+
+* You can then listen to all of these samples (and the original)
+  using:
+
+  $ ./listen.sh hts1a
+
+* Specific notes about LPC and Phase modelling are below.
+
+* There are some useful scripts in the scripts directory, for example
+  wav2raw.sh, raw2wav.sh, playraw.sh, menu.sh.  Note that code.sh and
+  listen.sh are in the src directory as thats where they get used most
+  of the time.
+
 [[lpc]]
 LPC Modelling Notes
 -------------------
+
+Linear Prediction Coefficient (LPC) modelling is used to model the
+sine wave amplitudes { A }.  The use of LPC in speech coding is
+common, although the application of LPC modelling to frequency domain
+coding is fairly novel.  They are mainly used for time domain codecs
+like LPC-10 and CELP.
+
+LPC modelling has a couple of advantages:
+
+* From time domain coding we know a lot about LPC, for example how to
+  quantise them efficiently using Line Spectrum Pairs (LSPs).
+
+* The number of amplitudes varies each frame as Wo and hence L vary.
+  This makes the { A } tricky to quantise and transmit.  However it is
+  possible to convey the same information using a fixed number of
+  LPCs which makes the quantisation problem easier.
+
+To test LPC modelling:
 
   $ ./sinedec ../raw/hts1a.raw hts1a.mdl --lpc 10 - hts1a_lpc10.raw
 

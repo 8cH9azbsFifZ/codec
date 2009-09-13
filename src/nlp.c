@@ -109,7 +109,8 @@ float nlp_fir[] = {
 float test_candidate_mbe(COMP Sw[], float f0);
 float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax);
 float post_process_sub_multiples(COMP Fw[], 
-				 int pmin, int pmax, float gmax, int gmax_bin);
+				 int pmin, int pmax, float gmax, int gmax_bin,
+				 float *prev_Wo);
 extern int frames;
 
 /*---------------------------------------------------------------------------*\
@@ -149,7 +150,8 @@ float nlp(
   int    pmin,			/* minimum pitch value */
   int    pmax,			/* maximum pitch value */
   float *pitch,			/* estimated pitch period in samples */
-  COMP   Sw[]                   /* Freq domain version of Sn[] */
+  COMP   Sw[],                  /* Freq domain version of Sn[] */
+  float *prev_Wo
 )
 {
   static float sq[PMAX_M];	/* squared speech samples */
@@ -192,8 +194,9 @@ float nlp(
     Fw[i].real = 0.0;
     Fw[i].imag = 0.0;
   }
-  for(i=0; i<m/DEC; i++)
+  for(i=0; i<m/DEC; i++) {
     Fw[i].real = sq[i*DEC]*(0.5 - 0.5*cos(2*PI*i/(m/DEC-1)));
+  }
   dump_dec(Fw);
   four1(&Fw[-1].imag,PE_FFT_SIZE,1);
   for(i=0; i<PE_FFT_SIZE; i++)
@@ -215,7 +218,7 @@ float nlp(
   #ifdef POST_PROCESS_MBE
   best_f0 = post_process_mbe(Fw, pmin, pmax, gmax);
   #else
-  best_f0 = post_process_sub_multiples(Fw, pmin, pmax, gmax, gmax_bin);
+  best_f0 = post_process_sub_multiples(Fw, pmin, pmax, gmax, gmax_bin, prev_Wo);
   #endif
 
   /* Shift samples in buffer to make room for new samples */
@@ -251,20 +254,22 @@ float nlp(
 \*---------------------------------------------------------------------------*/
 
 float post_process_sub_multiples(COMP Fw[], 
-				 int pmin, int pmax, float gmax, int gmax_bin)
+				 int pmin, int pmax, float gmax, int gmax_bin,
+				 float *prev_Wo)
 {
     int   min_bin, cmax_bin;
     int   mult;
     float thresh, best_f0;
     int   b, bmin, bmax, lmax_bin;
     float lmax, cmax;
+    int   prev_f0_bin;
 
     /* post process estimate by searching submultiples */
 
     mult = 2;
     min_bin = PE_FFT_SIZE*DEC/pmax;
-    thresh = CNLP*gmax;
     cmax_bin = gmax_bin;
+    prev_f0_bin = *prev_Wo*(4000.0/PI)*(PE_FFT_SIZE*DEC)/SAMPLE_RATE;
 
     while(gmax_bin/mult >= min_bin) {
 
@@ -273,7 +278,15 @@ float post_process_sub_multiples(COMP Fw[],
 	bmax = 1.2*b;
 	if (bmin < min_bin)
 	    bmin = min_bin;
-      
+
+	/* lower threshold to favour previous frames pitch estimate,
+	    this is a form of pitch tracking */
+
+	if ((prev_f0_bin > bmin) && (prev_f0_bin < bmax))
+	    thresh = CNLP*0.5*gmax;
+	else
+	    thresh = CNLP*gmax;
+
 	lmax = 0;
 	for (b=bmin; b<=bmax; b++) 		/* look for maximum in interval */
 	    if (Fw[b].real > lmax) {
@@ -282,7 +295,7 @@ float post_process_sub_multiples(COMP Fw[],
 	    }
 
 	if (lmax > thresh)
-	    if (lmax > Fw[lmax_bin-1].real && lmax > Fw[lmax_bin+1].real) {
+	    if ((lmax > Fw[lmax_bin-1].real) && (lmax > Fw[lmax_bin+1].real)) {
 		cmax = lmax;
 		cmax_bin = lmax_bin;
 	    }

@@ -342,7 +342,6 @@ void phase_synth_zero_order(
     /* generate excitation */
 
     if (m <= Lrand) {
-	b = floor(m*model.Wo*FFT_DEC/TWO_PI + 0.5);
         Ex[m].real = cos(ex_phase[0]*m);
 	Ex[m].imag = sin(ex_phase[0]*m);
 

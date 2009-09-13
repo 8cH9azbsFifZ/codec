@@ -80,6 +80,7 @@ char *argv[];
     float pitch;
     int   i; 
     int   dump;
+    float prev_Wo;
     
     if (argc < 3) {
 	printf("\nusage: tnlp InputRawSpeechFile OutputPitchTextFile "
@@ -109,6 +110,7 @@ char *argv[];
     make_window(NW);
 
     frames = 0;
+    prev_Wo = 0;
     while(fread(buf,sizeof(short),N,fin)) {
       frames++;
 
@@ -121,7 +123,8 @@ char *argv[];
       dft_speech();
       dump_Sn(Sn); dump_Sw(Sw); 
 
-      nlp(Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw);
+      nlp(Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw,&prev_Wo);
+      prev_Wo = TWO_PI/pitch;
 
       fprintf(fout,"%f\n",pitch);
     }

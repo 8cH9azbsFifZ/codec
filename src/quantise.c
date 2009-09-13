@@ -321,6 +321,9 @@ void aks_to_M2(
   float Em;		/* energy in band */
   float Am;		/* spectral amplitude sample */
   float signal, noise;
+  float E1,Am1;
+
+  Am1 = model->A[1];
 
   r = TWO_PI/(FFT_DEC);
 
@@ -359,17 +362,25 @@ void aks_to_M2(
   }
   *snr = 10.0*log10(signal/noise);
 
-  /* attenuate fundamental by 30dB if F0 < 150 Hz.  LPC modelling often makes
-     big errors on 1st harmonic, which is usually at very low level due to
-     analog HPF.
+  /* 
+     Attenuate fundamental by 30dB if F0 < 150 Hz and LPC modelling
+     error for A[1] is larger than 6dB.
 
-     Another option is to use a single bit to swith thos attenuation
-     in and out based on measured error an encoder.  That way
-     non-HPF speech won't be impaired.
+     LPC modelling often makes big errors on 1st harmonic, for example
+     when the fundamental has been removed by analog high pass
+     filtering before sampling.  However on unfiltered speech from
+     high quality sources we would like to keep the fundamental to
+     maintain the speech quality.  So we check the error in A[1] and
+     attenuate it if the error is large to avoid annoying low
+     frequency energy after LPC modelling.
+
+     This will require a single bit to quantise, on top of the other
+     spectral magnitude bits (i.e. LSP bits + 1 total).
    */
 
-  if (model->Wo < PI*150.0/4000) {
-      model->A[1] *= 0.032;
-  }
-
+  E1 = fabs(20.0*log10(Am1) - 20.0*log10(model->A[1]));
+  if (E1 > 6.0)
+      if (model->Wo < (PI*150.0/4000)) {
+	  model->A[1] *= 0.032;
+      }
 }
