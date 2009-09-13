@@ -47,6 +47,7 @@ static FILE *fsq = NULL;
 static FILE *fdec = NULL;
 static FILE *fsnr = NULL;
 static FILE *fak = NULL;
+static FILE *fbg = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -86,6 +87,8 @@ void dump_off(){
 	fclose(fsnr);
     if (fak != NULL)
 	fclose(fak);
+    if (fbg != NULL)
+	fclose(fbg);
 }
 
 void dump_Sn(float Sn[]) {
@@ -367,5 +370,21 @@ void dump_dec(COMP Fw[]) {
 	fprintf(fdec,"%f\t",Fw[i].real);
     fprintf(fdec,"\n");    
 }
+
+void dump_bg(float e, float bg_est, float percent_uv) {
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fbg == NULL) {
+	sprintf(s,"%s_bg.txt", prefix);
+	fbg = fopen(s, "wt");
+	assert(fbg != NULL);
+    }
+
+    fprintf(fbg,"%f\t%f\t%f\n", e, bg_est, percent_uv);    
+}
+
+
 
 

@@ -85,7 +85,8 @@ void estimate_amplitudes()
 
     model.phi[m] = atan2(Sw[b].imag,Sw[b].real);
 
-    /* construct all voiced model spectrum and estimate voicing */
+    #ifdef MBE_VOICING_NEEDED
+    /* construct all voiced model spectrum and estimate voicing using MBE model */
 
     E = 0.0;
     for(i=am; i<bm; i++) {
@@ -95,6 +96,7 @@ void estimate_amplitudes()
       E = pow(Sw[i].real - Sw_[i].real, 2.0) + pow(Sw[i].imag - Sw_[i].imag, 2.0);
     }
     model.v[m] = E/den;
+    #endif
   }
 }
 

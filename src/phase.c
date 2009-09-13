@@ -328,7 +328,7 @@ void phase_synth_zero_order(
     if (Lrand < 1) Lrand = 1;
     if (Lrand > model.L) Lrand = model.L;
   }
-
+  
   /* update excitation fundamental phase track */
 
   ex_phase[0] += (*prev_Wo+model.Wo)*N/2.0;
@@ -342,6 +342,7 @@ void phase_synth_zero_order(
     /* generate excitation */
 
     if (m <= Lrand) {
+	b = floor(m*model.Wo*FFT_DEC/TWO_PI + 0.5);
         Ex[m].real = cos(ex_phase[0]*m);
 	Ex[m].imag = sin(ex_phase[0]*m);
 
@@ -350,6 +351,16 @@ void phase_synth_zero_order(
 	   "clicky"*/
         //Ex[m].real = cos(ex_phase[0]*m + model.Wo*m*m*0.3);
 	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
+
+	/* following is an experiment to use the phase of a glottal pulse
+	   (see octave/glottal.m) in an attempt io make mmt1 and hts1 a little
+	   less "clicky", i.e. disperse the pusle energy away from the point
+	   of onset.  Result was no difference in speech quality, in fact
+	   no difference at all. Could be an implementation error I guess. */
+	//b = floor(m*model->Wo*FFT_DEC/TWO_PI + 0.5);
+        //Ex[m].real = cos(ex_phase[0]*m + glottal[b]);
+	//Ex[m].imag = sin(ex_phase[0]*m + glottal[b]);
+	   
     }
     else {
 	/* we probably don't need to LPC filter phase in unvoiced case,

@@ -8,4 +8,5 @@
 ../src/sinenc ../raw/$1.raw %1.mdl 300 ../unittest/$1_nlp.p
 ../src/sinedec ../raw/$1.raw %1.mdl -o $1_uq.raw
 ../src/sinedec ../raw/$1.raw %1.mdl --phase 0 -o $1_phase0.raw
+../src/sinedec ../raw/$1.raw %1.mdl --lpc 10 -o $1_lpc10.raw
 

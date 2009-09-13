@@ -95,7 +95,13 @@ void synthesise_mixed(
   track. So in unvoiced frames or in cases where the fundamental
   frequency varies by more that 20%, we don't add the small frequency
   offset.
-  
+
+  Result: when tested was no difference in output speech quality.  The
+  partial unvoiced sound when using zero phase model was found to be
+  due mis-laignment of teh LPC analysis window and accidental addition
+  of a random phase component.  So we are sticking with synthesise_mixed()
+  above for now.
+
 \*---------------------------------------------------------------------------*/
 
 void synthesise_continuous_phase(

@@ -34,6 +34,7 @@
 #include "phase.h"
 #include "lpc.h"
 #include "synth.h"
+#include "postfilter.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -87,6 +88,9 @@ int main(int argc, char *argv[])
   
   int phase, phase_model;
   float prev_Wo, ex_phase;
+
+  int   postfilt;
+  float bg_est;
 
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
@@ -161,6 +165,9 @@ int main(int argc, char *argv[])
       assert((phase_model == 0) || (phase_model == 1));
   }
 
+  bg_est = 0.0;
+  postfilt = switch_present("--postfilter",argc,argv);
+
   /* Initialise ------------------------------------------------------------*/
 
   init_decoder();
@@ -225,8 +232,8 @@ int main(int argc, char *argv[])
 	dump_snr(snr);
 	if (phase_model == 0) {
 	    /* just to make sure we are not cheating - kill all phases */
-	    for(i=0; i<MAX_AMP; i++)
-	    	model.phi[i] = 0;
+	    //for(i=0; i<MAX_AMP; i++)
+	    //	model.phi[i] = 0;
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
 	}
 
@@ -235,6 +242,10 @@ int main(int argc, char *argv[])
             dump_phase_(&model.phi[0]);
         }
     }
+
+    if (postfilt)
+	postfilter(&model, snr>2.0, &bg_est);
+
 
     /* Synthesise speech */
 
