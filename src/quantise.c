@@ -358,4 +358,18 @@ void aks_to_M2(
     model->A[m] = Am;
   }
   *snr = 10.0*log10(signal/noise);
+
+  /* attenuate fundamental by 30dB if F0 < 150 Hz.  LPC modelling often makes
+     big errors on 1st harmonic, which is usually at very low level due to
+     analog HPF.
+
+     Another option is to use a single bit to swith thos attenuation
+     in and out based on measured error an encoder.  That way
+     non-HPF speech won't be impaired.
+   */
+
+  if (model->Wo < PI*150.0/4000) {
+      model->A[1] *= 0.032;
+  }
+
 }
