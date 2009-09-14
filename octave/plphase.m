@@ -46,6 +46,7 @@ function plphase(samname, f)
     sn_  = fread(fs_,Inf,"short");
   endif
 
+  k = ' ';
   do 
     figure(1);
     clg;
@@ -53,6 +54,10 @@ function plphase(samname, f)
     plot(s);
     grid;
     axis([1 length(s) -20000 20000]);
+    if (k == 'p')
+       pngname = sprintf("%s_%d_sn",samname,f);
+       png(pngname);
+    endif
 
     figure(2);
     Wo = model(f,1);
@@ -87,6 +92,10 @@ function plphase(samname, f)
     endif
 
     hold off;
+    if (k == 'p')
+       pngname = sprintf("%s_%d_sw",samname,f);
+       png(pngname);
+    endif
 
     if (file_in_path(".",phase_name))
       figure(3);
@@ -98,6 +107,10 @@ function plphase(samname, f)
 	grid
 	hold off;
       endif
+      if (k == 'p')
+        pngname = sprintf("%s_%d_phase",samname,f);
+        png(pngname);
+      endif
     endif
 
     % synthesised speech 
@@ -107,6 +120,10 @@ function plphase(samname, f)
       s_ = sn_((f-3)*80+1:(f+1)*80);
       plot(s_);
       axis([1 length(s_) -20000 20000]);
+      if (k == 'p')
+        pngname = sprintf("%s_%d_sn_",samname,f)
+        png(pngname);
+      endif
     endif
 
     if (file_in_path(".",ak_name))
@@ -122,9 +139,16 @@ function plphase(samname, f)
       subplot(212);
       plot(angle(H(1:4000))*180/pi,";LPC phase spec;");
       grid;
+      if (k == 'p')
+        % stops multimode errors from gnuplot, I know not why...
+        figure(2);
+        figure(5);
+
+        pngname = sprintf("%s_%d_lpc",samname,f);
+        png(pngname);
+      endif
     endif
 
-    hold off;
 
     % autocorrelation function to research voicing est
     
@@ -155,26 +179,8 @@ function plphase(samname, f)
     % optional print to PNG
 
     if (k == 'p')
-    
-      pngname = sprintf("%s_%d",samname,f);
-
-      % small image
-
-      __gnuplot_set__ terminal png size 420,300
-      ss = sprintf("__gnuplot_set__ output \"%s.png\"", pngname);
-      eval(ss)
-      replot;
-
-      % larger image
-
-      __gnuplot_set__ terminal png size 800,600
-      ss = sprintf("__gnuplot_set__ output \"%s_large.png\"", pngname);
-      eval(ss)
-      replot;
-
-      % for some reason I need this to stop large plot getting wiped
-      __gnuplot_set__ output "/dev/null"
-
+       pngname = sprintf("%s_%d",samname,f);
+       png(pngname);
     endif
 
   until (k == 'q')

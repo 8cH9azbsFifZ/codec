@@ -50,6 +50,7 @@ function plamp(samname, f)
     snr = load(snr_name);
   endif
 
+  k = ' ';
   do 
     figure(1);
     clg;
@@ -104,6 +105,11 @@ function plamp(samname, f)
     endif
 
     hold off;
+
+    if (k == 'p')
+       pngname = sprintf("%s_%d_sn_",samname,f)
+       png(pngname);
+    endif
 
     if (file_in_path(".",phase_name))
       figure(3);

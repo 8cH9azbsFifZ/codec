@@ -2,19 +2,21 @@ TODO for codec2
 ---------------
 
 [ ] Important Open Issues
-    [ ] Why zero phase model doesn't work for mmt1
-    [ ] residual noise on zero phase model
+    [X] Why zero phase model doesn't work for mmt1
+        + error in LPC window and accidental random phase component and
+          effect of background noise on interformant harmonics
+    [X] residual noise on zero phase model
         + "navy" on hts1a, "frog" on morig
         + perhaps due to mis-alignment of phases at frame boundaries?
         + or possibly pitch errors
         + need a way to research this
-    [ ] Pitch errors on mmt1, morig
+    [X] Pitch errors on mmt1, morig
         + we may need a tracker
         + suggest manually step through each file, check for
           pitch errors, design tracker and check again
         + or develop manual pitch tracks and check estimator
           with tracker against these.
-    [ ] removal of LPC modelling errors for males
+    [X] removal of LPC modelling errors for males
         + first few haromic energies (e.g. mmt1, hts1a)  get raised
     [ ] good quality LSP quantisation of {Am}
     [ ] conversion to 20ms frames
@@ -37,7 +39,7 @@ TODO for codec2
 
     [ ] Go through papers referenced in thesis and credit various
         techniques to papers.
-      + sure there was somthing about zero phase synthesis is those papers
+      + sure there was something about zero phase synthesis is those papers
 
     [ ] voicing errors can be clearly seen in synthesised speech using pl2.m
 
