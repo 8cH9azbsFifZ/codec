@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   int lpc_model, order;
   int lsp, lsp_quantiser;
   float ak[LPC_MAX_ORDER+1];
-
+  
   int dump;
   
   int phase, phase_model;
@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
 
   int   postfilt;
   float bg_est;
+
 
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
@@ -163,6 +164,7 @@ int main(int argc, char *argv[])
   if (phase) {
       phase_model = atoi(argv[phase+1]);
       assert((phase_model == 0) || (phase_model == 1));
+      ex_phase = 0;
   }
 
   bg_est = 0.0;
@@ -232,8 +234,8 @@ int main(int argc, char *argv[])
 	dump_snr(snr);
 	if (phase_model == 0) {
 	    /* just to make sure we are not cheating - kill all phases */
-	    //for(i=0; i<MAX_AMP; i++)
-	    //	model.phi[i] = 0;
+	    for(i=0; i<MAX_AMP; i++)
+	    	model.phi[i] = 0;
 	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
 	}
 

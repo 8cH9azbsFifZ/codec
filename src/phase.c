@@ -329,10 +329,19 @@ void phase_synth_zero_order(
     if (Lrand > model.L) Lrand = model.L;
   }
   
-  /* update excitation fundamental phase track */
+  /* update excitation fundamental phase track, this sets
+     the position of each pitch pulse during voiced speech */
 
   ex_phase[0] += (*prev_Wo+model.Wo)*N/2.0;
   ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
+
+  /* After much experimentation I found that a few percent of jitter
+     was effective in reducing "clicky" artifact in hts1 and mmt1. The
+     peaks level of the synthesised speech was reduced to levels closer
+     to the orginal speech as well.*/
+
+  ex_phase[0] += 0.05*TWO_PI*(0.5 - (float)rand()/RAND_MAX);
+  
   *prev_Wo = model.Wo;
 
   /* now modify this frames phase using zero phase model */
@@ -342,12 +351,17 @@ void phase_synth_zero_order(
     /* generate excitation */
 
     if (m <= Lrand) {
-        Ex[m].real = cos(ex_phase[0]*m);
+	Ex[m].real = cos(ex_phase[0]*m);
 	Ex[m].imag = sin(ex_phase[0]*m);
 
-	/* following is an experiment in dispersing pulse energy over time,
-	   didn't really change sound at all, e.g. mmt1 still sounded
-	   "clicky"*/
+	/* following is an experiment in dispersing pulse energy over
+	   time, didn't really change sound at all, e.g. mmt1 still
+	   sounded "clicky.  I think this is because this provides
+	   just a small phase shift between adjacent harmonics.
+	   However for voiced speech it is the high energy harmonics
+	   that form pitch pulses, so we need a relatively high phase
+	   shift between them to disperse pulse energy */
+
         //Ex[m].real = cos(ex_phase[0]*m + model.Wo*m*m*0.3);
 	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
 
@@ -355,7 +369,9 @@ void phase_synth_zero_order(
 	   (see octave/glottal.m) in an attempt io make mmt1 and hts1 a little
 	   less "clicky", i.e. disperse the pusle energy away from the point
 	   of onset.  Result was no difference in speech quality, in fact
-	   no difference at all. Could be an implementation error I guess. */
+	   no difference at all. Could be an implementation error I guess. 
+	   One again - this model doesnt change phases much between adjacent
+	   harmonics, so not much dispersion. */
 	//b = floor(m*model->Wo*FFT_DEC/TWO_PI + 0.5);
         //Ex[m].real = cos(ex_phase[0]*m + glottal[b]);
 	//Ex[m].imag = sin(ex_phase[0]*m + glottal[b]);

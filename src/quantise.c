@@ -37,7 +37,7 @@
 #define MAX_ORDER 20
 
 #define LPC_FLOOR 0.0002        /* autocorrelation floor */
-#define LSP_DELTA1 0.2          /* grid spacing for LSP root searches */
+#define LSP_DELTA1 0.05         /* grid spacing for LSP root searches */
 
 /* Speex lag window */
 
@@ -267,8 +267,9 @@ float lpc_model_amplitudes(
       E += ak[i]*R[i];
   
   if (lsp_quantisation) {
-    roots = lpc_to_lsp(&ak[1], order, lsp, 10, LSP_DELTA1, NULL);
-
+    roots = lpc_to_lsp(&ak[1], order, lsp, 5, LSP_DELTA1, NULL);
+    if (roots != order)
+	printf("LSP roots not found\n");
     index = quantise(cb12, &lsp[0], LSP_12_K, LSP_12_M, &se);
     lsp[0] = cb12[index*LSP_12_K+0];
     lsp[1] = cb12[index*LSP_12_K+1];
