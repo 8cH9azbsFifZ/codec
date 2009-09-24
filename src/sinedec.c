@@ -197,15 +197,8 @@ int main(int argc, char *argv[])
 
     dump_model(&model);
 
-    /* optional LPC model amplitudes */
-
-    if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser, ak);
-	sum_snr += snr;
-        dump_quantised_model(&model);
-    }
-
-    /* optional phase modelling */
+    /* optional phase modelling - make sure this happens before LPC modelling
+       as first order model fit doesn't work well with LPC Modelled {Am} */
 
     if (phase) {
 	float Wn[M];		        /* windowed speech samples */
@@ -226,7 +219,7 @@ int main(int argc, char *argv[])
 	    levinson_durbin(Rk,ak,PHASE_LPC_ORD);
 	}
 	else
-	    assert(order == PHASE_LPC_ORD);
+	  assert(order == PHASE_LPC_ORD);
 
 	dump_ak(ak, PHASE_LPC_ORD);
 	snr = phase_model_first_order(ak, H, &n_min, &min_Am);
@@ -243,11 +236,19 @@ int main(int argc, char *argv[])
 	    phase_synth_first_order(snr, H, n_min, min_Am);
             dump_phase_(&model.phi[0]);
         }
+
+        if (postfilt)
+	    postfilter(&model, snr>2.0, &bg_est);
+
     }
 
-    if (postfilt)
-	postfilter(&model, snr>2.0, &bg_est);
+    /* optional LPC model amplitudes */
 
+    if (lpc_model) {
+	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser, ak);
+	sum_snr += snr;
+        dump_quantised_model(&model);
+    }
 
     /* Synthesise speech */
 
