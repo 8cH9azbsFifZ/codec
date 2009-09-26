@@ -197,32 +197,38 @@ int main(int argc, char *argv[])
 
     dump_model(&model);
 
-    /* optional phase modelling - make sure this happens before LPC modelling
-       as first order model fit doesn't work well with LPC Modelled {Am} */
+    /* optional phase modelling - make sure this happens before LPC
+       modelling of {Am} as first order model fit doesn't work well
+       with LPC Modelled {Am} (not sure why - investigate later) */
 
     if (phase) {
 	float Wn[M];		        /* windowed speech samples */
 	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
+	float ak_phase[PHASE_LPC_ORD+1];/* LPCs                    */
         COMP  H[MAX_AMP];               /* LPC freq domain samples */
 	float n_min;
 	COMP  min_Am;
 	
 	dump_phase(&model.phi[0]);
 
-	if (!lpc_model) {
-	    /* Determine LPC model using time domain LPC if we don't have
-	       any LPCs yet */
+	/* Determine LPCs for phase modelling.  Note that we may also
+	   find the LPCs as part of the {Am} modelling, this can
+	   probably be combined in the final codec.  However during
+	   development some subtle bugs were found when combining LPC
+	   and phase models so for the purpose of development it's
+	   easier to find LPCs indepenently for phase modelling
+	   here. */
 
-	    for(i=0; i<M; i++)
-		Wn[i] = Sn[i]*w[i];
-	    autocorrelate(Wn,Rk,M,PHASE_LPC_ORD);
-	    levinson_durbin(Rk,ak,PHASE_LPC_ORD);
-	}
-	else
-	  assert(order == PHASE_LPC_ORD);
+	for(i=0; i<M; i++)
+	    Wn[i] = Sn[i]*w[i];
+	autocorrelate(Wn,Rk,M,PHASE_LPC_ORD);
+	levinson_durbin(Rk,ak_phase,PHASE_LPC_ORD);
 
-	dump_ak(ak, PHASE_LPC_ORD);
-	snr = phase_model_first_order(ak, H, &n_min, &min_Am);
+	if (lpc_model)
+	    assert(order == PHASE_LPC_ORD);
+
+	dump_ak(ak_phase, PHASE_LPC_ORD);
+	snr = phase_model_first_order(ak_phase, H, &n_min, &min_Am);
 
 	dump_snr(snr);
 	if (phase_model == 0) {
@@ -234,12 +240,12 @@ int main(int argc, char *argv[])
 
 	if (phase_model == 1) {
 	    phase_synth_first_order(snr, H, n_min, min_Am);
-            dump_phase_(&model.phi[0]);
         }
 
         if (postfilt)
 	    postfilter(&model, snr>2.0, &bg_est);
 
+        dump_phase_(&model.phi[0]);
     }
 
     /* optional LPC model amplitudes */
