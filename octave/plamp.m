@@ -75,8 +75,8 @@ function plamp(samname, f)
       endif	
       signal = Am * Am';
       noise = (Am-Amq) * (Am-Amq)'; 
-      snr = 10*log10(signal/noise);
-      Am_err_label = sprintf(";Am_err SNR %4.2f dB;",snr);
+      snr1 = 10*log10(signal/noise);
+      Am_err_label = sprintf(";Am_err SNR %4.2f dB;",snr1);
       plot((1:L)*Wo*4000/pi, 20*log10(Amq) - 20*log10(Am), Am_err_label);
     endif
 
