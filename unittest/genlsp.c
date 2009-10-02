@@ -27,9 +27,9 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#define P 	   10	/* LP order					*/
+#define P 	10	/* LP order					*/
 #define LSP_DELTA1 0.05 /* grid spacing for LSP root searches */
-#define NW	220	/* frame size in samples 			*/
+#define NW	279	/* frame size in samples 			*/
 #define	N  	80 	/* frame to frame shift				*/
 #define THRESH	40.0	/* threshold energy/sample for frame inclusion 	*/
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 	    Sn[i] = Sn[i+N];
 	E = 0.0;
 	for(i=0; i<N; i++) {
-	    Sn[NW-N+i] = buf[i];
+	    Sn[i+NW-N] = buf[i];
 	    E += Sn[i]*Sn[i];
 	}
 
@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
 	    af++;
 	    printf("Active Frame: %ld  unstables: %d\n",af, unstables);
 
-	    find_aks(Sn, ak, N, P, &Eres);
-	    roots = lpc_to_lsp(&ak[1], P , lsp, 10, LSP_DELTA1, NULL);
+	    find_aks(Sn, ak, NW, P, &Eres);
+	    roots = lpc_to_lsp(&ak[1], P , lsp, 5, LSP_DELTA1, NULL);
 	    if (roots == P) {
 		for(i=0; i<P; i++)
 		    fprintf(flsp,"%f ",lsp[i]);
