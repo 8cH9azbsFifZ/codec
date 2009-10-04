@@ -9,6 +9,7 @@
 ../src/sinedec ../raw/$1.raw $1.mdl -o $1_uq.raw
 ../src/sinedec ../raw/$1.raw $1.mdl --phase 0 -o $1_phase0.raw --postfilter
 ../src/sinedec ../raw/$1.raw $1.mdl --lpc 10 -o $1_lpc10.raw
+../src/sinedec ../raw/$1.raw $1.mdl --lpc 10 --lsp -o $1_lsp.raw
 ../src/sinedec ../raw/$1.raw $1.mdl --phase 0 --lpc 10 -o $1_phase0_lpc10.raw --postfilter
-../src/sinedec ../raw/$1.raw $1.mdl --phase 0 --lpc 10 --lsp 37 -o $1_lsp.raw --postfilter
+../src/sinedec ../raw/$1.raw $1.mdl --phase 0 --lpc 10 --lsp -o $1_phase0_lsp.raw --postfilter
 
