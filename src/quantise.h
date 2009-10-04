@@ -32,5 +32,6 @@
 void quantise_init();
 float lpc_model_amplitudes(float Sn[], MODEL *model, int order,int lsp,float ak[]);
 void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr);
+float get_gmin(void);
 
 #endif

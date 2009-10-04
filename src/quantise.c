@@ -34,33 +34,45 @@
 #include <speex_bits.h>
 #include <quant_lsp.h>
 
-#define MAX_ORDER 20
-
-#define LPC_FLOOR 0.0002        /* autocorrelation floor */
+#define MAX_ORDER    20
 #define LSP_DELTA1 0.05         /* grid spacing for LSP root searches */
+#define MAX_CB       10         /* max number of codebooks */
 
-/* Speex lag window */
+/* describes each codebook  */
 
-const float lag_window[11] = {
-   1.00000, 0.99716, 0.98869, 0.97474, 0.95554, 0.93140, 0.90273, 0.86998, 
-   0.83367, 0.79434, 0.75258
+typedef struct {
+    int   k;        /* dimension of vector                   */
+    int   m;        /* elements in codebook                  */
+    char *fn;       /* file name of text file storing the VQ */
+} LSP_CB;
+
+/* lsp_q describes entire quantiser made up of several codebooks */
+
+//#define FIRST_ATTEMPT
+#ifdef FIRST_ATTEMPT
+
+LSP_CB lsp_q[] = {
+    {2, 1024, "../unittest/lsp12_01.txt" },   /* LSP 1,2    */
+    {2,  512, "../unittest/lsp34_01.txt" },   /* LSP 3,4    */
+    {3,  512, "../unittest/lsp57_01.txt" },   /* LSP 5,6,7  */
+    {3,  512, "../unittest/lsp810_01.txt"},   /* LSP 8,9,10 */
+    {0,    0, ""}
 };
+#else
 
-/* 10 + 9 + 9 + 9 = 37 bit quantiser (1850 bit/s with 20ms frames) */
- 
-#define LSP_12_K  2
-#define LSP_12_M  1024
-#define LSP_34_K  2
-#define LSP_34_M  512
-#define LSP_57_K  3
-#define LSP_57_M  512
-#define LSP_810_K 3
-#define LSP_810_M 512
+/* 10+10+8 = 28 bit LSP quantiser */
 
-static float cb12[LSP_12_K*LSP_12_M];
-static float cb34[LSP_34_K*LSP_34_M];
-static float cb57[LSP_57_K*LSP_57_M];
-static float cb810[LSP_810_K*LSP_810_M];
+LSP_CB lsp_q[] = {
+    {3, 1024, "../unittest/lsp123.txt" },   /* LSP 1,2,3     */
+    {4, 1024, "../unittest/lsp4567.txt" },  /* LSP 4,5,6,7   */
+    {3,  256, "../unittest/lsp8910.txt" },  /* LSP 8,9,10    */
+    {0,    0, ""}
+};
+#endif
+
+/* ptr to each codebook */
+
+static float *plsp_cb[MAX_CB];
 
 /*---------------------------------------------------------------------------*\
 									      
@@ -154,9 +166,7 @@ void scan_line(FILE *fp, float f[], int n)
 
   load_cb
 
-  Quantises vec by choosing the nearest vector in codebook cb, and
-  returns the vector index.  The squared error of the quantised vector
-  is added to se.
+  Loads a single codebook (LSP vector quantiser) into memory.
 
 \*---------------------------------------------------------------------------*/
 
@@ -180,12 +190,29 @@ void load_cb(char *filename, float *cb, int k, int m)
     fclose(ftext);
 }
 
+/*---------------------------------------------------------------------------*\
+
+  quantise_init
+
+  Loads the entire LSP quantiser comprised of several vector quantisers
+  (codebooks).
+
+\*---------------------------------------------------------------------------*/
+
 void quantise_init()
 {
-    load_cb("../unittest/lsp12.txt", cb12,  LSP_12_K,  LSP_12_M);
-    load_cb("../unittest/lsp34.txt", cb34,  LSP_34_K,  LSP_34_M);
-    load_cb("../unittest/lsp57.txt", cb57, LSP_57_K, LSP_57_M);
-    load_cb("../unittest/lsp810.txt", cb810, LSP_810_K, LSP_810_M);
+    int i,k,m;
+
+    i = 0;
+    while(lsp_q[i].k) {
+	k = lsp_q[i].k;
+	m = lsp_q[i].m;
+	plsp_cb[i] = (float*)malloc(sizeof(float)*k*m);
+	assert(plsp_cb[i] != NULL);
+	load_cb(lsp_q[i].fn, plsp_cb[i], k, m);
+	i++;
+	assert(i < MAX_CB);
+    }
 }
 
 /*---------------------------------------------------------------------------*\
@@ -228,6 +255,19 @@ long quantise(float cb[], float vec[], int k, int m, float *se)
    return(besti);
 }
 
+static float gmin=PI;
+
+float get_gmin(void) { return gmin; }
+
+void min_lsp_dist(float lsp[], int order)
+{
+    int   i;
+
+    for(i=1; i<order; i++)
+	if ((lsp[i]-lsp[i-1]) < gmin)
+	    gmin = lsp[i]-lsp[i-1];
+}
+
 /*---------------------------------------------------------------------------*\
 									      
   lpc_model_amplitudes
@@ -243,51 +283,51 @@ float lpc_model_amplitudes(
   float  Sn[],			/* Input frame of speech samples */
   MODEL *model,			/* sinusoidal model parameters */
   int    order,                 /* LPC model order */
-  int    lsp_quantisation,      /* optional LSP quantisation if non-zero */
+  int    lsp_quant,             /* optional LSP quantisation if non-zero */
   float  ak[]                   /* output aks */
 )
 {
   float Wn[M];
   float R[MAX_ORDER+1];
   float E;
-  int   i;
+  int   i,j;
   float snr;	
   float lsp[MAX_ORDER];
   int   roots;            /* number of LSP roots found */
   int   index;
   float se;
-
+  int   l,k,m;
+  float *cb;
+  
   for(i=0; i<M; i++)
-      Wn[i] = Sn[i]*w[i];
+    Wn[i] = Sn[i]*w[i];
   autocorrelate(Wn,R,M,order);
-
   levinson_durbin(R,ak,order);
+  
   E = 0.0;
   for(i=0; i<=order; i++)
       E += ak[i]*R[i];
-  
-  if (lsp_quantisation) {
+ 
+  if (lsp_quant) {
     roots = lpc_to_lsp(&ak[1], order, lsp, 5, LSP_DELTA1, NULL);
     if (roots != order)
 	printf("LSP roots not found\n");
-    index = quantise(cb12, &lsp[0], LSP_12_K, LSP_12_M, &se);
-    lsp[0] = cb12[index*LSP_12_K+0];
-    lsp[1] = cb12[index*LSP_12_K+1];
-    
-    index = quantise(cb34, &lsp[2], LSP_34_K, LSP_34_M, &se);
-    lsp[2] = cb34[index*LSP_34_K+0];
-    lsp[3] = cb34[index*LSP_34_K+1];
-    
-    index = quantise(cb57, &lsp[4], LSP_57_K, LSP_57_M, &se);
-    lsp[4] = cb57[index*LSP_57_K+0];
-    lsp[5] = cb57[index*LSP_57_K+1];
-    lsp[6] = cb57[index*LSP_57_K+2];
-    
-    index = quantise(cb810, &lsp[7], LSP_810_K, LSP_810_M, &se);
-    lsp[7] = cb810[index*LSP_810_K+0];
-    lsp[8] = cb810[index*LSP_810_K+1];
-    lsp[9] = cb810[index*LSP_810_K+2];
 
+    i = 0; /* i-th codebook            */
+    l = 0; /* which starts at l-th lsp */
+    while(lsp_q[i].k) {
+	k = lsp_q[i].k;
+	m = lsp_q[i].m;
+	cb = plsp_cb[i];
+        index = quantise(cb, &lsp[l], k, m, &se);
+	for(j=0; j<k; j++)
+	    lsp[l+j] = cb[index*k+j];
+	l += k;
+	assert(l <= order);
+	i++;
+	assert(i < MAX_CB);
+    }
+    
     lsp_to_lpc(lsp, &ak[1], order, NULL);
     dump_lsp(lsp);
   }
@@ -384,4 +424,5 @@ void aks_to_M2(
       if (model->Wo < (PI*150.0/4000)) {
 	  model->A[1] *= 0.032;
       }
+
 }
