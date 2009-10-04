@@ -261,11 +261,9 @@ float phase_model_first_order(
    first harmonic would advance (pi/20)*80 = 4*pi or two complete
    cycles.
 
-   One complication is that two adjacent frames will have different
-   Wo, so we take the average of the two frames to track the
-   excitation phase of the fundamental (first harmonic):
+   We track the excitation phase of the fundamental (first harmonic):
 
-     arg[E[1]] = ((Wo + prev_Wo)/2)*N;
+     arg[E[1]] = Wo*N;
 
    We then relate the phase of the m-th excitation harmonic to the
    phase of the fundamental as:
@@ -299,7 +297,6 @@ float phase_model_first_order(
 void phase_synth_zero_order(
   float  snr,     /* SNR from first order model                */
   COMP   H[],     /* LPC spectra samples                       */
-  float *prev_Wo, /* last frames Wo (we will update this here) */
   float *ex_phase /* excitation phase of fundamental           */
 )
 {
@@ -325,24 +322,21 @@ void phase_synth_zero_order(
   Lrand = model.L;
   if (snr < VTHRESH2) {
     Lrand = floor(model.L*(snr-VTHRESH1)/(VTHRESH2-VTHRESH1));
-    if (Lrand < 1) Lrand = 1;
+    if (Lrand < 1) Lrand = 0;
     if (Lrand > model.L) Lrand = model.L;
   }
-  
-  /* update excitation fundamental phase track, this sets
-     the position of each pitch pulse during voiced speech */
 
-  ex_phase[0] += (*prev_Wo+model.Wo)*N/2.0;
+  /* 
+     Update excitation fundamental phase track, this sets the position
+     of each pitch pulse during voiced speech.  After much experiment
+     I found that using just this frame Wo improved quality for UV
+     sounds compared to interpolating two frames Wo like this:
+     
+     ex_phase[0] += (*prev_Wo+model.Wo)*N/2;
+  */
+
+  ex_phase[0] += (model.Wo)*N;
   ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
-
-  /* After much experimentation I found that a few percent of jitter
-     was effective in reducing "clicky" artifact in hts1 and mmt1. The
-     peaks level of the synthesised speech was reduced to levels closer
-     to the orginal speech as well.*/
-
-  ex_phase[0] += 0.05*TWO_PI*(0.5 - (float)rand()/RAND_MAX);
-  
-  *prev_Wo = model.Wo;
 
   /* now modify this frames phase using zero phase model */
 
@@ -352,7 +346,7 @@ void phase_synth_zero_order(
 
     if (m <= Lrand) {
 	Ex[m].real = cos(ex_phase[0]*m);
-	Ex[m].imag = sin(ex_phase[0]*m);
+        Ex[m].imag = sin(ex_phase[0]*m);
 
 	/* following is an experiment in dispersing pulse energy over
 	   time, didn't really change sound at all, e.g. mmt1 still
@@ -366,7 +360,7 @@ void phase_synth_zero_order(
 	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
 
 	/* following is an experiment to use the phase of a glottal pulse
-	   (see octave/glottal.m) in an attempt io make mmt1 and hts1 a little
+	   (see octave/glottal.m) in an attempt io make 9mmt1 and hts1 a little
 	   less "clicky", i.e. disperse the pusle energy away from the point
 	   of onset.  Result was no difference in speech quality, in fact
 	   no difference at all. Could be an implementation error I guess. 
@@ -375,13 +369,14 @@ void phase_synth_zero_order(
 	//b = floor(m*model->Wo*FFT_DEC/TWO_PI + 0.5);
         //Ex[m].real = cos(ex_phase[0]*m + glottal[b]);
 	//Ex[m].imag = sin(ex_phase[0]*m + glottal[b]);
-	   
+
     }
     else {
-	/* we probably don't need to LPC filter phase in unvoiced case,
-	   maybe test this theory some time */
+	/* When a few samples were tested I found that LPC filter
+	   phase is not needed in the unvoiced case, but no harm in keeping it.
+        */
 	float phi = TWO_PI*(float)rand()/RAND_MAX;
-	Ex[m].real = cos(phi);
+        Ex[m].real = cos(phi);
 	Ex[m].imag = sin(phi);
     }
 

@@ -87,12 +87,14 @@ int main(int argc, char *argv[])
   int dump;
   
   int phase, phase_model;
-  float prev_Wo, ex_phase;
+  float ex_phase[1];
 
   int   postfilt;
   float bg_est;
 
-
+  int   hand_snr;
+  FILE *fsnr;
+  
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
     printf("       [--dump DumpFilePrefix]\n");
@@ -155,8 +157,6 @@ int main(int argc, char *argv[])
 
   lsp = switch_present("--lsp",argc,argv);
   lsp_quantiser = 0;
-  if (lsp) 
-      lsp_quantiser = atoi(argv[lsp+1]);
 
   /* phase_model 0: zero phase
      phase_model 1: 1st order polynomial */
@@ -164,7 +164,13 @@ int main(int argc, char *argv[])
   if (phase) {
       phase_model = atoi(argv[phase+1]);
       assert((phase_model == 0) || (phase_model == 1));
-      ex_phase = 0;
+      ex_phase[0] = 0;
+  }
+
+  hand_snr = switch_present("--hand_snr",argc,argv);
+  if (hand_snr) {
+      fsnr = fopen(argv[hand_snr+1],"rt");
+      assert(fsnr != NULL);
   }
 
   bg_est = 0.0;
@@ -204,11 +210,11 @@ int main(int argc, char *argv[])
     if (phase) {
 	float Wn[M];		        /* windowed speech samples */
 	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
-	float ak_phase[PHASE_LPC_ORD+1];/* LPCs                    */
+        float ak_phase[PHASE_LPC_ORD+1];/* LPCs                    */
         COMP  H[MAX_AMP];               /* LPC freq domain samples */
 	float n_min;
 	COMP  min_Am;
-	
+  	
 	dump_phase(&model.phi[0]);
 
 	/* Determine LPCs for phase modelling.  Note that we may also
@@ -235,7 +241,9 @@ int main(int argc, char *argv[])
 	    /* just to make sure we are not cheating - kill all phases */
 	    for(i=0; i<MAX_AMP; i++)
 	    	model.phi[i] = 0;
-	    phase_synth_zero_order(snr, H, &prev_Wo, &ex_phase);
+	    if (hand_snr)
+		fscanf(fsnr,"%f\n",&snr);
+	    phase_synth_zero_order(snr, H, ex_phase);
 	}
 
 	if (phase_model == 1) {
@@ -251,7 +259,7 @@ int main(int argc, char *argv[])
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, &model, order, lsp_quantiser, ak);
+	snr = lpc_model_amplitudes(Sn, &model, order, lsp, ak);
 	sum_snr += snr;
         dump_quantised_model(&model);
     }
@@ -284,6 +292,9 @@ int main(int argc, char *argv[])
 
   if (dump)
       dump_off();
+
+  if (hand_snr)
+    fclose(fsnr);
 
   return 0;
 }
