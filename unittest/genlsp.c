@@ -35,9 +35,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "lpc.h"	/* LPC analysis functions 			*/
 #include "lsp.h"	/* LSP encode/decode functions 			*/
+
+int switch_present(sw,argc,argv)
+  char sw[];     /* switch in string form */
+  int argc;      /* number of command line arguments */
+  char *argv[];  /* array of command line arguments in string form */
+{
+  int i;       /* loop variable */
+
+  for(i=1; i<argc; i++)
+    if (!strcmp(sw,argv[i]))
+      return(i);
+
+  return 0;
+}
 
 int main(int argc, char *argv[]) {
     FILE   *fspc;	/* input file ptr for test database		*/
@@ -52,11 +67,12 @@ int main(int argc, char *argv[]) {
     int    i;
     int    roots;
     int    unstables;
+    int    lspd;
 
     /* Initialise ------------------------------------------------------*/
 
-    if (argc != 3) {
-	printf("usage: gentest RawFile LSPTextFile\n");
+    if (argc < 3) {
+	printf("usage: gentest RawFile LSPTextFile [--lspd]\n");
 	exit(0);
     }
 
@@ -73,6 +89,8 @@ int main(int argc, char *argv[]) {
 	printf("Error opening output LSP file: %s",argv[2]);
 	exit(1);
     }
+
+    lspd = switch_present("--lspd", argc, argv);
 
     for(i=0; i<NW; i++)
 	Sn[i] = 0.0;
@@ -106,9 +124,17 @@ int main(int argc, char *argv[]) {
 	    find_aks(Sn, ak, NW, P, &Eres);
 	    roots = lpc_to_lsp(&ak[1], P , lsp, 5, LSP_DELTA1, NULL);
 	    if (roots == P) {
-		for(i=0; i<P; i++)
-		    fprintf(flsp,"%f ",lsp[i]);
-		fprintf(flsp,"\n");
+		if (lspd) {
+		    fprintf(flsp,"%f ",lsp[0]);
+		    for(i=1; i<P; i++)
+			fprintf(flsp,"%f ",lsp[i]-lsp[i-1]);
+		    fprintf(flsp,"\n");
+		}
+		else {
+		    for(i=0; i<P; i++)
+			fprintf(flsp,"%f ",lsp[i]);
+		    fprintf(flsp,"\n");
+		}
 	    }
 	    else 
 		unstables++;

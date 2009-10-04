@@ -284,6 +284,7 @@ int main(int argc, char *argv[])
     }    
   }
 
+  //printf("gmin = %f\n", get_gmin());
   if (fout != NULL)
     fclose(fout);
 

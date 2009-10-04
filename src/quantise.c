@@ -35,7 +35,7 @@
 #include <quant_lsp.h>
 
 #define MAX_ORDER    20
-#define LSP_DELTA1 0.05         /* grid spacing for LSP root searches */
+#define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
 #define MAX_CB       10         /* max number of codebooks */
 
 /* describes each codebook  */
@@ -48,27 +48,15 @@ typedef struct {
 
 /* lsp_q describes entire quantiser made up of several codebooks */
 
-//#define FIRST_ATTEMPT
-#ifdef FIRST_ATTEMPT
+/* 10+10+6+6 = 32 bit LSP difference split VQ */
 
 LSP_CB lsp_q[] = {
-    {2, 1024, "../unittest/lsp12_01.txt" },   /* LSP 1,2    */
-    {2,  512, "../unittest/lsp34_01.txt" },   /* LSP 3,4    */
-    {3,  512, "../unittest/lsp57_01.txt" },   /* LSP 5,6,7  */
-    {3,  512, "../unittest/lsp810_01.txt"},   /* LSP 8,9,10 */
+    {3,   1024, "../unittest/lspd123.txt"},
+    {3,   1024, "../unittest/lspd456.txt"},
+    {2,     64, "../unittest/lspd78.txt"},
+    {2,     64, "../unittest/lspd910.txt"},
     {0,    0, ""}
 };
-#else
-
-/* 10+10+8 = 28 bit LSP quantiser */
-
-LSP_CB lsp_q[] = {
-    {3, 1024, "../unittest/lsp123.txt" },   /* LSP 1,2,3     */
-    {4, 1024, "../unittest/lsp4567.txt" },  /* LSP 4,5,6,7   */
-    {3,  256, "../unittest/lsp8910.txt" },  /* LSP 8,9,10    */
-    {0,    0, ""}
-};
-#endif
 
 /* ptr to each codebook */
 
@@ -225,9 +213,10 @@ void quantise_init()
 
 \*---------------------------------------------------------------------------*/
 
-long quantise(float cb[], float vec[], int k, int m, float *se)
+long quantise(float cb[], float vec[], float w[], int k, int m, float *se)
 /* float   cb[][K];	current VQ codebook		*/
 /* float   vec[];	vector to quantise		*/
+/* float   w[];         weighting vector                */
 /* int	   k;		dimension of vectors		*/
 /* int     m;		size of codebook		*/
 /* float   *se;		accumulated squared error 	*/
@@ -243,7 +232,7 @@ long quantise(float cb[], float vec[], int k, int m, float *se)
    for(j=0; j<m; j++) {
 	e = 0.0;
 	for(i=0; i<k; i++)
-	    e += pow(cb[j*k+i]-vec[i],2.0);
+	    e += pow((cb[j*k+i]-vec[i])*w[i],2.0);
 	if (e < beste) {
 	    beste = e;
 	    besti = j;
@@ -266,6 +255,30 @@ void min_lsp_dist(float lsp[], int order)
     for(i=1; i<order; i++)
 	if ((lsp[i]-lsp[i-1]) < gmin)
 	    gmin = lsp[i]-lsp[i-1];
+}
+
+void check_lsp_order(float lsp[], int lpc_order)
+{
+    int   i;
+    float tmp;
+
+    for(i=1; i<lpc_order; i++)
+	if (lsp[i] < lsp[i-1]) {
+	    printf("swap %d\n",i);
+	    tmp = lsp[i-1];
+	    lsp[i-1] = lsp[i]-0.05;
+	    lsp[i] = tmp+0.05;
+	}
+}
+
+void force_min_lsp_dist(float lsp[], int lpc_order)
+{
+    int   i;
+
+    for(i=1; i<lpc_order; i++)
+	if ((lsp[i]-lsp[i-1]) < 0.01) {
+	    lsp[i] += 0.01;
+	}
 }
 
 /*---------------------------------------------------------------------------*\
@@ -293,12 +306,15 @@ float lpc_model_amplitudes(
   int   i,j;
   float snr;	
   float lsp[MAX_ORDER];
+  float lsp_[MAX_ORDER];
+  float lspd[MAX_ORDER];
   int   roots;            /* number of LSP roots found */
   int   index;
   float se;
   int   l,k,m;
   float *cb;
-  
+  float wt[MAX_ORDER];
+
   for(i=0; i<M; i++)
     Wn[i] = Sn[i]*w[i];
   autocorrelate(Wn,R,M,order);
@@ -313,22 +329,50 @@ float lpc_model_amplitudes(
     if (roots != order)
 	printf("LSP roots not found\n");
 
+    lspd[0] = lsp[0];
+    for(i=1; i<order; i++)
+	lspd[i] = lsp[i] - lsp[i-1];
+    for(i=0; i<order; i++)
+	wt[i] = 1.0;
+
     i = 0; /* i-th codebook            */
     l = 0; /* which starts at l-th lsp */
     while(lsp_q[i].k) {
 	k = lsp_q[i].k;
 	m = lsp_q[i].m;
 	cb = plsp_cb[i];
-        index = quantise(cb, &lsp[l], k, m, &se);
-	for(j=0; j<k; j++)
-	    lsp[l+j] = cb[index*k+j];
+        index = quantise(cb, &lspd[l], wt, k, m, &se);
+
+	for(j=0; j<k; j++) 
+	    lspd[l+j] = cb[index*k+j];
+
+	/* compute quantised lsp so we can adjust for quantisation error
+	   below */
+
+	for(j=l; j<l+k; j++) {
+	    if (j==0)
+		lsp_[0] = lspd[0];
+	    else
+		lsp_[j] = lsp_[j-1] + lspd[j];
+	}
+
 	l += k;
 	assert(l <= order);
+
+	/* adjust next lspd to account for quantisation error */
+
+	lspd[l] = lsp[l] - lsp_[l-1];
+
 	i++;
 	assert(i < MAX_CB);
     }
     
-    lsp_to_lpc(lsp, &ak[1], order, NULL);
+    /* used during development: copy remaining LSPs from orig if we haven't
+       quantised all of them */
+    for(j=l; j<order; j++)
+	lsp_[j] = lsp[j];
+
+    lsp_to_lpc(lsp_, &ak[1], order, NULL);
     dump_lsp(lsp);
   }
 
