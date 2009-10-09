@@ -17,8 +17,10 @@ TODO for codec2
         + or develop manual pitch tracks and check estimator
           with tracker against these.
     [X] removal of LPC modelling errors for males
-        + first few haromic energies (e.g. mmt1, hts1a)  get raised
-    [ ] good quality LSP quantisation of {Am}
+        + first few haromic energies (e.g. mmt1, hts1a) get raised
+        + added a single bit to compensate for these errors, works OK
+    [X] good quality LSP quantisation of {Am}
+        + first pass at this, lots of futher work ideas below...
     [ ] conversion to 20ms frames
         + without significant distortion
 
@@ -32,18 +34,15 @@ TODO for codec2
         [X] GPL2 notice in each file
     [ ] Replace Numerical Recipes in C (NRC) four1.c and four1.h with Gnu
         Science Lib (GSL) SL FFT as NRC code has restrictive licencing
-    [ ] A way to handle m=1 harmonic for males when LPC modelling
-    [ ] Is BW expansion and Rk noise floor required before LSP quant
-    [ ] test split VQ to make sure no silly errors
-        + for example test MSE or index historgram for training data
-
+    [X] A way to handle m=1 harmonic for males when LPC modelling
+        + used a single bit to correct LPC modelling errors
+    [ ] Is BW expansion and Rk noise floor required before LSP quant?
+        + initial tests lead to large LPC modelling errors
     [ ] Go through papers referenced in thesis and credit various
         techniques to papers.
       + sure there was something about zero phase synthesis is those papers
-
     [ ] voicing errors can be clearly seen in synthesised speech using pl2.m
-
-    [ ] Voicing improvement
+    [ ] Voicing improvement idea
         + voicing tracker, if enery about the same in frame n-1,n,n+1, and n-1, n+1
           are voiced then make frame n voiced.
 
@@ -56,3 +55,44 @@ TODO for codec2
           noise to clean samples and explore effect on zero phase model
         + wrote plphase.m to start analysing this
 
+    [ ] LSP quantisation further work
+        + need codebook search to match perceptual error
+        + for example error in close LSPs has a large perceptual effect
+        + PDF-optimised quantisation may not be ideal, check this assumption
+        + test split VQ to make sure no silly errors
+        + for example test MSE or index histogram for training data
+        + this gets tricky with split codebooks
+        + VQ could also be trained with perceptual distortion modelled
+        + perhaps work on weighting function
+        + try differential in time as well, voiced speech doesn't chnage much
+        + LPC envelope (mag spectrum) could possibly be quantised using some
+	  other form of VQ, use LPC just to get a constant sampling rate.  This
+          is a bit blue sky
+
+    [ ] Blue Sky {Am} Spectral Envelope quantisation ideas #1
+        + what is really important is location of formants
+        + therefore how about we just locate peak of each format
+          and encode position and height, then interpolate between them
+        + could perhaps locate anti-formants as half way and just encode
+	  depth
+        + interesting factoid: a gentle HP of LP (3-6dB/oct) wont affect
+          subjective quality much, but would have a big impact on
+          quantisation error measures.  Maybe remove/normalise out
+          before before quantisation?  Could try quantisation
+          with/without HP filter.  
+        + envelope could be time domain LPC or some other interpolation
+	  technique (see #2 below)
+
+    [ ] Blue Sky {Am} Spectral Envelop quantisation ideas #2
+        + encode spectral envelope directly
+	+ problem is variable number of harmonics L
+        + use a pitch sync DFT, ie DFT of one pitch cycle to get continuous
+	  envelope without harmonic pitch structure
+        + then over sample this DFT to up/down sample to an appropriate rate
+	+ we effectively already have pitch-sync DFT in {Am}
+        + they could be interpolated at a non-uniform rate, like a bark scale
+        + can we somehow seperately encode shape and height?
+
+
+
+ 

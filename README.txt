@@ -20,22 +20,39 @@ Status
 ------
 
 Still in experimental/development stage - no 2400 bit/s codec
-available yet.  Progress to date:
+available yet, but we are getting very close!  
+
+Progress to date:
 
 1. Unquantised encoder (sinenc) and decoder (sinedec) running under
-   Linux/gcc, pitch estimator untested.  The decoder (sinedec) is a
-   test-bed for various modelling and quantisation options - these are
-   controlled via command line switches.
+   Linux/gcc.  The decoder (sinedec) is a test-bed for various
+   modelling and quantisation options - these are controlled via
+   command line switches.
 
-2. LPC modelling working and first pass LSP vector quantiser working
-   at 37 bits/frame with acceptable voice quality.  Lots could be done
-   to improve this.
+2. LPC modelling working nicely and there is a first pass LSP vector
+   quantiser working at 32 bits/frame with acceptable voice quality.
+   Lots could be done to improve this (e.g. improved quality and
+   reduced bit rate).
 
 3. Phase model developed that uses 0 bits for phase and 1 bit/frame
-   for voiced/unvoiced decision.
+   for voiced/unvoiced decision.  An experimental post filter has been
+   developed to improve performance for speech with background noise.
 
-4. Non-Linear Pitch (NLP) pitch estimator working OK, could use a pitch
-   tracker to improve a few problem frames.
+4. Non-Linear Pitch (NLP) pitch estimator working OK, and a simple
+   pitch tracker has been developed to help with some problem frames.
+
+5. An algorithm for decimating sinusoidal model parameters from the
+   native 10ms rate to a 20ms rate has been developed.  A 20ms frame
+   rate is required for 2400 bit/s coding.
+
+Current work areas:
+
+1. Reduce CPU Load of the first order phase model fit.  Apart from
+   that the codec runs very quickly.
+
+2. Write separate encoder and decoder functions and demo programs for
+   the alpha 2400 bit/s codec.  Currently most of the processing
+   happens inside the sinedec program.
 
 [[source]]
 The Source Code
@@ -76,11 +93,14 @@ Development Roadmap
 
   [X] Milestone 0 - Project kick off
   [X] Milestone 1 - Alpha 2400 bits/s codec
-      [X] Spectral amplitudes modelled and quantised 
+      [X] Spectral amplitudes modelled using LPC
       [X] Phase and voicing model developed
-      [ ] Pitch estimator
-      [ ] Frame rate/quantisation schemes for 2400 bit/s developed
+      [X] Pitch estimator
+      [X] Spectral amplitudes quantised using LSPs
+      [X] Decimation of model parameters from 20ms to 10ms
       [ ] Refactor to develop a seperate encoder/decoder functions
+      [ ] Complete 2400 bits/s codec demonstrated
+      [ ] Reduced complexity voicing estimator
       [ ] Test phone call over LAN
       [ ] Release 0.1 for Alpha Testing
   [ ] Milestone 2 - Beta codec for digital radio
@@ -137,6 +157,25 @@ As the parameters are quantised to a low bit rate and sent over the
 channel, the speech quality drops.  The challenge is to achieve a
 reasonable trade off between speech quality and bit rate.
 
+Bit Allocation
+--------------
+
+[grid="all"]
+`-------------------------------.----------
+Parameter                       bits/frame
+-------------------------------------------
+Spectral magnitudes (LSPs)	32
+Low frequency LPC correction     1
+Energy                           5
+Voicing                          1
+Fundamental Frequency (Wo)       7
+Spare                            2
+-------------------------------------------
+Total                           48 
+-------------------------------------------
+
+At a 20ms update rate 48 bits/frame is 2400 bits/s.
+
 [[challenges]]
 Challenges
 ----------
@@ -179,6 +218,10 @@ http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/TODO.txt?view=log[TODO]
 list and the development roadmap above and see if there is anything
 that interests you.
 
+Not all of this project is DSP.  If you can code in C there are lots
+of general processing tasks like refactoring and writing a command
+line soft phone application for testing the codec over a LAN.
+
 I will happily accept sponsorship for this project.  For example
 research grants, or development contracts for companies interested in
 seeing an open source low bit rate speech codec.  One interesting
@@ -195,13 +238,12 @@ patents used by proprietary 2400 bit/s codecs (MELP and xMBE) and
 compare.
 
 Proprietary codecs typically have small, novel parts of the algorithm
-protected by patents.  However the designers of these codecs rely
-heavily on large bodies of existing, public domain work.  The patents
-cover perhaps 5% of the codec algorithms.  Proprietary codec designers
-did not invent most of the algorithms they use in their
-codec. Typically, the patents just cover enough to make designing an
-interoperable codec very difficult.  These also tend to be the parts
-that make their codecs sound good.
+protected by patents.  However proprietary codecs also rely heavily on
+large bodies of public domain work.  The patents cover perhaps 5% of
+the codec algorithms.  Proprietary codec designers did not invent most
+of the algorithms they use in their codec. Typically, the patents just
+cover enough to make designing an interoperable codec very difficult.
+These also tend to be the parts that make their codecs sound good.
 
 However there are many ways to make a codec sound good, so we simply
 need to choose and develop other methods.
@@ -276,9 +318,9 @@ i.e. fundamental) harmonics for males. The amplitude of the m=1
 harmonic is raised by as much as 30dB after LPC modelling as (I think)
 LPC spectra must have zero derivative at DC.  This means it's poor at
 modelling very low freq harmonics which unfortunately the ear is very
-sensitive to.  Consider automatic lowering for 20dB of this harmonic
-or maybe a few extra bits to quantise error.  Or maybe just don't
-synthesise anything beneath 200Hz.
+sensitive to.  To correct this an extra bit has been added to correct
+LPC modelling errors on the first harmonic.  When set this bit
+instructs the decoder to attenuate the LPC modelled harmonic by 30dB.
 
 [[phase]]
 Phase Modelling Notes
@@ -291,7 +333,9 @@ http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/src/phase.c?view=log[ph
 
 The zero phase model required just one voicing bit to be transmitted
 to the decoder, all other phase information is synthesised use a rule
-based model.  It seems to work OK for most speech samples.
+based model.  It seems to work OK for most speech samples, but adds a
+"clicky" artcifact to some low picthed speakers.  Also see the blog
+posts below for more discussion of phase models.
 
 To determine voicing we attempt to fit a first order phase model, then
 measure SNR of the fit.  The frame is declared unvoiced if the SNR is
@@ -404,8 +448,11 @@ References
     Codec Part 1 - Introduction]
     
 [4] http://www.rowetel.com/blog/?p=130[Open Source Low rate Speech
-    Codec Part 1 - Spectral Magnitudes]
+    Codec Part 2 - Spectral Magnitudes]
     
 [5] http://www.rowetel.com/blog/?p=131[Open Source Low rate Speech
-    Codec Part 2 - Phase and Male Speech]
+    Codec Part 3 - Phase and Male Speech]
+
+[6] http://www.rowetel.com/blog/?p=132[Open Source Low rate Speech
+    Codec Part 4 - Zero Phase Model]
 
