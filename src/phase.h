@@ -32,8 +32,10 @@
 #define PHASE_LPC_ORD 10
 
 void aks_to_H(MODEL *model, float aks[], float G, COMP H[], int order);
-float phase_model_first_order(float aks[], COMP H[], float *n_min, COMP *min_Am);
-void phase_synth_zero_order(float snr, COMP H[], float *ex_phase);
-void phase_synth_first_order(float snr, COMP H[], float n_min, COMP min_Am);
+float phase_model_first_order(float aks[], COMP H[], float *n_min, COMP *min_Am,
+			      int *voiced);
+void phase_synth_zero_order(float snr, COMP H[], float *ex_phase, int voiced);
+void phase_synth_first_order(float snr, COMP H[], float n_min, COMP min_Am, 
+			     int voiced);
 
 #endif

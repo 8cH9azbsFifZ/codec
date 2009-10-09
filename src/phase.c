@@ -32,8 +32,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define VTHRESH1 2.0
-#define VTHRESH2 2.0
+#define VTHRESH 2.0
 
 /*---------------------------------------------------------------------------*\
 
@@ -129,7 +128,8 @@ float phase_model_first_order(
   float  aks[],                  /* LPC coeffs for this frame      */
   COMP   H[],		         /* LPC filter freq doamin samples */
   float *n_min,                  /* pulse position for min error   */ 
-  COMP  *minAm                   /* complex gain for min error     */
+  COMP  *minAm,                  /* complex gain for min error     */
+  int   *voiced
 ) 
 {
   float G;			/* LPC gain */
@@ -217,6 +217,10 @@ float phase_model_first_order(
   }
 
   snr = 10.0*log10(sig/Emin);
+  if (snr > VTHRESH)
+      *voiced = 1;
+  else
+      *voiced = 0;
 
   return snr;
 }
@@ -297,34 +301,14 @@ float phase_model_first_order(
 void phase_synth_zero_order(
   float  snr,     /* SNR from first order model                */
   COMP   H[],     /* LPC spectra samples                       */
-  float *ex_phase /* excitation phase of fundamental           */
+  float *ex_phase,/* excitation phase of fundamental           */
+  int    voiced
 )
 {
-  int   Lrand;
   int   m;
   float new_phi;
   COMP  Ex[MAX_AMP];		/* excitation samples */
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
-
-  /* 
-     Bunch of mixed voicing thresholds tried but in the end a simple
-     voiced/unvoiced model worked best.  With mixed voicing some
-     unvoiced speech had a "clicky" sound due to occasional high SNR
-     causing the first few harmonics to be modelled as voiced. I don't
-     really understand why simple one bit V/UV sounds so good -
-     everyone else seems to think mixed voicing models are required
-     for good quality speech.
-
-     Note code below supports mixed voicing but with VTHRESH1 == VTHRESH2
-     we get a simple V/UV model.
-  */
-
-  Lrand = model.L;
-  if (snr < VTHRESH2) {
-    Lrand = floor(model.L*(snr-VTHRESH1)/(VTHRESH2-VTHRESH1));
-    if (Lrand < 1) Lrand = 0;
-    if (Lrand > model.L) Lrand = model.L;
-  }
 
   /* 
      Update excitation fundamental phase track, this sets the position
@@ -344,7 +328,7 @@ void phase_synth_zero_order(
 
     /* generate excitation */
 
-    if (m <= Lrand) {
+    if (voiced) {
 	Ex[m].real = cos(ex_phase[0]*m);
         Ex[m].imag = sin(ex_phase[0]*m);
 
@@ -405,7 +389,8 @@ void phase_synth_first_order(
   float snr,     /* SNR from first order model */
   COMP  H[],     /* LPC spectra samples        */
   float n_min,   /* best pulse position        */
-  COMP  minAm    /* best complex gain          */
+  COMP  minAm,   /* best complex gain          */
+  int   voiced
 )
 {
   int   Lrand;
@@ -415,22 +400,13 @@ void phase_synth_first_order(
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
   COMP  Tm;  			
 
-  /* see notes in zero phase function above to V/UV model */
-
-  Lrand = model.L;
-  if (snr < VTHRESH2) {
-    Lrand = floor(model.L*(snr-VTHRESH1)/(VTHRESH2-VTHRESH1));
-    if (Lrand < 1) Lrand = 1;
-    if (Lrand > model.L) Lrand = model.L;
-  }
-
   /* now modify sinusoidal model phase using phase model */
 
   for(m=1; m<=model.L; m++) {
 
     /* generate excitation */
 
-    if (m <= Lrand) {
+    if (voiced) {
 	Ex[m].real = cos(model.Wo*m*n_min);
 	Ex[m].imag = sin(-model.Wo*m*n_min);
     }
