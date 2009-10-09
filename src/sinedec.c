@@ -88,13 +88,28 @@ int main(int argc, char *argv[])
   
   int phase, phase_model;
   float ex_phase[1];
+  int voiced, voiced_1, voiced_2, voiced_synth;
 
   int   postfilt;
   float bg_est;
 
   int   hand_snr;
   FILE *fsnr;
-  
+
+  MODEL model_1, model_2, model_3, model_synth, model_a, model_b;
+  int transition;
+
+  int vf=0;
+
+  voiced_1 = voiced_2 = 0;
+  model_1.Wo = TWO_PI/P_MIN;
+  model_1.L = floor(PI/model_1.Wo);
+  for(i=1; i<=model_1.L; i++) {
+      model_1.A[i] = 0.0;
+      model_1.phi[i] = 0.0;
+  }
+  model_synth = model_3 = model_2 = model_1;
+
   if (argc < 3) {
     printf("usage: sinedec InputFile ModelFile [-o OutputFile] [-o lpc Order]\n");
     printf("       [--dump DumpFilePrefix]\n");
@@ -176,6 +191,8 @@ int main(int argc, char *argv[])
   bg_est = 0.0;
   postfilt = switch_present("--postfilter",argc,argv);
 
+  transition = 0;
+
   /* Initialise ------------------------------------------------------------*/
 
   init_decoder();
@@ -201,7 +218,7 @@ int main(int argc, char *argv[])
     dump_Sn(Sn);
     dft_speech(); dump_Sw(Sw);   
 
-    dump_model(&model);
+    //dump_model(&model);
 
     /* optional phase modelling - make sure this happens before LPC
        modelling of {Am} as first order model fit doesn't work well
@@ -234,7 +251,7 @@ int main(int argc, char *argv[])
 	    assert(order == PHASE_LPC_ORD);
 
 	dump_ak(ak_phase, PHASE_LPC_ORD);
-	snr = phase_model_first_order(ak_phase, H, &n_min, &min_Am);
+	snr = phase_model_first_order(ak_phase, H, &n_min, &min_Am, &voiced);
 
 	dump_snr(snr);
 	if (phase_model == 0) {
@@ -243,15 +260,15 @@ int main(int argc, char *argv[])
 	    	model.phi[i] = 0;
 	    if (hand_snr)
 		fscanf(fsnr,"%f\n",&snr);
-	    phase_synth_zero_order(snr, H, ex_phase);
+	    phase_synth_zero_order(voiced, H, ex_phase, voiced);
 	}
 
 	if (phase_model == 1) {
-	    phase_synth_first_order(snr, H, n_min, min_Am);
+	    phase_synth_first_order(voiced, H, n_min, min_Am, voiced);
         }
 
         if (postfilt)
-	    postfilter(&model, snr>2.0, &bg_est);
+	    postfilter(&model, voiced, &bg_est);
 
         dump_phase_(&model.phi[0]);
     }
@@ -264,11 +281,130 @@ int main(int argc, char *argv[])
         dump_quantised_model(&model);
     }
 
+ #define DEC
+ #ifdef DEC
+   /* Decimate to 20ms frame rate.  In the code we only send
+      off frames to the receiver.  To simulate this on odd
+      frames the model parameters pass straight thru.  On even
+      frames we interpolate from adjacent odd frames.  A one
+      frame delay is required for the odd frames.
+   */
+
+    /* 
+       frames  Transmitted to Rx  Decimator output
+ 
+         0     n                  0.5*model(-3) + 0.5*model(-1)
+         1     y                  model(-1)
+         2     n                  0.5*model(-1) + 0.5*model(1)
+         3     y                  model(1)
+ 	 4     n                  0.5*model(1) + 0.5*model(3)
+	 5     y                  model(3)
+    */
+
+    /* 
+       TODO: 
+       [ ] Voicing decision
+       [ ] unvoiced
+           [ ] amplitudes
+           [ ] phases
+           [ ] Wo
+       [ ] unvoiced
+           [ ] amplitudes
+           [ ] phases
+               + OK to run zero phase model on 10ms rate, using info
+                 from adjacent 20 ms frames
+           [ ] Wo
+    */
+
+    dump_model(&model_2);
+
+    if (frames%2) {
+
+	/* odd frames use the original model parameters */
+
+	model_synth = model_2;
+	transition = 0;
+
+    }
+    else {
+	/* even frame so we need to synthesise the model parameters by
+	   interpolating between adjacent frames */
+
+	model_synth = model_2;
+        voiced_synth = voiced && voiced_2;
+	if (fabs(model_1.Wo - model_3.Wo) < 0.1*model_1.Wo) {
+	    /* If the Wo of adjacent frames is within 10% we synthesise a 
+	       continuous track through this frame by linear interpolation
+	       of the amplitudes and Wo.  This is typical of a strongly 
+	       voiced frame.
+	    */
+	    transition = 0;
+
+	    /* continuous track through this frame */
+	    #define T
+	    #ifdef T
+		model_synth.Wo = (model_1.Wo + model_3.Wo)/2.0;
+		if (model_1.L > model_3.L)
+		    model_synth.L = model_3.L;
+		else
+		    model_synth.L = model_1.L;
+	    #endif
+		for(i=1; i<=model_synth.L; i++) {
+		    model_synth.A[i] = (model_3.A[i] + model_1.A[i])/2.0;
+		    /* cheat on phases for now, these were constructed using
+		       LPC model from actual speech for this frame - fix later */
+		    model_synth.phi[i] = model_2.phi[i];
+		}
+		vf++;
+	}
+	else {
+	    /* 
+	       transition frame, adjacent frames have different Wo and
+	       L so set up two sets of model parameters based on
+	       previous and next frame.  We then synthesise both of
+	       them and add them together in the time domain.  Note
+	       the adjustments to phase to shift the timing of the
+	       model parameters forward or back N samples.  
+
+	       This case is typical of unvoiced speech or background noise
+	       of a voiced to unvoiced transition.
+	    */
+
+	    transition = 1;
+
+	    memcpy(&model_a, &model_3, sizeof(model));
+	    memcpy(&model_b, &model_1, sizeof(model));
+	    for(i=1; i<=model_a.L; i++) {
+		model_a.A[i] /= 2.0;
+		model_a.phi[i] += model_a.Wo*i*N;
+	    }
+	    for(i=1; i<=model_b.L; i++) {
+		model_b.A[i] /= 2.0;
+		model_b.phi[i] -= model_b.Wo*i*N;
+	    }
+	}
+    }
+
+    voiced_2 = voiced_1;
+    voiced_1 = voiced;
+
+    model_3 = model_2;
+    model_2 = model_1;
+    model_1 = model;
+    model = model_synth;
+#endif
+
     /* Synthesise speech */
 
     if (fout != NULL) {
 
-	synthesise_mixed(Pn,&model,Sn_);
+	if (transition) {
+	    synthesise_mixed(Pn,&model_a,Sn_,1);
+	    synthesise_mixed(Pn,&model_b,Sn_,0);
+	}
+	else {
+	    synthesise_mixed(Pn,&model,Sn_,1);
+	}
 
 	/* Save output speech to disk */
 
@@ -285,6 +421,7 @@ int main(int argc, char *argv[])
   }
 
   //printf("gmin = %f\n", get_gmin());
+  printf("vf = %d\n", vf);
   if (fout != NULL)
     fclose(fout);
 

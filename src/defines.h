@@ -56,7 +56,7 @@
 
 /* Decoder defines */
 
-#define AW_DEC 160		/* number of samples in synthesis window */
+#define AW_DEC  160		/* number of samples in synthesis window */
 #define FFT_DEC 512	    	/* number of points in DFT */
 #define TW 40			/* Trapezoidal synthesis window overlap */
 #define MAX_STR 256

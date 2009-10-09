@@ -32,7 +32,7 @@
 
 #include "sine.h"
 
-void synthesise_mixed(float Pn[], MODEL *model, float Sn_[]);
+void synthesise_mixed(float Pn[], MODEL *model, float Sn_[], int shift);
 void synthesise_continuous_phase(float Pn[], MODEL *model, float Sn_[], 
 				 int voiced, float *Wo_prev, float phi_prev[]);
 #endif

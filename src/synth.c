@@ -30,20 +30,23 @@
 #include "sine.h"
 
 void synthesise_mixed(
-  float Pn[],		/* time domain Parzen window */
+  float   Pn[],		/* time domain Parzen window */
   MODEL *model,		/* ptr to model parameters for this frame */
-  float Sn_[]		/* time domain synthesised signal */
+  float  Sn_[],		/* time domain synthesised signal */
+  int    shift          /* if non-zero update memories */
 )
 {
   int i,l,j,b;	        /* loop variables */
   COMP Sw_[FFT_DEC];	/* DFT of synthesised signal */
 
-  /* Update memories */
+  if (shift) {
+      /* Update memories */
 
-  for(i=0; i<N-1; i++) {
-    Sn_[i] = Sn_[i+N];
+      for(i=0; i<N-1; i++) {
+	  Sn_[i] = Sn_[i+N];
+      }
+      Sn_[N-1] = 0.0;
   }
-  Sn_[N-1] = 0.0;
 
   for(i=0; i<FFT_DEC; i++) {
     Sw_[i].real = 0.0;
@@ -67,10 +70,16 @@ void synthesise_mixed(
   /* Overlap add to previous samples */
 
   for(i=0; i<N-1; i++) {
-    Sn_[i] += Sw_[FFT_DEC-N+1+i].real*Pn[i];
+      Sn_[i] += Sw_[FFT_DEC-N+1+i].real*Pn[i];
   }
-  for(i=N-1,j=0; i<2*N; i++,j++)
-    Sn_[i] = Sw_[j].real*Pn[i];
+
+  if (shift)
+      for(i=N-1,j=0; i<2*N; i++,j++)
+	  Sn_[i] = Sw_[j].real*Pn[i];
+  else
+      for(i=N-1,j=0; i<2*N; i++,j++)
+	  Sn_[i] += Sw_[j].real*Pn[i];
+
 }
 
 /*---------------------------------------------------------------------------*\
@@ -98,7 +107,7 @@ void synthesise_mixed(
 
   Result: when tested was no difference in output speech quality.  The
   partial unvoiced sound when using zero phase model was found to be
-  due mis-laignment of teh LPC analysis window and accidental addition
+  due mis-alignment of the LPC analysis window and accidental addition
   of a random phase component.  So we are sticking with synthesise_mixed()
   above for now.
 
