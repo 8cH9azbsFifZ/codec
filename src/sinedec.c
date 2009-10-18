@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
   
   int phase, phase_model;
   float ex_phase[1];
-  int voiced, voiced_1, voiced_2, voiced_synth;
+  int voiced, voiced_1, voiced_2;
 
   int   postfilt;
   float bg_est;
@@ -98,9 +98,7 @@ int main(int argc, char *argv[])
   FILE *fsnr;
 
   MODEL model_1, model_2, model_3, model_synth, model_a, model_b;
-  int transition;
-
-  int vf=0;
+  int transition, decimate;
 
   voiced_1 = voiced_2 = 0;
   model_1.Wo = TWO_PI/P_MIN;
@@ -192,6 +190,7 @@ int main(int argc, char *argv[])
   bg_est = 0.0;
   postfilt = switch_present("--postfilter",argc,argv);
 
+  decimate = switch_present("--dec",argc,argv);
   transition = 0;
 
   /* Initialise ------------------------------------------------------------*/
@@ -284,187 +283,35 @@ int main(int argc, char *argv[])
         dump_quantised_model(&model);
     }
 
-    //#define MAKE_CLICKY
-#ifdef MAKE_CLICKY
-    {
-	float maxA = 0.0;
-	float dB;
-	int   max_m;
 
-	for(i=1; i<=model.L; i++) {
-	    if (model.A[i] > maxA) {
-		maxA = model.A[i];
-		max_m = i;
-	    }
-	}
-	for(i=1; i<=model.L; i++) {
-	    if (model.A[i] > 0.1*maxA) {
-		model.A[i] = 0.0;
-	    }
-	}
+    /* option decimation to 20ms rate, which enables interpolation
+       routine to synthesise in between frame */
 
-    }
-#endif
-	
+    if (decimate) {
+	if (frames%2) {
 
-    //#define REDUCE_CLICKY
-#ifdef REDUCE_CLICKY
-    {
-	float maxA = 0.0;
-	float dB;
-	int   max_m;
+	    /* odd frames use the original model parameters */
 
-	for(i=1; i<=model.L; i++) {
-	    if (model.A[i] > maxA) {
-		maxA = model.A[i];
-		max_m = i;
-	    }
-	}
-	for(i=1; i<=model.L; i++) {
-	    if (model.A[i] < 0.1*maxA) {
-		model.phi[i] += 0.2*TWO_PI*(float)rand()/RAND_MAX;
-		dB = 3.0 - 6.0*(float)rand()/RAND_MAX;
-		model.A[i] *= pow(10.0, dB/20.0);
-	    }
-	}
-
-    }
-#endif
-
-
-    //#define DEC
- #ifdef DEC
-   /* Decimate to 20ms frame rate.  In the code we only send
-      off frames to the receiver.  To simulate this on odd
-      frames the model parameters pass straight thru.  On even
-      frames we interpolate from adjacent odd frames.  A one
-      frame delay is required for the odd frames.
-   */
-
-    /* 
-       frames  Transmitted to Rx  Decimator output
- 
-         0     n                  0.5*model(-3) + 0.5*model(-1)
-         1     y                  model(-1)
-         2     n                  0.5*model(-1) + 0.5*model(1)
-         3     y                  model(1)
- 	 4     n                  0.5*model(1) + 0.5*model(3)
-	 5     y                  model(3)
-    */
-
-    /* 
-       TODO: 
-       [ ] Voicing decision
-       [ ] unvoiced
-           [ ] amplitudes
-           [ ] phases
-           [ ] Wo
-       [ ] unvoiced
-           [ ] amplitudes
-           [ ] phases
-               + OK to run zero phase model on 10ms rate, using info
-                 from adjacent 20 ms frames
-           [ ] Wo
-    */
-
-    dump_model(&model_2);
-
-    if (frames%2) {
-
-	/* odd frames use the original model parameters */
-
-	model_synth = model_2;
-	transition = 0;
-
-    }
-    else {
-	/* even frame so we need to synthesise the model parameters by
-	   interpolating between adjacent frames */
-
-	if (fabs(model_1.Wo - model_3.Wo) < 0.1*model_1.Wo) {
-	    /* If the Wo of adjacent frames is within 10% we synthesise a 
-	       continuous track through this frame by linear interpolation
-	       of the amplitudes and Wo.  This is typical of a strongly 
-	       voiced frame.
-	    */
-
+	    model_synth = model_2;
 	    transition = 0;
 
-	    model_synth.Wo = (model_1.Wo + model_3.Wo)/2.0;
-	    if (model_1.L > model_3.L)
-		model_synth.L = model_3.L;
-	    else
-		model_synth.L = model_1.L;
-	    for(i=1; i<=model_synth.L; i++) {
-		model_synth.A[i] = (model_3.A[i] + model_1.A[i])/2.0;
-		/* cheat on phases for now, these were constructed using
-		   LPC model from actual speech for this frame - fix later */
-		model_synth.phi[i] = model_2.phi[i];
-	    }
 	}
 	else {
-	    /* 
-	       transition frame, adjacent frames have different Wo and
-	       L so set up two sets of model parameters based on
-	       previous and next frame.  We then synthesise both of
-	       them and add them together in the time domain.  
+	    interp(&model_3, &model_1, &model_synth, &model_a, &model_b, 
+		   &transition);
 
-	       This case is typical of unvoiced speech or background
-	       noise or a voiced/unvoiced transition.
-	    */
-
-	    transition = 1;
-
-	    /* model_a is the previous frames extended forward into
-	       this frame, model_b is the next frame extended backward
-	       into this frame.  Note the adjustments to phase to
-	       time-shift the model forward or backward N samples. */
-
-	    memcpy(&model_a, &model_3, sizeof(model));
-	    memcpy(&model_b, &model_1, sizeof(model));
-	    for(i=1; i<=model_a.L; i++) {
-		model_a.A[i] /= 2.0;
-		model_a.phi[i] += model_a.Wo*i*N;
-	    }
-	    for(i=1; i<=model_b.L; i++) {
-		model_b.A[i] /= 2.0;
-		model_b.phi[i] -= model_b.Wo*i*N;
-	    }
+	    /* phase need to be supplied outside of this routine, e.g. via
+	       a phase model */
+	       
+	    for(i=1; i<=model_synth.L; i++)
+		model_synth.phi[i] = model_2.phi[i];
 	}
+
+	model_3 = model_2;
+	model_2 = model_1;
+	model_1 = model;
+	model = model_synth;
     }
-
-    voiced_2 = voiced_1;
-    voiced_1 = voiced;
-
-    model_3 = model_2;
-    model_2 = model_1;
-    model_1 = model;
-    model = model_synth;
-#endif
-    //dump_quantised_model(&model);
-
-#define INTERP
-#ifdef INTERP
-    if (frames%2) {
-
-	/* odd frames use the original model parameters */
-
-	model_synth = model_2;
-	transition = 0;
-
-    }
-    else {
-	interp(&model_3, &model_1, &model_synth, &model_a, &model_b, &transition);
-	for(i=1; i<=model_synth.L; i++)
-	    model_synth.phi[i] = model_2.phi[i];
-    }
-
-    model_3 = model_2;
-    model_2 = model_1;
-    model_1 = model;
-    model = model_synth;
-	
-#endif
 
     /* Synthesise speech */
 
