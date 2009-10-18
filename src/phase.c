@@ -305,10 +305,11 @@ void phase_synth_zero_order(
   int    voiced
 )
 {
-  int   m;
+  int   m,i;
   float new_phi;
   COMP  Ex[MAX_AMP];		/* excitation samples */
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
+  float maxA;
 
   /* 
      Update excitation fundamental phase track, this sets the position
@@ -374,6 +375,26 @@ void phase_synth_zero_order(
     new_phi = atan2(A_[m].imag, A_[m].real+1E-12);
     model.phi[m] = new_phi;
   }
+
+  #ifdef CLICKY
+  /* Adding a random component to low energy harmonic phase seems to
+     improve low pitch speakers.  Adding a small random component to
+     low energy harmonic amplitudes also helps low pitch speakers after
+     LPC modelling (see LPC modelling/amplitude quantisation code).
+  */
+
+  maxA = 0.0;
+  for(i=1; i<=model.L; i++) {
+      if (model.A[i] > maxA) {
+	  maxA = model.A[i];
+      }
+  }
+  for(i=1; i<=model.L; i++) {
+      if (model.A[i] < 0.1*maxA) {
+	  model.phi[i] += 0.2*TWO_PI*(float)rand()/RAND_MAX;
+      }
+  }
+  #endif
 }
 
 /*---------------------------------------------------------------------------*\

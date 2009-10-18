@@ -36,7 +36,7 @@
 
 #define MAX_ORDER    20
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
-#define MAX_CB       10         /* max number of codebooks */
+#define MAX_CB       20         /* max number of codebooks */
 
 /* describes each codebook  */
 
@@ -48,6 +48,7 @@ typedef struct {
 
 /* lsp_q describes entire quantiser made up of several codebooks */
 
+#ifdef OLDER
 /* 10+10+6+6 = 32 bit LSP difference split VQ */
 
 LSP_CB lsp_q[] = {
@@ -55,6 +56,21 @@ LSP_CB lsp_q[] = {
     {3,   1024, "../unittest/lspd456.txt"},
     {2,     64, "../unittest/lspd78.txt"},
     {2,     64, "../unittest/lspd910.txt"},
+    {0,    0, ""}
+};
+#endif
+
+LSP_CB lsp_q[] = {
+    {1,   16, "../unittest/lsp1.txt"},
+    {1,   16, "../unittest/lsp2.txt"},
+    {1,   16, "../unittest/lsp3.txt"},
+    {1,   16, "../unittest/lsp4.txt"},
+    {1,   16, "../unittest/lsp5.txt"},
+    {1,   16, "../unittest/lsp6.txt"},
+    {1,   16, "../unittest/lsp7.txt"},
+    {1,    8, "../unittest/lsp8.txt"},
+    {1,    8, "../unittest/lsp9.txt"},
+    {1,    4, "../unittest/lsp10.txt"},
     {0,    0, ""}
 };
 
@@ -306,6 +322,7 @@ float lpc_model_amplitudes(
   int   i,j;
   float snr;	
   float lsp[MAX_ORDER];
+  float lsp_hz[MAX_ORDER];
   float lsp_[MAX_ORDER];
   float lspd[MAX_ORDER];
   int   roots;            /* number of LSP roots found */
@@ -314,6 +331,8 @@ float lpc_model_amplitudes(
   int   l,k,m;
   float *cb;
   float wt[MAX_ORDER];
+
+  float maxA, dB;
 
   for(i=0; i<M; i++)
     Wn[i] = Sn[i]*w[i];
@@ -329,6 +348,43 @@ float lpc_model_amplitudes(
     if (roots != order)
 	printf("LSP roots not found\n");
 
+    for(i=0; i<order; i++)
+	lsp_hz[i] = (4000.0/PI)*lsp[i];
+    
+    for(i=0; i<10; i++) {
+	k = lsp_q[i].k;
+	m = lsp_q[i].m;
+	cb = plsp_cb[i];
+	index = quantise(cb, &lsp_hz[i], wt, k, m, &se);
+	lsp_hz[i] = cb[index*k];
+    }
+    
+    /*
+    for(i=0; i<order; i++)
+	lsp[i] += PI*(12.5/4000.0)*(1.0 - 2.0*(float)rand()/RAND_MAX);
+    */
+
+    for(i=0; i<order; i++)
+	lsp[i] = (PI/4000.0)*lsp_hz[i];
+
+    for(i=1; i<5; i++) {
+	if (lsp[i] - lsp[i-1] < PI*(12.5/4000.0))
+	    lsp[i] = lsp[i-1] + PI*(12.5/4000.0);
+    }
+
+    /* as quantiser gaps increased, larger BW expansion was required
+       to prevent twinkly noises */
+    for(i=5; i<8; i++) {
+	if (lsp[i] - lsp[i-1] < PI*(25.0/4000.0))
+	    lsp[i] = lsp[i-1] + PI*(25.0/4000.0);
+    }
+    for(i=8; i<order; i++) {
+	if (lsp[i] - lsp[i-1] < PI*(75.0/4000.0))
+	    lsp[i] = lsp[i-1] + PI*(75.0/4000.0);
+    }
+
+    //#define OLD_VQ
+#ifdef OLD_VQ
     lspd[0] = lsp[0];
     for(i=1; i<order; i++)
 	lspd[i] = lsp[i] - lsp[i-1];
@@ -366,7 +422,9 @@ float lpc_model_amplitudes(
 	i++;
 	assert(i < MAX_CB);
     }
-    
+#else
+    l = 0;
+#endif    
     /* used during development: copy remaining LSPs from orig if we haven't
        quantised all of them */
     for(j=l; j<order; j++)
@@ -377,6 +435,27 @@ float lpc_model_amplitudes(
   }
 
   aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
+
+  #ifdef CLICKY
+  /* Adding a random component to low energy harmonic phase seems to
+     improve low pitch speakers.  Adding a small random component to
+     low energy harmonic amplitudes also helps low pitch speakers after
+     LPC modelling (see LPC modelling/amplitude quantisation code).
+  */
+
+  maxA = 0.0;
+  for(i=1; i<=model->L; i++) {
+      if (model->A[i] > maxA) {
+	  maxA = model->A[i];
+      }
+  }
+  for(i=1; i<=model->L; i++) {
+      if (model->A[i] < 0.1*maxA) {
+	  dB = 3.0 - 6.0*(float)rand()/RAND_MAX;
+	  model->A[i] *= pow(10.0, dB/20.0);
+      }
+  }
+  #endif
 
   return snr;
 }
@@ -416,8 +495,7 @@ void aks_to_M2(
 
   for(i=0; i<FFT_DEC; i++) {
     Pw[i].real = 0.0;
-    Pw[i].imag = 0.0;
-  }
+    Pw[i].imag = 0.0;  }
 
   for(i=0; i<=order; i++)
     Pw[i].real = ak[i];

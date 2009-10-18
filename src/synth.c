@@ -109,7 +109,8 @@ void synthesise_mixed(
   partial unvoiced sound when using zero phase model was found to be
   due mis-alignment of the LPC analysis window and accidental addition
   of a random phase component.  So we are sticking with synthesise_mixed()
-  above for now.
+  above for now.  I am leaving this function here for the moment as it 
+  might be useful one day.
 
 \*---------------------------------------------------------------------------*/
 

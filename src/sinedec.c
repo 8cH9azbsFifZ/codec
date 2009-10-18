@@ -35,6 +35,7 @@
 #include "lpc.h"
 #include "synth.h"
 #include "postfilter.h"
+#include "interp.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -218,7 +219,7 @@ int main(int argc, char *argv[])
     dump_Sn(Sn);
     dft_speech(); dump_Sw(Sw);   
 
-    //dump_model(&model);
+    dump_model(&model);
 
     /* optional phase modelling - make sure this happens before LPC
        modelling of {Am} as first order model fit doesn't work well
@@ -258,8 +259,10 @@ int main(int argc, char *argv[])
 	    /* just to make sure we are not cheating - kill all phases */
 	    for(i=0; i<MAX_AMP; i++)
 	    	model.phi[i] = 0;
-	    if (hand_snr)
+	    if (hand_snr) {
 		fscanf(fsnr,"%f\n",&snr);
+		voiced = snr > 2.0;
+	    }
 	    phase_synth_zero_order(voiced, H, ex_phase, voiced);
 	}
 
@@ -270,7 +273,7 @@ int main(int argc, char *argv[])
         if (postfilt)
 	    postfilter(&model, voiced, &bg_est);
 
-        dump_phase_(&model.phi[0]);
+        //dump_phase_(&model.phi[0]);
     }
 
     /* optional LPC model amplitudes */
@@ -281,7 +284,55 @@ int main(int argc, char *argv[])
         dump_quantised_model(&model);
     }
 
- #define DEC
+    //#define MAKE_CLICKY
+#ifdef MAKE_CLICKY
+    {
+	float maxA = 0.0;
+	float dB;
+	int   max_m;
+
+	for(i=1; i<=model.L; i++) {
+	    if (model.A[i] > maxA) {
+		maxA = model.A[i];
+		max_m = i;
+	    }
+	}
+	for(i=1; i<=model.L; i++) {
+	    if (model.A[i] > 0.1*maxA) {
+		model.A[i] = 0.0;
+	    }
+	}
+
+    }
+#endif
+	
+
+    //#define REDUCE_CLICKY
+#ifdef REDUCE_CLICKY
+    {
+	float maxA = 0.0;
+	float dB;
+	int   max_m;
+
+	for(i=1; i<=model.L; i++) {
+	    if (model.A[i] > maxA) {
+		maxA = model.A[i];
+		max_m = i;
+	    }
+	}
+	for(i=1; i<=model.L; i++) {
+	    if (model.A[i] < 0.1*maxA) {
+		model.phi[i] += 0.2*TWO_PI*(float)rand()/RAND_MAX;
+		dB = 3.0 - 6.0*(float)rand()/RAND_MAX;
+		model.A[i] *= pow(10.0, dB/20.0);
+	    }
+	}
+
+    }
+#endif
+
+
+    //#define DEC
  #ifdef DEC
    /* Decimate to 20ms frame rate.  In the code we only send
       off frames to the receiver.  To simulate this on odd
@@ -330,47 +381,44 @@ int main(int argc, char *argv[])
 	/* even frame so we need to synthesise the model parameters by
 	   interpolating between adjacent frames */
 
-	model_synth = model_2;
-        voiced_synth = voiced && voiced_2;
 	if (fabs(model_1.Wo - model_3.Wo) < 0.1*model_1.Wo) {
 	    /* If the Wo of adjacent frames is within 10% we synthesise a 
 	       continuous track through this frame by linear interpolation
 	       of the amplitudes and Wo.  This is typical of a strongly 
 	       voiced frame.
 	    */
+
 	    transition = 0;
 
-	    /* continuous track through this frame */
-	    #define T
-	    #ifdef T
-		model_synth.Wo = (model_1.Wo + model_3.Wo)/2.0;
-		if (model_1.L > model_3.L)
-		    model_synth.L = model_3.L;
-		else
-		    model_synth.L = model_1.L;
-	    #endif
-		for(i=1; i<=model_synth.L; i++) {
-		    model_synth.A[i] = (model_3.A[i] + model_1.A[i])/2.0;
-		    /* cheat on phases for now, these were constructed using
-		       LPC model from actual speech for this frame - fix later */
-		    model_synth.phi[i] = model_2.phi[i];
-		}
-		vf++;
+	    model_synth.Wo = (model_1.Wo + model_3.Wo)/2.0;
+	    if (model_1.L > model_3.L)
+		model_synth.L = model_3.L;
+	    else
+		model_synth.L = model_1.L;
+	    for(i=1; i<=model_synth.L; i++) {
+		model_synth.A[i] = (model_3.A[i] + model_1.A[i])/2.0;
+		/* cheat on phases for now, these were constructed using
+		   LPC model from actual speech for this frame - fix later */
+		model_synth.phi[i] = model_2.phi[i];
+	    }
 	}
 	else {
 	    /* 
 	       transition frame, adjacent frames have different Wo and
 	       L so set up two sets of model parameters based on
 	       previous and next frame.  We then synthesise both of
-	       them and add them together in the time domain.  Note
-	       the adjustments to phase to shift the timing of the
-	       model parameters forward or back N samples.  
+	       them and add them together in the time domain.  
 
-	       This case is typical of unvoiced speech or background noise
-	       of a voiced to unvoiced transition.
+	       This case is typical of unvoiced speech or background
+	       noise or a voiced/unvoiced transition.
 	    */
 
 	    transition = 1;
+
+	    /* model_a is the previous frames extended forward into
+	       this frame, model_b is the next frame extended backward
+	       into this frame.  Note the adjustments to phase to
+	       time-shift the model forward or backward N samples. */
 
 	    memcpy(&model_a, &model_3, sizeof(model));
 	    memcpy(&model_b, &model_1, sizeof(model));
@@ -392,6 +440,30 @@ int main(int argc, char *argv[])
     model_2 = model_1;
     model_1 = model;
     model = model_synth;
+#endif
+    //dump_quantised_model(&model);
+
+#define INTERP
+#ifdef INTERP
+    if (frames%2) {
+
+	/* odd frames use the original model parameters */
+
+	model_synth = model_2;
+	transition = 0;
+
+    }
+    else {
+	interp(&model_3, &model_1, &model_synth, &model_a, &model_b, &transition);
+	for(i=1; i<=model_synth.L; i++)
+	    model_synth.phi[i] = model_2.phi[i];
+    }
+
+    model_3 = model_2;
+    model_2 = model_1;
+    model_1 = model;
+    model = model_synth;
+	
 #endif
 
     /* Synthesise speech */
@@ -420,8 +492,6 @@ int main(int argc, char *argv[])
     }    
   }
 
-  //printf("gmin = %f\n", get_gmin());
-  printf("vf = %d\n", vf);
   if (fout != NULL)
     fclose(fout);
 
