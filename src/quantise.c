@@ -427,12 +427,22 @@ float lpc_model_amplitudes(
 #endif    
     /* used during development: copy remaining LSPs from orig if we haven't
        quantised all of them */
-    for(j=l; j<order; j++)
+    for(j=l; j<order; j++) 
 	lsp_[j] = lsp[j];
 
     lsp_to_lpc(lsp_, &ak[1], order, NULL);
     dump_lsp(lsp);
   }
+
+  dump_E(E);
+  #ifdef SIM_QUANT
+  /* simulated LPC energy quantisation */
+  {
+      float e = 10.0*log10(E);
+      e += 2.0*(1.0 - 2.0*(float)rand()/RAND_MAX);
+      E = pow(10.0,e/10.0);
+  }
+  #endif
 
   aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
 

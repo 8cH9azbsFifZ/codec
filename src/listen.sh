@@ -9,5 +9,5 @@
 
 # compare to other codecs
 
-../script/menu.sh ../raw/$1.raw $1_phase0_lsp.raw ../raw/$1_g729a.raw ../raw/$1_gsm13k.raw ../raw/$1_speex_8k.raw $2 $3
+../script/menu.sh ../raw/$1.raw $1_phase0_lsp.raw $1_phase0_lsp_20.raw $1_phase0_lsp_20_EWo.raw ../raw/$1_g729a.raw ../raw/$1_gsm13k.raw ../raw/$1_speex_8k.raw $2 $3
 

@@ -48,6 +48,7 @@ static FILE *fdec = NULL;
 static FILE *fsnr = NULL;
 static FILE *fak = NULL;
 static FILE *fbg = NULL;
+static FILE *fE = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -89,6 +90,8 @@ void dump_off(){
 	fclose(fak);
     if (fbg != NULL)
 	fclose(fbg);
+    if (fE != NULL)
+	fclose(fE);
 }
 
 void dump_Sn(float Sn[]) {
@@ -385,6 +388,16 @@ void dump_bg(float e, float bg_est, float percent_uv) {
     fprintf(fbg,"%f\t%f\t%f\n", e, bg_est, percent_uv);    
 }
 
+void dump_E(float E) {
+    char s[MAX_STR];
 
+    if (!dumpon) return;
 
+    if (fE == NULL) {
+	sprintf(s,"%s_E.txt", prefix);
+	fE = fopen(s, "wt");
+	assert(fE != NULL);
+    }
 
+    fprintf(fE,"%f\n", 10.0*log10(E));
+}

@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
   int dump;
   
   int phase, phase_model;
-  float ex_phase[1];
+  float ex_phase[MAX_AMP+1];
   int voiced, voiced_1, voiced_2;
 
   int   postfilt;
@@ -106,6 +106,9 @@ int main(int argc, char *argv[])
   for(i=1; i<=model_1.L; i++) {
       model_1.A[i] = 0.0;
       model_1.phi[i] = 0.0;
+  }
+  for(i=1; i<=MAX_AMP; i++) {
+      ex_phase[i] = 0.0;
   }
   model_synth = model_3 = model_2 = model_1;
 
@@ -274,15 +277,14 @@ int main(int argc, char *argv[])
 
         //dump_phase_(&model.phi[0]);
     }
-
-    /* optional LPC model amplitudes */
+ 
+   /* optional LPC model amplitudes */
 
     if (lpc_model) {
 	snr = lpc_model_amplitudes(Sn, &model, order, lsp, ak);
 	sum_snr += snr;
         dump_quantised_model(&model);
     }
-
 
     /* option decimation to 20ms rate, which enables interpolation
        routine to synthesise in between frame */
@@ -294,7 +296,6 @@ int main(int argc, char *argv[])
 
 	    model_synth = model_2;
 	    transition = 0;
-
 	}
 	else {
 	    interp(&model_3, &model_1, &model_synth, &model_a, &model_b, 
@@ -312,6 +313,14 @@ int main(int argc, char *argv[])
 	model_1 = model;
 	model = model_synth;
     }
+
+    /* 
+       Simulate Wo quantisation noise
+       model.Wo += 2.0*(PI/8000)*(1.0 - 2.0*(float)rand()/RAND_MAX);
+       if (model.Wo > TWO_PI/20.0) model.Wo = TWO_PI/20.0;
+       if (model.Wo < TWO_PI/160.0) model.Wo = TWO_PI/160.0;
+       model.L = floor(PI/model.Wo);   
+    */
 
     /* Synthesise speech */
 
