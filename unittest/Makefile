@@ -1,6 +1,6 @@
 CFLAGS = -I. -I../src -I../speex -Wall -g -DFLOATING_POINT -DVAR_ARRAYS
 
-all: genres lsptest genlsp extract vqtrain tnlp tcontphase
+all: genres lsptest genlsp extract vqtrain tnlp tcontphase tmodel
 
 genres: genres.o ../src/lpc.o
 	gcc $(CFLAGS) -o genres genres.o ../src/lpc.o -lm
@@ -32,6 +32,9 @@ tnlp: $(TNLP_OBJ)
 
 tcontphase: $(TCONTPHASE_OBJ)
 	gcc $(CFLAGS) -o tcontphase $(TCONTPHASE_OBJ) -lm
+
+tmodel: tmodel.o
+	gcc $(CFLAGS) -o tmodel tmodel.o -lm
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@

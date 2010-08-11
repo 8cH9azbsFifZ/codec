@@ -112,7 +112,7 @@ char *argv[];
     frames = 0;
     prev_Wo = 0;
     while(fread(buf,sizeof(short),N,fin)) {
-      frames++;
+      printf("%d\n", frames++);
 
       /* Update input speech buffers */
 
