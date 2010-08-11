@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define VTHRESH 2.0
+#define VTHRESH 4.0
 
 /*---------------------------------------------------------------------------*\
 
@@ -230,7 +230,7 @@ float phase_model_first_order(
    phase_synth_zero_order()
 
    Synthesises phases based on SNR and a rule based approach.  No phase 
-   parameters are required apart from the SNR (which can be reduec to a
+   parameters are required apart from the SNR (which can be reduced to a
    1 bit V/UV decision per frame).
 
    The phase of each harmonic is modelled as the phase of a LPC
@@ -272,7 +272,7 @@ float phase_model_first_order(
    We then relate the phase of the m-th excitation harmonic to the
    phase of the fundamental as:
 
-     arg(E[m]) = marg(E[1])
+     arg(E[m]) = m*arg(E[1])
 
    This E[m] then gets passed through the LPC synthesis filter to
    determine the final harmonic phase.
@@ -289,7 +289,7 @@ float phase_model_first_order(
      3/ Note that this approach could cause some discontinuities in
      the phase at the edge of synthesis frames, as no attempt is made
      to make sure that the phase tracks are continuous (the excitation
-     phases are continuous, but not teh final phases after filtering
+     phases are continuous, but not the final phases after filtering
      by the LPC spectra).  Technically this is a bad thing.  However
      this may actually be a good thing, disturbing the phase tracks a
      bit.  More research needed, e.g. test a synthsis model that adds
@@ -310,6 +310,7 @@ void phase_synth_zero_order(
   COMP  Ex[MAX_AMP];		/* excitation samples */
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
   float maxA;
+  float jitter;
 
   /* 
      Update excitation fundamental phase track, this sets the position
@@ -319,19 +320,25 @@ void phase_synth_zero_order(
      
      ex_phase[0] += (*prev_Wo+model.Wo)*N/2;
   */
+  
+  /* determine jitter offset */
 
-  ex_phase[0] += (model.Wo)*N;
-  ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
+  jitter = (1.0 - 2.0*rand()/RAND_MAX);
 
   /* now modify this frames phase using zero phase model */
+
+  //ex_phase[0] += (model.Wo)*N - jitter*model.Wo;
+  ex_phase[0] += (model.Wo)*N;
+  ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
 
   for(m=1; m<=model.L; m++) {
 
     /* generate excitation */
 
     if (voiced) {
-	Ex[m].real = cos(ex_phase[0]*m);
-        Ex[m].imag = sin(ex_phase[0]*m);
+        jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
+	Ex[m].real = cos(ex_phase[0]*m - jitter*model.Wo*m);
+	Ex[m].imag = sin(ex_phase[0]*m - jitter*model.Wo*m);
 
 	/* following is an experiment in dispersing pulse energy over
 	   time, didn't really change sound at all, e.g. mmt1 still
@@ -345,8 +352,8 @@ void phase_synth_zero_order(
 	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
 
 	/* following is an experiment to use the phase of a glottal pulse
-	   (see octave/glottal.m) in an attempt io make 9mmt1 and hts1 a little
-	   less "clicky", i.e. disperse the pusle energy away from the point
+	   (see octave/glottal.m) is an attempt to make mmt1 and hts1 a little
+	   less "clicky", i.e. disperse the pulse energy away from the point
 	   of onset.  Result was no difference in speech quality, in fact
 	   no difference at all. Could be an implementation error I guess. 
 	   One again - this model doesnt change phases much between adjacent
@@ -371,7 +378,7 @@ void phase_synth_zero_order(
     A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
 
     /* modify sinusoidal phase */
-
+   
     new_phi = atan2(A_[m].imag, A_[m].real+1E-12);
     model.phi[m] = new_phi;
   }
