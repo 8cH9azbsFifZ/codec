@@ -39,7 +39,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 files=0
-items="Q-Quit "
+items="Q-Quit\n"
 while [ ! -z "$1" ]
 do
   case "$1" in
@@ -47,15 +47,16 @@ do
      *) files=`expr 1 + $files`;
         new_file=$1;
         file[$files]=$new_file;
-        items="${items} ${files}-${new_file}";;
+        items="${items} ${files}-${new_file}\n";;
   esac
   shift
 done
 
 readchar=1
+echo -n -e "\r" $items"- "
 while [ $readchar -ne 0 ]
 do
-  echo -n -e "\r" $items "- "
+  echo -n -e "\r -"
   stty cbreak         # or stty raw
   readchar=`dd if=/dev/tty bs=1 count=1 2>/dev/null`
   stty -cbreak

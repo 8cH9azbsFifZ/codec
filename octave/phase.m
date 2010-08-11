@@ -21,13 +21,13 @@ function phase(samname, F0, png)
     phi(1) = phi(1) + Wo*N;
     phi(1) = mod(phi(1),2*pi);
   
-    for m=2:L
+    for m=1:L
       phi(m) = m*phi(1);
     end
 
     x = zeros(1,N);
     for m=1:L
-      x = x + A*cos(m*Wo*(0:(N-1)) + phi(m) + phi_off(m));
+      x = x + A*cos(m*Wo*(0:(N-1)) + phi(m));
     endfor
     s((f-1)*N+1:f*N) = x;
   endfor

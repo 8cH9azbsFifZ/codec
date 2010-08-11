@@ -54,6 +54,7 @@ function plamp(samname, f)
   do 
     figure(1);
     clg;
+%    s = [ Sn(2*(f-2)-1,:) Sn(2*(f-2),:) ];
     s = [ Sn(2*f-1,:) Sn(2*f,:) ];
     plot(s);
     axis([1 length(s) -20000 20000]);
@@ -65,6 +66,7 @@ function plamp(samname, f)
     plot((1:L)*Wo*4000/pi, 20*log10(Am),";Am;");
     axis([1 4000 -10 80]);
     hold on;
+%    plot((0:255)*4000/256, Sw(f-2,:),";Sw;");
     plot((0:255)*4000/256, Sw(f,:),";Sw;");
 
     if (file_in_path(".",modelq_name))

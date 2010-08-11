@@ -7,22 +7,22 @@ function lsp_pdf(lsp)
 
   % LSPs
 
-  figure(1);
+  figure(3);
   clg;
   [x,y] = hist(lsp(:,1),100);
-  plot(y,x,";1;");
+  plot(y*4000/pi,x,";1;");
   hold on;
   for i=2:c
     [x,y] = hist(lsp(:,i),100);
     legend = sprintf(";%d;",i);
-    plot(y,x,legend);
+    plot(y*4000/pi,x,legend);
   endfor
   hold off;
   grid;
 
   % LSP differences
 
-  figure(2);
+  figure(4);
   clg;
   subplot(211)
   [x,y] = hist(lsp(:,1),100);

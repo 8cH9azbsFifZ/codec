@@ -7,13 +7,15 @@ David Rowe, VK5DGR
 Introduction
 ------------
 
-Codec2 is a open source low bit rate speech codec designed for
-communications quality speech at around 2400 kbit/s.  Applications
+Codec2 is an open source low bit rate speech codec designed for
+communications quality speech at around 2400 bit/s.  Applications
 include low bandwidth HF/VHF digital radio.  It fills a gap in open
 source, free-as-in-speech voice codecs beneath 5000 bit/s.
 
 The motivations behind the project are summarised in this
 link:/blog/?p=128[blog post].
+
+You can help and support Codec2 development via a <<help,PayPal donation,>>.
 
 [[status]]
 Status
@@ -29,21 +31,30 @@ Progress to date:
    modelling and quantisation options - these are controlled via
    command line switches.
 
-2. LPC modelling working nicely and there is a first pass LSP vector
-   quantiser working at 32 bits/frame with acceptable voice quality.
-   Lots could be done to improve this (e.g. improved quality and
-   reduced bit rate).
+2. LPC modelling is working nicely and there is a first pass LSP
+   vector quantiser working at 32 bits/frame with acceptable voice
+   quality.  Lots could be done to improve this (e.g. improved quality
+   and reduced bit rate).
 
-3. Phase model developed that uses 0 bits for phase and 1 bit/frame
-   for voiced/unvoiced decision.  An experimental post filter has been
-   developed to improve performance for speech with background noise.
+3. A phase model has been developed that uses 0 bits for phase and 1
+   bit/frame for voiced/unvoiced decision but delivers high quality
+   speech.  This works suspiciously well - codecs with a single bit
+   voiced/unvoiced decision aren't meant to sound this good.  Usually
+   mixed voicing at several bits/frame is required.
 
-4. Non-Linear Pitch (NLP) pitch estimator working OK, and a simple
+4. An experimental post filter has been developed to improve
+   performance with speech mixed with background noise.  The post
+   filter delivers many of the advantages of mixed voicing but unlike
+   mixed voicing requires zero bits.
+
+5. Non-Linear Pitch (NLP) pitch estimator working OK, and a simple
    pitch tracker has been developed to help with some problem frames.
 
-5. An algorithm for decimating sinusoidal model parameters from the
-   native 10ms rate to a 20ms rate has been developed.  A 20ms frame
-   rate is required for 2400 bit/s coding.
+6. An algorithm for decimating sinusoidal model parameters from the
+   native 10ms rate to a 20ms rate has been developed.  High quality
+   speech is maintained, some small differences are only audible
+   through headphones.  A 20ms frame rate is required for 2400 bit/s
+   coding.
 
 Current work areas:
 
@@ -213,19 +224,32 @@ The tough bits of this project are:
 Can I help?
 -----------
 
-Maybe; check out the latest version of the
+Maybe; check out the the <<plan, Development Roadmap>> above and the latest
+version of the
 http://freetel.svn.sourceforge.net/viewvc/freetel/codec2/TODO.txt?view=log[TODO]
-list and the development roadmap above and see if there is anything
-that interests you.
+list and and see if there is anything that interests you.
 
-Not all of this project is DSP.  If you can code in C there are lots
-of general processing tasks like refactoring and writing a command
-line soft phone application for testing the codec over a LAN.
+Not all of this project is DSP.  There are many general C coding tasks
+like refactoring and writing a command line soft phone application for
+testing the codec over a LAN.
 
-I will happily accept sponsorship for this project.  For example
-research grants, or development contracts for companies interested in
-seeing an open source low bit rate speech codec.  One interesting
-project would be funding a real time port to a single DSP/CPU chip.
+I will happily accept *sponsorship* for this project.  For example
+research grants, or development contracts from companies interested in
+seeing an open source low bit rate speech codec. 
+
+You can also donate to the codec2 project via PayPal (which also
+allows credit card donations):
+
++++++++++++++++++++++++++++
+<form name="_xclick" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+<input type="hidden" name="cmd" value="_xclick">
+<input type="hidden" name="business" value="david@rowetel.com">
+<input type="hidden" name="item_name" value="Codec2 donation">
+<input type="hidden" name="currency_code" value="USD">
+Donation in US$: <input name="amount" value="10.00">
+<input type="image" src="http://www.paypal.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!">
+</form>
++++++++++++++++++++++++++++
 
 [[patents]]
 Is it Patent Free?

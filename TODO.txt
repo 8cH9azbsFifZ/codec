@@ -1,6 +1,144 @@
 TODO for codec2
 ---------------
 
+29 July 2010, current status:
+- g729a is a bit better, but c2 is not put to shame
+- c2 betters GSM in some cases
+- c2 has a "brighter" sound compared to CELP ref codecs, more HF
+- main artifact is "clicky" and poor UV sounds 
+- artefacts in bg noise in mmt1
+- lacks hoarseness of CELP ref codecs
+- pretty good for 2400 bit/s!
+
+Next Steps
+----------
+
+Would be nice to nail phase issues a bit better:
+
+- sync phase model not referenced to one onset
+- let phse track by keep phase relationship to onset constant to avoid
+  reverb
+- try removing every second harmonic
+- lower level for UV
+- pitch in UV sections - set to max Wo to best approx noise
+- start with orig phases, then subs in model for UV sounds
+
+Results
+-------
+
+1/
+
+- if we just replace phase of UV frames, it sounds great
+- but this probably is biassed towards voicing, ie low probability of error
+  on V frames
+- but it shows that when correct decn is made, we get good results
+- so perhaps trick is getting correctly detect UV
+
+2/ Drop every second harmonic during synthesis
+- this actually sounds pretty good
+- if you ignore spaceman sounds the voicing sounds great
+- not clicky!
+- less harmonics, less chance of forming a click
+- maybe we should look at tme doamin waveform
+- ears hairs can't rest in time?  Something JVM said....
+
+3/ Can we look at phases of high amplitude harmonics?
+- maybe plot them as separate sine waves
+- see if high ampltude ones have similar phase
+- maybe in human speech production they are highly dispersed
+- c.f. with our phase model
+- female has more widely spaced harmonics
+- less that one per formant
+
+Blog post ideas
+---------------
+
++ Show how sum of sinusoids makes up speech.  Show what it sounds like.
+
+
+After a day of listening and chasing my tail, conclusion is that 10ms frame,
+LSP quantised version is not to shabby.  Thru speaker it's roughly comparable
+to g729a and Speex at 8kbit/s.  Certainly not put to shame.
+
+So todo:
+  [ ] transparent 20ms frame conversion when fully quantised
+  [ ] faster voicing model
+  [ ] conversation test gadget, way to change codecs while we listen
+
+[ ] phase modelling
+    + is problem only due to very low pitch speakers (hts1, mmt1)?
+    + better chance to form a pulse
+    + could be not a problem at all for moderate pitch speakers
+    + ways to unfrom pulse for low pitch speakers
+    start with something that works:
+      + morig an hts1 and forig sound OK
+    + is it better to just release as is?
+    + still need some work on 20ms frames, but could do a 4kbit version soon
+    + need efficient voicing search
+
+[ ] Key Issues
+    [ ] LSP quantisation
+    [ ] decoupling of phase and LPC and voicing
+        + phase0 sounds OK, lpc10 sounds OK
+        + but together not so great
+
+[ ] LSP quantisation plan
+    + build an understanding of LSP quantisation
+    + using a series of experiments
+    + visualisation tools
+    + find out what matters perceptually
+    + then use this understanding to build quantisters
+    [ ] outlier thesis
+        + errors less than a certain amount don't matter
+        + quantiser overload errors have a big effect
+        + averaging SD over spectrum is wrong
+        + it's maximum deviation which counts
+        + one bad LSP can ruin an entire utterance
+        + maybe focus on just one LSP for a start
+        [ ] listen to some samples with LPC modelling
+        [ ] add RMS and overload distortion
+        [ ] view effect on Octave plots
+            [ ] come up with way of plotting cumulative errors over at utterance
+        [ ] come up with outlier objective model and distortion model
+        [ ] compare to perceptual response to averaged SD and outlier model
+    [ ] quantiser design   
+        [ ] write code to visualise k-means 1-D training
+        [ ] write code to visualise quantiser errors
+            + SD plus scatter plots
+        [ ] try k++ algorithm
+    [ ] idea: linear differential quantiser
+        + single bad outlier can ruin a frames
+        + overload distortion is the biggest problem
+        + differentially quantise with fixed grid to ensure no
+          outliers
+
+[ ] decoupling of phase and lpc
+    + hook up a loud speaker as reference tranducer
+    + another way to generate dispersive phase model?
+    [ ] try various combinations
+        + uq, lpc10, phase0
+        + why drop in quality?  Some coupling of models, zero phase?
+        + what the hell is dispersion - need to understand further
+        + come up with alternative model
+        + good understanding of phase and subj quality
+        + artificial signals to test, e.g. synth phase + real amps OR 
+          real phase plus LPC smooted amps
+        + suggest LPC smoothing of amps or smooth phases causes clickiness
+
+[ ] 10/20ms frame rate
+    + why any quality drop with 20ms?
+    + what effect of different parametsr different update rate.
+    + is quantisation jumps between frames a big issue?  How can
+      we test this?  Maybe enforce smoothness
+
+    + measure frame-frame variations in amplitudes Am.  Might give some feel for
+      allowable quant errors, perhaps some cripness is induced by slight variations.
+    
+    + 10ms frames have very big overlap.  No reason 20ms couldnt sound just as
+      good.  Spectrum should change very little.  Devise an experiment to tease
+      out key issues here.  Maybe have extra bit to say if speech starts/ends in
+      one frame.
+ 
 [ ] Important Open Issues
     [X] Why zero phase model doesn't work for mmt1
         + error in LPC window and accidental random phase component and
@@ -64,7 +202,7 @@ TODO for codec2
         + this gets tricky with split codebooks
         + VQ could also be trained with perceptual distortion modelled
         + perhaps work on weighting function
-        + try differential in time as well, voiced speech doesn't chnage much
+        + try differential in time as well, voiced speech doesn't change much
         + LPC envelope (mag spectrum) could possibly be quantised using some
 	  other form of VQ, use LPC just to get a constant sampling rate.  This
           is a bit blue sky
