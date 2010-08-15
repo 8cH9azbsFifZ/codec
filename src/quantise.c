@@ -30,9 +30,6 @@
 #include "quantise.h"
 #include "lpc.h"
 #include "dump.h"
-#include <lsp.h>
-#include <speex_bits.h>
-#include <quant_lsp.h>
 
 #define MAX_ORDER    20
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */

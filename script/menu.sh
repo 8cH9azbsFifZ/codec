@@ -59,12 +59,13 @@ do
   echo -n -e "\r -"
   stty cbreak         # or stty raw
   readchar=`dd if=/dev/tty bs=1 count=1 2>/dev/null`
+  echo $readchar
   stty -cbreak
-  if [ $readchar == 'q' ] ; then
-    readchar=0
-  fi
+#  if [ $readchar == 'q' ] ; then
+#    readchar=0
+#  fi
   if [ $readchar -ne 0 ] ; then
-    play -f s -r 8000 -s w ${file[$readchar]} $dsp > /dev/null
+    echo "play -r 8000 -s -2 ${file[$readchar]} $dsp > /dev/null"
   fi
 done
 echo
