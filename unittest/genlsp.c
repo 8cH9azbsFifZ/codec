@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 	    printf("Active Frame: %ld  unstables: %d\n",af, unstables);
 
 	    find_aks(Sn, ak, NW, P, &Eres);
-	    roots = lpc_to_lsp(&ak[1], P , lsp, 5, LSP_DELTA1, NULL);
+	    roots = lpc_to_lsp(&ak[1], P , lsp, 5, LSP_DELTA1);
 	    if (roots == P) {
 		if (lspd) {
 		    fprintf(flsp,"%f ",lsp[0]);

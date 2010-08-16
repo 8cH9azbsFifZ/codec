@@ -32,8 +32,6 @@
 #include <lpc.h>
 #include <lsp.h>
 #include <sd.h>
-#include <speex_bits.h>
-#include <quant_lsp.h>
 
 #define N 160
 #define P 10
