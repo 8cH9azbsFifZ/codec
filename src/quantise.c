@@ -29,6 +29,7 @@
 #include "sine.h"
 #include "quantise.h"
 #include "lpc.h"
+#include "lsp.h"
 #include "dump.h"
 
 #define MAX_ORDER    20
@@ -321,15 +322,12 @@ float lpc_model_amplitudes(
   float lsp[MAX_ORDER];
   float lsp_hz[MAX_ORDER];
   float lsp_[MAX_ORDER];
-  float lspd[MAX_ORDER];
   int   roots;            /* number of LSP roots found */
   int   index;
   float se;
-  int   l,k,m;
+  int   k,m;
   float *cb;
   float wt[MAX_ORDER];
-
-  float maxA, dB;
 
   for(i=0; i<M; i++)
     Wn[i] = Sn[i]*w[i];
@@ -340,14 +338,22 @@ float lpc_model_amplitudes(
   for(i=0; i<=order; i++)
       E += ak[i]*R[i];
  
+  for(i=0; i<order; i++)
+      wt[i] = 1.0;
+
   if (lsp_quant) {
-    roots = lpc_to_lsp(&ak[1], order, lsp, 5, LSP_DELTA1, NULL);
+    roots = lpc_to_lsp(ak, order, lsp, 5, LSP_DELTA1);
     if (roots != order)
 	printf("LSP roots not found\n");
+
+    /* convert from radians to Hz to make quantisers more
+       human readable */
 
     for(i=0; i<order; i++)
 	lsp_hz[i] = (4000.0/PI)*lsp[i];
     
+    /* simple uniform scalar quantisers */
+
     for(i=0; i<10; i++) {
 	k = lsp_q[i].k;
 	m = lsp_q[i].m;
@@ -356,13 +362,19 @@ float lpc_model_amplitudes(
 	lsp_hz[i] = cb[index*k];
     }
     
-    /*
+    /* experiment: simulating uniform quantisation error
     for(i=0; i<order; i++)
 	lsp[i] += PI*(12.5/4000.0)*(1.0 - 2.0*(float)rand()/RAND_MAX);
     */
 
     for(i=0; i<order; i++)
 	lsp[i] = (PI/4000.0)*lsp_hz[i];
+
+    /* Bandwidth Expansion (BW).  Prevents any two LSPs getting too
+       close together after quantisation.  We know from experiment
+       that LSP quantisation errors < 12.5Hz (25Hz setp size) are
+       inaudible so we use that as the minimum LSP separation.
+    */
 
     for(i=1; i<5; i++) {
 	if (lsp[i] - lsp[i-1] < PI*(12.5/4000.0))
@@ -371,6 +383,7 @@ float lpc_model_amplitudes(
 
     /* as quantiser gaps increased, larger BW expansion was required
        to prevent twinkly noises */
+
     for(i=5; i<8; i++) {
 	if (lsp[i] - lsp[i-1] < PI*(25.0/4000.0))
 	    lsp[i] = lsp[i-1] + PI*(25.0/4000.0);
@@ -380,54 +393,10 @@ float lpc_model_amplitudes(
 	    lsp[i] = lsp[i-1] + PI*(75.0/4000.0);
     }
 
-    //#define OLD_VQ
-#ifdef OLD_VQ
-    lspd[0] = lsp[0];
-    for(i=1; i<order; i++)
-	lspd[i] = lsp[i] - lsp[i-1];
-    for(i=0; i<order; i++)
-	wt[i] = 1.0;
-
-    i = 0; /* i-th codebook            */
-    l = 0; /* which starts at l-th lsp */
-    while(lsp_q[i].k) {
-	k = lsp_q[i].k;
-	m = lsp_q[i].m;
-	cb = plsp_cb[i];
-        index = quantise(cb, &lspd[l], wt, k, m, &se);
-
-	for(j=0; j<k; j++) 
-	    lspd[l+j] = cb[index*k+j];
-
-	/* compute quantised lsp so we can adjust for quantisation error
-	   below */
-
-	for(j=l; j<l+k; j++) {
-	    if (j==0)
-		lsp_[0] = lspd[0];
-	    else
-		lsp_[j] = lsp_[j-1] + lspd[j];
-	}
-
-	l += k;
-	assert(l <= order);
-
-	/* adjust next lspd to account for quantisation error */
-
-	lspd[l] = lsp[l] - lsp_[l-1];
-
-	i++;
-	assert(i < MAX_CB);
-    }
-#else
-    l = 0;
-#endif    
-    /* used during development: copy remaining LSPs from orig if we haven't
-       quantised all of them */
-    for(j=l; j<order; j++) 
+    for(j=0; j<order; j++) 
 	lsp_[j] = lsp[j];
 
-    lsp_to_lpc(lsp_, &ak[1], order, NULL);
+    lsp_to_lpc(lsp_, ak, order);
     dump_lsp(lsp);
   }
 
@@ -442,27 +411,6 @@ float lpc_model_amplitudes(
   #endif
 
   aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
-
-  #ifdef CLICKY
-  /* Adding a random component to low energy harmonic phase seems to
-     improve low pitch speakers.  Adding a small random component to
-     low energy harmonic amplitudes also helps low pitch speakers after
-     LPC modelling (see LPC modelling/amplitude quantisation code).
-  */
-
-  maxA = 0.0;
-  for(i=1; i<=model->L; i++) {
-      if (model->A[i] > maxA) {
-	  maxA = model->A[i];
-      }
-  }
-  for(i=1; i<=model->L; i++) {
-      if (model->A[i] < 0.1*maxA) {
-	  dB = 3.0 - 6.0*(float)rand()/RAND_MAX;
-	  model->A[i] *= pow(10.0, dB/20.0);
-      }
-  }
-  #endif
 
   return snr;
 }

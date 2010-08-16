@@ -11,10 +11,48 @@
 
 \*---------------------------------------------------------------------------*/
 
+#include "defines.h"
 #include "lsp.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/*---------------------------------------------------------------------------*\
+
+  Introduction to Line Spectrum Pairs (LSPs)
+  ------------------------------------------
+
+  LSPs are used to encode the LPC filter coefficients {ak} for
+  transmission over the channel.  LSPs have several properties (like
+  less sensitivity to quantisation noise) that make them superior to
+  direct quantisation of {ak}.
+
+  A(z) is a polynomial of order lpcrdr with {ak} as the coefficients.
+
+  A(z) is transformed to P(z) and Q(z) (using a substitution and some
+  algebra), to obtain something like:
+
+    A(z) = 0.5[P(z)(z+z^-1) + Q(z)(z-z^-1)]  (1)
+
+  As you can imagine A(z) has complex zeros all over the z-plane. P(z)
+  and Q(z) have the very neat property of only having zeros _on_ the
+  unit circle.  So to find them we take a test point z=exp(jw) and
+  evaluate P (exp(jw)) and Q(exp(jw)) using a grid of points between 0
+  and pi.
+
+  The zeros (roots) of P(z) also happen to alternate, which is why we
+  swap coefficients as we find roots.  So the process of finding the
+  LSP frequencies is basically finding the roots of 5th order
+  polynomials.
+
+  The root so P(z) and Q(z) occur in symmetrical pairs at +/-w, hence
+  the name Line Spectrum Pairs (LSPs).
+
+  To convert back to ak we just evaluate (1), "clocking" an impulse
+  thru it lpcrdr times gives us the impulse response of A(z) which is
+  {ak}.
+
+\*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*\
 
@@ -81,10 +119,10 @@ float cheb_poly_eva(float *coef,float x,int m)
 
 \*---------------------------------------------------------------------------*/
 
-int lpc_to_lsp (float *a,int lpcrdr,float *freq,int nb,float delta)
+int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
 /*  float *a 		     	lpc coefficients			*/
 /*  int lpcrdr			order of LPC coefficients (10) 		*/
-/*  float *freq 	      	LSP frequencies in the x domain       	*/
+/*  float *freq 	      	LSP frequencies in radians      	*/
 /*  int nb			number of sub-intervals (4) 		*/
 /*  float delta			grid spacing interval (0.02) 		*/
 {
@@ -107,7 +145,7 @@ int lpc_to_lsp (float *a,int lpcrdr,float *freq,int nb,float delta)
 
     if((Q = (float *) malloc((m+1)*sizeof(float))) == NULL){
 	printf("not enough memory to allocate buffer\n");
-	exit(1);
+ 	exit(1);
     }
 
     if((P = (float *) malloc((m+1)*sizeof(float))) == NULL){
@@ -200,6 +238,12 @@ int lpc_to_lsp (float *a,int lpcrdr,float *freq,int nb,float delta)
     free(P);                  		/* free memory space 		*/
     free(Q);
 
+    /* convert from x domain to radians */
+
+    for(i=0; i<lpcrdr; i++) {
+	freq[i] = acos(freq[i]);
+    }
+
     return(roots);
 }
 
@@ -214,8 +258,8 @@ int lpc_to_lsp (float *a,int lpcrdr,float *freq,int nb,float delta)
 
 \*---------------------------------------------------------------------------*/
 
-void lsp_to_lpc(float *freq,float *ak,int lpcrdr)
-/*  float *freq 	array of LSP frequencies in the x domain	*/
+void lsp_to_lpc(float *freq, float *ak, int lpcrdr)
+/*  float *freq         array of LSP frequencies in radians     	*/
 /*  float *ak 		array of LPC coefficients 			*/
 /*  int lpcrdr  	order of LPC coefficients 			*/
 
@@ -226,6 +270,11 @@ void lsp_to_lpc(float *freq,float *ak,int lpcrdr)
     float *Wp;
     float *pw,*n1,*n2,*n3,*n4;
     int m = lpcrdr/2;
+
+    /* convert from radians to the x=cos(w) domain */
+
+    for(i=0; i<lpcrdr; i++)
+	freq[i] = cos(freq[i]);
 
     if((Wp = (float *) malloc((4*m+2)*sizeof(float))) == NULL){
 	printf("not enough memory to allocate buffer\n");
