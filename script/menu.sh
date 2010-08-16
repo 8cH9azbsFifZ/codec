@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # ./menu.sh
 #
 # David Rowe
@@ -61,11 +61,11 @@ do
   readchar=`dd if=/dev/tty bs=1 count=1 2>/dev/null`
   echo $readchar
   stty -cbreak
-#  if [ $readchar == 'q' ] ; then
-#    readchar=0
-#  fi
+  if [ $readchar == 'q' ] ; then
+    readchar=0
+  fi
   if [ $readchar -ne 0 ] ; then
-    echo "play -r 8000 -s -2 ${file[$readchar]} $dsp > /dev/null"
+    play -r 8000 -s -2 ${file[$readchar]} $dsp 2> /dev/null
   fi
 done
 echo
