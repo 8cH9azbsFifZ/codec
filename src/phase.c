@@ -240,15 +240,15 @@ float phase_model_first_order(
 
    Consider a pulse train with a pulse starting time n=0, with pulses
    repeated at a rate of Wo, the fundamental frequency.  A pulse train
-   in the time domain is equivalent to a pulse train in the frequency
+   in the time domain is equivalent to harmonics in the frequency
    domain.  We can make an excitation pulse train using a sum of
    sinsusoids:
 
      for(m=1; m<=L; m++)
        ex[n] = cos(m*Wo*n)
 
-   Note: the Octave script ../octave/phase.m is an example of this if you would
-   like to try making a pulse train.
+   Note: the Octave script ../octave/phase.m is an example of this if
+   you would like to try making a pulse train.
 
    The phase of each excitation harmonic is:
 
@@ -265,7 +265,8 @@ float phase_model_first_order(
    first harmonic would advance (pi/20)*80 = 4*pi or two complete
    cycles.
 
-   We track the excitation phase of the fundamental (first harmonic):
+   We generate the excitation phase of the fundamental (first
+   harmonic):
 
      arg[E[1]] = Wo*N;
 
@@ -277,9 +278,23 @@ float phase_model_first_order(
    This E[m] then gets passed through the LPC synthesis filter to
    determine the final harmonic phase.
      
+   For a while there were prolems with low pitched males like hts1
+   sounding "clicky".  The synthesied time domain waveform also looked
+   clicky.  Many methods were tried to improve the sounds quality of
+   low pitched males. Finally adding a small amount of jitter to each
+   harmonic worked.
+
+   The current result sounds very close to the original phases, with
+   only 1 voicing bit per frame.  For example hts1a using original
+   amplitudes and this phase model produces speech hard to distinguish
+   from speech synthesise with the orginal phases.  The sound quality
+   of this patrtiallyuantised codec (nb original amplitudes) is higher
+   than g729, even though all the phase information has been
+   discarded.
+
    NOTES:
 
-     1/ This synthsis model is effectvely the same as simple LPC-10
+     1/ This synthesis model is effectvely the same as simple LPC-10
      vocoders, and yet sounds much better.  Why?
 
      2/ I am pretty sure the Lincoln Lab sinusoidal coding guys (like xMBE
@@ -292,9 +307,12 @@ float phase_model_first_order(
      phases are continuous, but not the final phases after filtering
      by the LPC spectra).  Technically this is a bad thing.  However
      this may actually be a good thing, disturbing the phase tracks a
-     bit.  More research needed, e.g. test a synthsis model that adds
+     bit.  More research needed, e.g. test a synthesis model that adds
      a small delta-W to make phase tracks line up for voiced
      harmonics.
+
+     4/ Why does this sound so great with 1 V/UV decision?  Conventional
+     wisdom says mixed voicing is required for high qaulity speech.
 
 \*---------------------------------------------------------------------------*/
 
@@ -321,13 +339,6 @@ void phase_synth_zero_order(
      ex_phase[0] += (*prev_Wo+model.Wo)*N/2;
   */
   
-  /* determine jitter offset */
-
-  jitter = (1.0 - 2.0*rand()/RAND_MAX);
-
-  /* now modify this frames phase using zero phase model */
-
-  //ex_phase[0] += (model.Wo)*N - jitter*model.Wo;
   ex_phase[0] += (model.Wo)*N;
   ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
 
@@ -336,36 +347,19 @@ void phase_synth_zero_order(
     /* generate excitation */
 
     if (voiced) {
+	/* This method of adding jitter really helped remove the clicky
+	   sound in low pitched makes like hts1a. This moves the onset
+	   of each harmonic over at +/- 0.25 of a sample.
+	*/
         jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
 	Ex[m].real = cos(ex_phase[0]*m - jitter*model.Wo*m);
 	Ex[m].imag = sin(ex_phase[0]*m - jitter*model.Wo*m);
-
-	/* following is an experiment in dispersing pulse energy over
-	   time, didn't really change sound at all, e.g. mmt1 still
-	   sounded "clicky.  I think this is because this provides
-	   just a small phase shift between adjacent harmonics.
-	   However for voiced speech it is the high energy harmonics
-	   that form pitch pulses, so we need a relatively high phase
-	   shift between them to disperse pulse energy */
-
-        //Ex[m].real = cos(ex_phase[0]*m + model.Wo*m*m*0.3);
-	//Ex[m].imag = sin(ex_phase[0]*m + model.Wo*m*m*0.3);
-
-	/* following is an experiment to use the phase of a glottal pulse
-	   (see octave/glottal.m) is an attempt to make mmt1 and hts1 a little
-	   less "clicky", i.e. disperse the pulse energy away from the point
-	   of onset.  Result was no difference in speech quality, in fact
-	   no difference at all. Could be an implementation error I guess. 
-	   One again - this model doesnt change phases much between adjacent
-	   harmonics, so not much dispersion. */
-	//b = floor(m*model->Wo*FFT_DEC/TWO_PI + 0.5);
-        //Ex[m].real = cos(ex_phase[0]*m + glottal[b]);
-	//Ex[m].imag = sin(ex_phase[0]*m + glottal[b]);
-
     }
     else {
+
 	/* When a few samples were tested I found that LPC filter
-	   phase is not needed in the unvoiced case, but no harm in keeping it.
+	   phase is not needed in the unvoiced case, but no harm in
+	   keeping it.
         */
 	float phi = TWO_PI*(float)rand()/RAND_MAX;
         Ex[m].real = cos(phi);
@@ -383,25 +377,6 @@ void phase_synth_zero_order(
     model.phi[m] = new_phi;
   }
 
-  #ifdef CLICKY
-  /* Adding a random component to low energy harmonic phase seems to
-     improve low pitch speakers.  Adding a small random component to
-     low energy harmonic amplitudes also helps low pitch speakers after
-     LPC modelling (see LPC modelling/amplitude quantisation code).
-  */
-
-  maxA = 0.0;
-  for(i=1; i<=model.L; i++) {
-      if (model.A[i] > maxA) {
-	  maxA = model.A[i];
-      }
-  }
-  for(i=1; i<=model.L; i++) {
-      if (model.A[i] < 0.1*maxA) {
-	  model.phi[i] += 0.2*TWO_PI*(float)rand()/RAND_MAX;
-      }
-  }
-  #endif
 }
 
 /*---------------------------------------------------------------------------*\

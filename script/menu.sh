@@ -59,7 +59,6 @@ do
   echo -n -e "\r -"
   stty cbreak         # or stty raw
   readchar=`dd if=/dev/tty bs=1 count=1 2>/dev/null`
-  echo $readchar
   stty -cbreak
   if [ $readchar == 'q' ] ; then
     readchar=0
