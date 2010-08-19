@@ -15,6 +15,11 @@ function plphase(samname, f)
   model_name = strcat(samname,"_model.txt");
   model = load(model_name);
 
+  sw__name = strcat(samname,"_sw_.txt");
+  if (file_in_path(".",sw__name))
+    Sw_ = load(sw__name);
+  endif
+
   pw_name = strcat(samname,"_pw.txt");
   if (file_in_path(".",pw_name))
     Pw = load(pw_name);
@@ -49,7 +54,7 @@ function plphase(samname, f)
   k = ' ';
   do 
     figure(1);
-    clg;
+    clf;
     s = [ Sn(2*f-1,:) Sn(2*f,:) ];
     plot(s);
     grid;
@@ -63,11 +68,15 @@ function plphase(samname, f)
     Wo = model(f,1);
     L = model(f,2);
     Am = model(f,3:(L+2));
-    plot((1:L)*Wo*4000/pi, 20*log10(Am),";Am;");
+    plot((1:L)*Wo*4000/pi, 20*log10(Am),"r;Am;");
     axis([1 4000 -10 80]);
     hold on;
     plot((0:255)*4000/256, Sw(f,:),";Sw;");
     grid;
+
+    if (file_in_path(".",sw__name))
+      plot((0:255)*4000/256, Sw_(f,:),"g;Sw_;");
+    endif	
 
     if (file_in_path(".",pw_name))
        plot((0:255)*4000/256, 10*log10(Pw(f,:)),";Pw;");
@@ -87,7 +96,7 @@ function plphase(samname, f)
       noise = (orig-synth) * (orig-synth)';
       snr_phase = 10*log10(signal/noise);
 
-      phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr_phase);
+      phase_err_label = sprintf("g;phase_err SNR %4.2f dB;",snr_phase);
       plot((1:L)*Wo*4000/pi, 20*log10(orig-synth), phase_err_label);
     endif
 
@@ -103,7 +112,7 @@ function plphase(samname, f)
       axis;
       if (file_in_path(".", phase_name_))
         hold on;
-        plot((1:L)*Wo*4000/pi, phase_(f,1:L)*180/pi, ";phase_;");
+        plot((1:L)*Wo*4000/pi, phase_(f,1:L)*180/pi, "g;phase_;");
 	grid
 	hold off;
       endif

@@ -106,7 +106,6 @@ float nlp_fir[] = {
   -1.0818124e-03
 };
 
-float test_candidate_mbe(COMP Sw[], float f0);
 float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax);
 float post_process_sub_multiples(COMP Fw[], 
 				 int pmin, int pmax, float gmax, int gmax_bin,
@@ -330,6 +329,7 @@ float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax)
   int   bin;
   float f0_min, f0_max;
   float f0_start, f0_end;
+  COMP  Sw_[FFT_ENC];
 
   f0_min = (float)SAMPLE_RATE/pmax;
   f0_max = (float)SAMPLE_RATE/pmin;
@@ -357,7 +357,7 @@ float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax)
 	    if (f0_end > f0_max) f0_end = f0_max;
 
 	    for(f0=f0_start; f0<=f0_end; f0+= 2.5) {
-		e = test_candidate_mbe(Sw, f0);
+		e = test_candidate_mbe(Sw, f0, Sw_);
 		bin = floor(f0); assert((bin > 0) && (bin < F0_MAX));
 		e_hz[bin] = e;
 		if (e < e_min) {
@@ -387,11 +387,12 @@ float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax)
 
 float test_candidate_mbe(
     COMP  Sw[],
-    float f0
+    float f0,
+    COMP  Sw_[]           /* DFT of all voiced synthesised signal for f0 */
+                          /* useful for debugging/dump file              */
 )
 {
-    COMP  Sw_[FFT_ENC];   /* DFT of all voiced synthesised signal */
-    int   l,al,bl,m;      /* loop variables */
+    int   i,l,al,bl,m;    /* loop variables */
     COMP  Am;             /* amplitude sample for this band */
     int   offset;         /* centers Hw[] about current harmonic */
     float den;            /* denominator of Am expression */
@@ -399,6 +400,11 @@ float test_candidate_mbe(
     float Wo;             /* current "test" fundamental freq. */
     int   L;
     
+    for(i=0; i<FFT_ENC; i++) {
+	Sw_[i].real = 0.0;
+	Sw_[i].imag = 0.0;
+    }
+
     L = floor((SAMPLE_RATE/2.0)/f0);
     Wo = f0*(2*PI/SAMPLE_RATE);
 
@@ -406,7 +412,7 @@ float test_candidate_mbe(
 
     /* Just test across the harmonics in the first 1000 Hz (L/4) */
 
-    for(l=1; l<L/4; l++) {
+    for(l=1; l<=L/4; l++) {
 	Am.real = 0.0;
 	Am.imag = 0.0;
 	den = 0.0;

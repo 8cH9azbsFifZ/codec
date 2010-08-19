@@ -36,6 +36,7 @@
 #include "synth.h"
 #include "postfilter.h"
 #include "interp.h"
+#include "nlp.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -254,7 +255,49 @@ int main(int argc, char *argv[])
 	    assert(order == PHASE_LPC_ORD);
 
 	dump_ak(ak_phase, PHASE_LPC_ORD);
-	snr = phase_model_first_order(ak_phase, H, &n_min, &min_Am, &voiced);
+
+	{
+	    COMP  Sw_[FFT_ENC];
+	    float sig = 0.0;
+	    float noise;
+            int   m;
+	    float candidate_f0;
+	    float f0,best_f0;	
+	    float e,e_min;               
+	    int   i;
+	    float f0_min, f0_max;
+	    float f0_start, f0_end;
+
+	    for(m=1; m<=model.L/4; m++) {
+		sig += model.A[m]*model.A[m];
+	    }
+	    f0_min = (float)8000.0/P_MAX;
+	    f0_max = (float)8000.0/P_MIN;
+	    candidate_f0 = (4000.0/PI)*model.Wo;
+	    f0_start = candidate_f0-5;
+	    f0_end = candidate_f0+5;
+	    if (f0_start < f0_min) f0_start = f0_min;
+	    if (f0_end > f0_max) f0_end = f0_max;
+            e_min = 1E32;
+
+	    for(f0=f0_start; f0<=f0_end; f0+= 1) {
+		e = test_candidate_mbe(Sw, f0, Sw_);
+		if (e < e_min) {
+		    e_min = e;
+		    best_f0 = f0;
+		}
+	    }
+	    noise = test_candidate_mbe(Sw,best_f0, Sw_);
+	    snr = sig/noise;
+	    dump_Sw_(Sw_);
+	}
+	
+	phase_model_first_order(ak_phase, H, &n_min, &min_Am, &voiced);
+	    if (snr > 4.0)
+		voiced = 1;
+	    else
+		voiced = 0;
+	
 
 	dump_snr(snr);
 	if (phase_model == 0) {
@@ -278,7 +321,7 @@ int main(int argc, char *argv[])
         //dump_phase_(&model.phi[0]);
     }
  
-   /* optional LPC model amplitudes */
+    /* optional LPC model amplitudes */
 
     if (lpc_model) {
 	snr = lpc_model_amplitudes(Sn, &model, order, lsp, ak);

@@ -170,7 +170,7 @@ char *argv[];
 	synthesise_continuous_phase(Pn, &model, Sn_, 1, &Wo_prev, phi_prev);
 	#else
 	phase_synth_zero_order(5.0, H, &Wo_prev, &ex_phase);
-	synthesise_mixed(Pn,&model,Sn_);
+	synthesise_mixed(Pn,&model,Sn_,1);
 	#endif
 
 	for(i=0; i<N; i++)

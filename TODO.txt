@@ -1,6 +1,16 @@
 TODO for codec2
 ---------------
 
+Mysteries
+---------
+
+[ ] buzzy sound in bg noise ofr b0067
+[ ] LSP quantiser has problems for b0067
+[ ] synthetic sound for hts2a and to bg nouse on _uq models
+    + breakdown in sinusoidal model for noise
+    + MELP does better
+    + perhaps synth UV using white noise might work better
+
 29 July 2010, current status:
 - g729a is a bit better, but c2 is not put to shame
 - c2 betters GSM in some cases
