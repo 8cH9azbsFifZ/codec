@@ -37,8 +37,7 @@
   interp()
         
   Given two frames decribed by model parameters 20ms apart, determines the
-  model parameters of the 10ms frame between them.  Note that phases are
-  not interpolated, they must be set external to this function.
+  model parameters of the 10ms frame between them.
 
 \*---------------------------------------------------------------------------*/
 
