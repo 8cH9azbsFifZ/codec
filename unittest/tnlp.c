@@ -36,8 +36,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "nlp.h"
+
+#include "defines.h"
 #include "dump.h"
+#include "nlp.h"
 
 int   frames;
 
@@ -77,6 +79,10 @@ char *argv[];
 {
     FILE *fin,*fout;
     short buf[N];
+    float Sn[M];	        /* float input speech samples */
+    COMP  Sw[FFT_ENC];	        /* DFT of Sn[] */
+    float w[M];	                /* time domain hamming window */
+    COMP  W[FFT_ENC];	        /* DFT of w[] */
     float pitch;
     int   i; 
     int   dump;
@@ -106,8 +112,7 @@ char *argv[];
     if (dump) 
       dump_on(argv[dump+1]);
 
-    init_encoder();
-    make_window(NW);
+    make_analysis_window(w,W);
 
     frames = 0;
     prev_Wo = 0;
@@ -120,7 +125,7 @@ char *argv[];
         Sn[i] = Sn[i+N];
       for(i=0; i<N; i++)
         Sn[i+M-N] = buf[i];
-      dft_speech();
+      dft_speech(Sw, Sn, w);
       dump_Sn(Sn); dump_Sw(Sw); 
 
       nlp(Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw,&prev_Wo);

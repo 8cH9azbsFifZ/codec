@@ -7,8 +7,7 @@ genres: genres.o ../src/lpc.o
 
 LSP_TEST_OBJ = lsptest.o ../src/lpc.o ../src/lsp.o sd.o ../src/four1.o
 
-TNLP_OBJ     = tnlp.o ../src/nlp.o ../src/four1.o ../src/initenc.o ../src/dump.o \
-               ../src/globals.o  ../src/refine.o
+TNLP_OBJ     = tnlp.o ../src/sine.o ../src/nlp.o ../src/four1.o ../src/dump.o
 
 TCONTPHASE_OBJ = tcontphase.o ../src/globals.o ../src/dump.o ../src/synth.o \
                  ../src/four1.c ../src/initdec.o ../src/phase.o
@@ -36,3 +35,6 @@ tmodel: tmodel.o
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	rm -f *.o *~ src/*~

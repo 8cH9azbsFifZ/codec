@@ -26,10 +26,11 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "nlp.h"
-#include "sine.h"
+#include "defines.h"
 #include "dump.h"
+#include "nlp.h"
 #include <assert.h>
+#include <math.h>
 
 /*---------------------------------------------------------------------------*\
                                                                              
