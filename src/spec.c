@@ -4,7 +4,7 @@
   AUTHOR......: David Rowe                                          
   DATE CREATED: 27/5/94                                         
                                                                
-  Functions for estimating the complex amplitude of harmonics.     
+  Functions for estimating the sinusoidal model parameters.     
                                                                    
 \*---------------------------------------------------------------------------*/
 
@@ -26,7 +26,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "sine.h"
+#include "defines.h"
+#include "spec.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -34,22 +35,15 @@
   AUTHOR......: David Rowe		
   DATE CREATED: 27/5/94			       
 									      
-  Estimates the complex amplitudes of the harmonics.  Also generates
-  all voiced synthetic spectrum for later voicing estimation.
-									      
-  INPUT.......: global float Sw[]	DFT of speech 			      
-		global MODEL model	contains parameters L and Wo 	      
-									      
-  OUTPUT......: global float Sw_[]	DFT of all voiced synthesised speech  
-		global MODEL model 	contains parameters A[] and phi[]     
+  Estimates the complex amplitudes of the harmonics.    
 									      
 \*---------------------------------------------------------------------------*/
 
-void estimate_amplitudes()
+void estimate_amplitudes(MODEL *model, float Sw[])
 {
-  int i,m;		/* loop variables */
-  int am,bm;		/* bounds of current harmonic */
-  int b;		/* DFT bin of centre of current harmonic */
+  int   i,m;		/* loop variables */
+  int   am,bm;		/* bounds of current harmonic */
+  int   b;		/* DFT bin of centre of current harmonic */
   float den;		/* denominator of amplitude expression */
   float r;		/* number of rads/bin */
   float E;
@@ -84,19 +78,5 @@ void estimate_amplitudes()
     /* Estimate phase of harmonic */
 
     model.phi[m] = atan2(Sw[b].imag,Sw[b].real);
-
-    #ifdef MBE_VOICING_NEEDED
-    /* construct all voiced model spectrum and estimate voicing using MBE model */
-
-    E = 0.0;
-    for(i=am; i<bm; i++) {
-      offset = FFT_ENC/2 + i - floor(m*model.Wo/r + 0.5);
-      Sw_[i].real = Am.real*W[offset].real;
-      Sw_[i].imag = Am.imag*W[offset].real;
-      E = pow(Sw[i].real - Sw_[i].real, 2.0) + pow(Sw[i].imag - Sw_[i].imag, 2.0);
-    }
-    model.v[m] = E/den;
-    #endif
-  }
 }
 

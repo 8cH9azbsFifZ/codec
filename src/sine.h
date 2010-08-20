@@ -4,7 +4,7 @@
   AUTHOR......: David Rowe                                                          
   DATE CREATED: 1/11/94
                                                                              
-  Header file for Sinusoidal coder.
+  Header file for sinusoidal analysis and synthesis functions.
                                                                              
 \*---------------------------------------------------------------------------*/
 
@@ -26,53 +26,15 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-/*---------------------------------------------------------------------------*\
-                                                                             
-				INCLUDES                                      
-                                                                             
-\*---------------------------------------------------------------------------*/
+#ifndef __SINE__
+#define __SINE__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
+void make_analysis_window(float w[], COMP W[]);
+void dft_speech(COMP Sw[], float Sn[], float w[]);
+void two_stage_pitch_refinement(MODEL *model, COMP Sw[]);
+void estimate_amplitudes(MODEL *model, COMP Sw[], COMP W[]);
+float est_voicing_mbe(MODEL *model, COMP Sw[], COMP W[], float f0, COMP Sw_[], int *voiced);
+void make_synthesis_window(float Pn[]);
+void synthesise(float Sn_[], MODEL *model, float Pn[], int shift);
 
-#include "defines.h"	/* defines for sinusoidal coder */
-#include "globals.h"	/* external globals */
-
-/*---------------------------------------------------------------------------*\
-                                                                             
-				FUNCTIONS                                     
-                                                                             
-\*---------------------------------------------------------------------------*/
-
-/* functions in refine.c */
-
-void dft_speech();
-void two_stage_pitch_refinement();
-void hs_pitch_refinement(float pmin, float pmax, float pstep);
-
-/* functions in spec.c */
-
-void estimate_amplitudes();
-void estimate_voicing();
-void estimate_voicing_av();
-float voicing(int lower, int upper);
-
-/* functions in four1.c */
-
-void four1();
-
-/* functions in synth.c */
-
-void synthesise_mixed();
-
-/* functions in initenc.c and initdec.c */
-
-void init_encoder(void);
-float make_window();
-void init_decoder();
-
-/* functions in gasdev.c */
-
-float gasdev();
-
+#endif

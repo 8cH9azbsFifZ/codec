@@ -26,9 +26,12 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "sine.h"
-#include "dump.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include "defines.h"
+#include "dump.h"
+#include "sine.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -62,17 +65,22 @@ int switch_present(sw,argc,argv)
 
 int main(int argc, char *argv[])
 {
-  FILE *fin;		/* input speech sample file */
-  FILE *fmodel;		/* output file of model parameters */
-  FILE *fp;		/* input text file containing pitch estimates */
-  short buf[N];		/* input speech sample buffer */
-  int length;		/* number of frames to process */
-  float pitch;		/* current pitch estimate from external pitch file */
-  int i;		/* loop variable */
-  FILE *fref;		/* optional output file with refined pitch estimate */
-  int   arg;
-  int   dump;
-  int   frames;
+  FILE  *fin;		/* input speech sample file */
+  FILE  *fmodel;	/* output file of model parameters */
+  FILE  *fp;		/* input text file containing pitch estimates */
+  short  buf[N];	/* input speech sample buffer */
+  float  Sn[M];	        /* float input speech samples */
+  COMP   Sw[FFT_ENC];	/* DFT of Sn[] */
+  float  w[M];	        /* time domain hamming window */
+  COMP   W[FFT_ENC];	/* DFT of w[] */
+  MODEL  model;
+  int    length;	/* number of frames to process */
+  float  pitch;		/* current pitch estimate from external pitch file */
+  int    i;		/* loop variable */
+  FILE  *fref;		/* optional output file with refined pitch estimate */
+  int    arg;
+  int    dump;
+  int    frames;
 
   if (argc < 5) {
     printf("usage: sinenc InputFile ModelFile Frames PitchFile\n");
@@ -102,7 +110,7 @@ int main(int argc, char *argv[])
   if (dump) 
       dump_on(argv[dump+1]);
 
-  if ((arg == switch_present("--ref",argc,argv))) {
+  if ((arg = switch_present("--ref",argc,argv))) {
     if ((fref = fopen(argv[arg+1],"wt")) == NULL) {
       printf("Error opening output pitch refinement file: %s\n",argv[5]);
       exit(1);
@@ -111,9 +119,14 @@ int main(int argc, char *argv[])
   else
     fref = NULL;
 
-  init_encoder();
-  make_window(NW);
+  /* Initialise sample buffer memories to stop divide by zero errors
+     and zero energy frames at the start of simulation */
 
+  for(i=0; i<M; i++)
+    Sn[i] = 1.0;
+
+  make_analysis_window(w, W);
+ 
   /* Main loop ------------------------------------------------------------*/
 
   frames = 0;
@@ -137,10 +150,10 @@ int main(int argc, char *argv[])
 
     /* estimate and model parameters */
 
-    dft_speech(); 
-    two_stage_pitch_refinement();
-    estimate_amplitudes();
-    dump_Sn(Sn); dump_Sw(Sw); dump_Sw_(Sw_); dump_model(&model);
+    dft_speech(Sw, Sn, w); 
+    two_stage_pitch_refinement(&model, Sw);
+    estimate_amplitudes(&model, Sw, W);
+    dump_Sn(Sn); dump_Sw(Sw); dump_model(&model);
 
     /* save model parameters */
 

@@ -26,8 +26,11 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "interp.h"
+#include <math.h>
 #include <string.h>
+
+#include "defines.h"
+#include "interp.h"
 
 /*---------------------------------------------------------------------------*\
 
@@ -88,8 +91,8 @@ void interp(
 	   phase to time-shift the model forward or backward N
 	   samples. */
 
-	memcpy(a, prev, sizeof(model));
-	memcpy(b, next, sizeof(model));
+	memcpy(a, prev, sizeof(MODEL));
+	memcpy(b, next, sizeof(MODEL));
 	for(m=1; m<=a->L; m++) {
 	    a->A[m] /= 2.0;
 	    a->phi[m] += a->Wo*m*N;

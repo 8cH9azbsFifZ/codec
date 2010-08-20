@@ -26,8 +26,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef __SINE__
-#define __SINE__
+#ifndef __DEFINES__
+#define __DEFINES__
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -37,29 +37,26 @@
 
 /* General defines */
 
-#define N 80			/* number of samples per frame */
-#define MAX_AMP 80		/* maximum number of harmonics */
-#define PI 3.141592654		/* mathematical constant */
-#define TWO_PI 6.283185307	/* mathematical constant */
-#define FC 4000			/* cut-off frequency */
+#define N         80		/* number of samples per frame          */
+#define MAX_AMP   80		/* maximum number of harmonics          */
+#define PI        3.141592654	/* mathematical constant                */
+#define TWO_PI    6.283185307	/* mathematical constant                */
+#define FS        8000		/* sample rate in Hz                    */
+#define MAX_STR   256           /* maximum string size                  */
+
+#define NW        279           /* analysis window size                 */
+#define FFT_ENC   512		/* size of FFT used for encoder         */
+#define FFT_DEC   512	    	/* size of FFT used in decoder          */
+#define TW        40		/* Trapezoidal synthesis window overlap */
+#define V_THRESH  4.0           /* voicing threshold in dB              */
+#define LPC_MAX   20		/* maximum LPC order */
+#define PHASE_LPC 10		/* maximum LPC order */
 
 /* Pitch estimation defines */
 
-#define M 320			/* pitch analysis frame size */
-#define P_MIN 20		/* minimum pitch */
-#define P_MAX 160		/* maximum pitch */
-
-/* Encoder defines */
-
-#define NW      279             /* analysis window size */
-#define FFT_ENC 512		/* size of FFT used for encoder analysis */
-
-/* Decoder defines */
-
-#define AW_DEC  160		/* number of samples in synthesis window */
-#define FFT_DEC 512	    	/* number of points in DFT */
-#define TW 40			/* Trapezoidal synthesis window overlap */
-#define MAX_STR 256
+#define M        320		/* pitch analysis frame size            */
+#define P_MIN    20		/* minimum pitch                        */
+#define P_MAX    160		/* maximum pitch                        */
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -74,14 +71,14 @@ typedef struct {
   float imag;
 } COMP;
 
-/* Structure to hold unquantised model parameters for one frame */
+/* Structure to hold model parameters for one frame */
 
 typedef struct {
-  float Wo;		/* fundamental frequency estimate in radians */
-  int L;		/* number of harmonics over the current frame */
-  float v[MAX_AMP];	/* voicing measures */
-  float A[MAX_AMP];	/* average magnitude/unit frequency samples */
-  float phi[MAX_AMP];	/* phase of each harmonic */
+  float Wo;		/* fundamental frequency estimate in radians  */
+  int   L;		/* number of harmonics                        */
+  float v[MAX_AMP];	/* voicing measures (unused at present)       */
+  float A[MAX_AMP];	/* amplitiude of each harmonic                */
+  float phi[MAX_AMP];	/* phase of each harmonic                     */
 } MODEL;
 
 #endif

@@ -26,11 +26,14 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "sine.h"
+#include "defines.h"
 #include "phase.h"
-#include "lpc.h"
+#include "four1.h"
+
 #include <assert.h>
+#include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define VTHRESH 4.0
 
@@ -43,12 +46,13 @@
 
 \*---------------------------------------------------------------------------*/
 
-void aks_to_H(model,aks,G,H, order)
-MODEL *model;	/* model parameters */
-float  aks[];	/* LPC's */
-float  G;	/* energy term */
-COMP   H[];	/* complex LPC spectral samples */
-int    order;
+void aks_to_H(
+	      MODEL *model,	/* model parameters */
+	      float  aks[],	/* LPC's */
+	      float  G,	        /* energy term */
+	      COMP   H[],	/* complex LPC spectral samples */
+	      int    order
+)
 {
   COMP  Pw[FFT_DEC];	/* power spectrum */
   int   i,m;		/* loop variables */
@@ -91,139 +95,6 @@ int    order;
   }
 }
 
-/*---------------------------------------------------------------------------*\
-
-   phase_model_first_order()
-
-   Models the current frames phase samples {phi[m]} as a LPC synthesis
-   filter excited by an impulse at time i_min with a complex gain min_Am.
-   The phase of the complex gain min_Am is a constant phase term, and the
-   impulse position i_min creates a phase term that varies linearly
-   with frequency.  We are therefore modelling the excitation phase as
-   a 1st order polynomial function of mWo:
-
-     Ex[m] = -m*Wo*i_min + arg(min_Am);
-
-   and the harmonic phase is given by:
-  
-     phi[m] = -m*Wo*i_min + arg(min_Am) + arg[H[m]];
-
-   where H[m] is the LPC spectra sampled at the mWo harmonic frequencies.
-
-   This actually works out to be a pretty good model for voiced
-   speech.  The fit of the model (snr) is therefore used as a voicing
-   measure.  If the snr is less than a threshold, the frame is
-   declared unvoiced all all the phases are randomised.
-
-   Reference:  
-     [1] http://www.itr.unisa.edu.au/~steven/thesis/dgr.pdf Chapter 6
-
-   NOTE: min_Am is a dumb name for the complex gain as {A} or A[m] is
-   commonly used for the spectral magnitudes.  TODO: change name to match
-   thesis term G(mWo) (which of course clashes with LPC gain! AAAAAAHHH!).
-
-\*---------------------------------------------------------------------------*/
-
-float phase_model_first_order(
-  float  aks[],                  /* LPC coeffs for this frame      */
-  COMP   H[],		         /* LPC filter freq doamin samples */
-  float *n_min,                  /* pulse position for min error   */ 
-  COMP  *minAm,                  /* complex gain for min error     */
-  int   *voiced
-) 
-{
-  float G;			/* LPC gain */
-  int   m;
-
-  float E,Emin;			/* current and minimum error so far */
-  int P;			/* current pitch period */
-  COMP A[MAX_AMP];		/* harmonic samples */
-  COMP Ex[MAX_AMP];		/* excitation samples */
-  COMP A_[MAX_AMP];		/* synthesised harmonic samples */
-  COMP Am;    			/* complex gain */
-  COMP Em;  			/* error for m-th band */
-  float den;     		/* energy of synthesised */
-  float snr;		        /* snr of each excitation source */
-  int   Lmax;
-  float n;
-
-  Lmax = model.L;
-
-  /* Construct target vector */
-
-  sig = 0.0;
-  for(m=1; m<=Lmax; m++) {
-    A[m].real = model.A[m]*cos(model.phi[m]);
-    A[m].imag = model.A[m]*sin(model.phi[m]);
-    sig += model.A[m]*model.A[m];
-  }
-
-  /* Sample LPC model at harmonics */
-
-  //#define NO_LPC_PHASE
-  #ifdef NO_LPC_PHASE
-  /* useful for testing with Sn[] an impulse train */
-  for(m=1; m<=PHASE_LPC_ORD; m++)
-     aks[m] = 0;
-  #endif
-  G = 1.0;
-  aks_to_H(&model,aks,G,H,PHASE_LPC_ORD);
-
-  /* Now attempt to fit impulse, by trying positions 0..P-1 */
-
-  Emin = 1E32;
-  P = floor(TWO_PI/model.Wo + 0.5);
-  for(n=0; n<P; n+=0.25) {
-
-    /* determine complex gain */
-
-    Am.real = 0.0;
-    Am.imag = 0.0;
-    den = 0.0;
-    for(m=1; m<=Lmax; m++) {
-      Ex[m].real = cos(model.Wo*m*n);
-      Ex[m].imag = sin(-model.Wo*m*n);
-      A_[m].real = H[m].real*Ex[m].real - H[m].imag*Ex[m].imag;
-      A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
-      Am.real += A[m].real*A_[m].real + A[m].imag*A_[m].imag;
-      Am.imag += A[m].imag*A_[m].real - A[m].real*A_[m].imag;
-      den += A_[m].real*A_[m].real + A_[m].imag*A_[m].imag;
-    }
-
-    Am.real /= den;
-    Am.imag /= den;
-
-    /* determine error */
-
-    E = 0.0;
-    for(m=1; m<=Lmax; m++) {
-      float new_phi;
-
-      Em.real = A_[m].real*Am.real - A_[m].imag*Am.imag;
-      Em.imag = A_[m].imag*Am.real + A_[m].real*Am.imag;
-	  
-      new_phi = atan2(Em.imag, Em.real+1E-12);
-      E += pow(model.A[m]*(cos(model.phi[m])-cos(new_phi)),2.0);
-      E += pow(model.A[m]*(sin(model.phi[m])-sin(new_phi)),2.0);
-    }
-
-    if (E < Emin) {
-      Emin = E;
-      *n_min = n;
-      minAm->real = Am.real;
-      minAm->imag = Am.imag;
-    }
-
-  }
-
-  snr = 10.0*log10(sig/Emin);
-  if (snr > VTHRESH)
-      *voiced = 1;
-  else
-      *voiced = 0;
-
-  return snr;
-}
 
 /*---------------------------------------------------------------------------*\
 
@@ -317,18 +188,22 @@ float phase_model_first_order(
 \*---------------------------------------------------------------------------*/
 
 void phase_synth_zero_order(
-  float  snr,     /* SNR from first order model                */
-  COMP   H[],     /* LPC spectra samples                       */
-  float *ex_phase,/* excitation phase of fundamental           */
-  int    voiced
+    MODEL *model,
+    float  aks[],
+    int    voiced,
+    float *ex_phase             /* excitation phase of fundamental */
 )
 {
-  int   m,i;
+  int   m;
   float new_phi;
   COMP  Ex[MAX_AMP];		/* excitation samples */
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
-  float maxA;
+  COMP  H[MAX_AMP];             /* LPC freq domain samples */
+  float G;
   float jitter;
+
+  G = 1.0;
+  aks_to_H(model,aks,G,H,PHASE_LPC);
 
   /* 
      Update excitation fundamental phase track, this sets the position
@@ -336,13 +211,13 @@ void phase_synth_zero_order(
      I found that using just this frame Wo improved quality for UV
      sounds compared to interpolating two frames Wo like this:
      
-     ex_phase[0] += (*prev_Wo+model.Wo)*N/2;
+     ex_phase[0] += (*prev_Wo+mode->Wo)*N/2;
   */
   
-  ex_phase[0] += (model.Wo)*N;
+  ex_phase[0] += (model->Wo)*N;
   ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
 
-  for(m=1; m<=model.L; m++) {
+  for(m=1; m<=model->L; m++) {
 
     /* generate excitation */
 
@@ -352,8 +227,8 @@ void phase_synth_zero_order(
 	   of each harmonic over at +/- 0.25 of a sample.
 	*/
         jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
-	Ex[m].real = cos(ex_phase[0]*m - jitter*model.Wo*m);
-	Ex[m].imag = sin(ex_phase[0]*m - jitter*model.Wo*m);
+	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m);
+	Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m);
     }
     else {
 
@@ -374,66 +249,7 @@ void phase_synth_zero_order(
     /* modify sinusoidal phase */
    
     new_phi = atan2(A_[m].imag, A_[m].real+1E-12);
-    model.phi[m] = new_phi;
+    model->phi[m] = new_phi;
   }
 
 }
-
-/*---------------------------------------------------------------------------*\
-
-   phase_synth_first_order()
-
-   Synthesises phases based on SNR and the first oreder phase model
-   parameters.
-
-\*---------------------------------------------------------------------------*/
-
-void phase_synth_first_order(
-  float snr,     /* SNR from first order model */
-  COMP  H[],     /* LPC spectra samples        */
-  float n_min,   /* best pulse position        */
-  COMP  minAm,   /* best complex gain          */
-  int   voiced
-)
-{
-  int   Lrand;
-  int   m;
-  float new_phi;
-  COMP  Ex[MAX_AMP];		/* excitation samples */
-  COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
-  COMP  Tm;  			
-
-  /* now modify sinusoidal model phase using phase model */
-
-  for(m=1; m<=model.L; m++) {
-
-    /* generate excitation */
-
-    if (voiced) {
-	Ex[m].real = cos(model.Wo*m*n_min);
-	Ex[m].imag = sin(-model.Wo*m*n_min);
-    }
-    else {
-      float phi = TWO_PI*(float)rand()/RAND_MAX;
-      Ex[m].real = cos(phi);
-      Ex[m].imag = sin(phi);
-    }
-
-    /* filter using LPC filter */
-
-    A_[m].real = H[m].real*Ex[m].real - H[m].imag*Ex[m].imag;
-    A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
-
-    /* scale by complex gain (could have done this earlier at Ex[]
-       stage) */
-
-    Tm.real = A_[m].real*minAm.real - A_[m].imag*minAm.imag;
-    Tm.imag = A_[m].imag*minAm.real + A_[m].real*minAm.imag;
-
-    /* modify sinusoidal phase */
-
-    new_phi = atan2(Tm.imag, Tm.real+1E-12);
-    model.phi[m] = new_phi;
-  }
-}
-

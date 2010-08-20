@@ -24,11 +24,13 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include "defines.h"
 #include "dump.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 static int dumpon = 0;
 
@@ -197,7 +199,7 @@ void dump_quantised_model(MODEL *model) {
     fprintf(fqmodel,"\n");    
 }
 
-void dump_phase(float phase[]) {
+void dump_phase(float phase[], int L) {
     int l;
     char s[MAX_STR];
 
@@ -209,14 +211,14 @@ void dump_phase(float phase[]) {
 	assert(fphase != NULL);
     }
 
-    for(l=1; l<=model.L; l++)
+    for(l=1; l<=L; l++)
 	fprintf(fphase,"%f\t",phase[l]);
-    for(l=model.L+1; l<MAX_AMP; l++)
+    for(l=L+1; l<MAX_AMP; l++)
 	fprintf(fphase,"%f\t",0.0);
     fprintf(fphase,"\n");    
 }
 
-void dump_phase_(float phase_[]) {
+void dump_phase_(float phase_[], int L) {
     int l;
     char s[MAX_STR];
 
@@ -228,9 +230,9 @@ void dump_phase_(float phase_[]) {
 	assert(fphase_ != NULL);
     }
 
-    for(l=1; l<=model.L; l++)
+    for(l=1; l<=L; l++)
 	fprintf(fphase_,"%f\t",phase_[l]);
-    for(l=model.L+1; l<MAX_AMP; l++)
+    for(l=L+1; l<MAX_AMP; l++)
 	fprintf(fphase_,"%f\t",0.0);
     fprintf(fphase_,"\n");    
 }

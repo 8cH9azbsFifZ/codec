@@ -27,16 +27,19 @@
 */
 
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <math.h>
+
+#include "defines.h"
 #include "sine.h"
-#include "quantise.h"
 #include "dump.h"
-#include "phase.h"
 #include "lpc.h"
-#include "synth.h"
+#include "quantise.h"
+#include "phase.h"
 #include "postfilter.h"
 #include "interp.h"
-#include "nlp.h"
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -71,11 +74,19 @@ register char *argv[];  /* array of command line arguments in string form */
 int main(int argc, char *argv[])
 {
   FILE *fmodel;		/* file of model parameters from encoder */
-  FILE *fout;		/* output speech file */
-  FILE *fin;		/* input speech file */
-  short buf[N];		/* input/output buffer */
-  int i;		/* loop variable */
-  int length;		/* number of frames so far */
+  FILE *fout;		/* output speech file                    */
+  FILE *fin;		/* input speech file                     */
+  short buf[N];		/* input/output buffer                   */
+  float Sn[M];	        /* float input speech samples            */
+  COMP  Sw[FFT_ENC];	/* DFT of w[]                            */
+  float w[M];	        /* time domain hamming window            */
+  COMP  W[FFT_ENC];	/* DFT of w[]                            */
+  MODEL model;
+  float Pn[2*N];	/* trapezoidal synthesis window          */
+  float Sn_[2*N];	/* synthesised speech */
+  int   i;		/* loop variable                         */
+  int   frames;
+  int   length;		/* number of frames so far               */
 
   char  out_file[MAX_STR];
   int   arg;
@@ -84,11 +95,11 @@ int main(int argc, char *argv[])
 
   int lpc_model, order;
   int lsp, lsp_quantiser;
-  float ak[LPC_MAX_ORDER+1];
+  float ak[LPC_MAX+1];
   
   int dump;
   
-  int phase, phase_model;
+  int phase0;
   float ex_phase[MAX_AMP+1];
   int voiced, voiced_1, voiced_2;
 
@@ -100,6 +111,9 @@ int main(int argc, char *argv[])
 
   MODEL model_1, model_2, model_3, model_synth, model_a, model_b;
   int transition, decimate;
+
+  for(i=0; i<2*N; i++)
+      Sn_[i] = 0;
 
   voiced_1 = voiced_2 = 0;
   model_1.Wo = TWO_PI/P_MIN;
@@ -176,12 +190,8 @@ int main(int argc, char *argv[])
   lsp = switch_present("--lsp",argc,argv);
   lsp_quantiser = 0;
 
-  /* phase_model 0: zero phase
-     phase_model 1: 1st order polynomial */
-  phase = switch_present("--phase",argc,argv);
-  if (phase) {
-      phase_model = atoi(argv[phase+1]);
-      assert((phase_model == 0) || (phase_model == 1));
+  phase0 = switch_present("--phase0",argc,argv);
+  if (phase0) {
       ex_phase[0] = 0;
   }
 
@@ -199,10 +209,8 @@ int main(int argc, char *argv[])
 
   /* Initialise ------------------------------------------------------------*/
 
-  init_decoder();
-  init_encoder();
-  Nw = 220;
-  make_window(Nw);
+  make_analysis_window(w,W);
+  make_synthesis_window(Pn);
   quantise_init();
 
   /* Main loop ------------------------------------------------------------*/
@@ -220,23 +228,19 @@ int main(int argc, char *argv[])
     for(i=0; i<N; i++)
       Sn[i+M-N] = buf[i];
     dump_Sn(Sn);
-    dft_speech(); dump_Sw(Sw);   
+    dft_speech(Sw, Sn, w); dump_Sw(Sw);   
 
     dump_model(&model);
 
-    /* optional phase modelling - make sure this happens before LPC
-       modelling of {Am} as first order model fit doesn't work well
-       with LPC Modelled {Am} (not sure why - investigate later) */
+    /* optional zero-phase modelling */
 
-    if (phase) {
+    if (phase0) {
 	float Wn[M];		        /* windowed speech samples */
-	float Rk[PHASE_LPC_ORD+1];	/* autocorrelation coeffs  */
-        float ak_phase[PHASE_LPC_ORD+1];/* LPCs                    */
-        COMP  H[MAX_AMP];               /* LPC freq domain samples */
-	float n_min;
-	COMP  min_Am;
+	float ak_phase[PHASE_LPC+1];	/* autocorrelation coeffs  */
+	float Rk[PHASE_LPC+1];	        /* autocorrelation coeffs  */
+	COMP  Sw_[FFT_ENC];
   	
-	dump_phase(&model.phi[0]);
+	dump_phase(&model.phi[0], model.L);
 
 	/* Determine LPCs for phase modelling.  Note that we may also
 	   find the LPCs as part of the {Am} modelling, this can
@@ -248,83 +252,38 @@ int main(int argc, char *argv[])
 
 	for(i=0; i<M; i++)
 	    Wn[i] = Sn[i]*w[i];
-	autocorrelate(Wn,Rk,M,PHASE_LPC_ORD);
-	levinson_durbin(Rk,ak_phase,PHASE_LPC_ORD);
+	autocorrelate(Wn,Rk,M,PHASE_LPC);
+	levinson_durbin(Rk,ak_phase,PHASE_LPC);
 
 	if (lpc_model)
-	    assert(order == PHASE_LPC_ORD);
+	    assert(order == PHASE_LPC);
 
-	dump_ak(ak_phase, PHASE_LPC_ORD);
-
-	{
-	    COMP  Sw_[FFT_ENC];
-	    float sig = 0.0;
-	    float noise;
-            int   m;
-	    float candidate_f0;
-	    float f0,best_f0;	
-	    float e,e_min;               
-	    int   i;
-	    float f0_min, f0_max;
-	    float f0_start, f0_end;
-
-	    for(m=1; m<=model.L/4; m++) {
-		sig += model.A[m]*model.A[m];
-	    }
-	    f0_min = (float)8000.0/P_MAX;
-	    f0_max = (float)8000.0/P_MIN;
-	    candidate_f0 = (4000.0/PI)*model.Wo;
-	    f0_start = candidate_f0-5;
-	    f0_end = candidate_f0+5;
-	    if (f0_start < f0_min) f0_start = f0_min;
-	    if (f0_end > f0_max) f0_end = f0_max;
-            e_min = 1E32;
-
-	    for(f0=f0_start; f0<=f0_end; f0+= 1) {
-		e = test_candidate_mbe(Sw, f0, Sw_);
-		if (e < e_min) {
-		    e_min = e;
-		    best_f0 = f0;
-		}
-	    }
-	    noise = test_candidate_mbe(Sw,best_f0, Sw_);
-	    snr = sig/noise;
-	    dump_Sw_(Sw_);
-	}
+	dump_ak(ak_phase, PHASE_LPC);
 	
-	phase_model_first_order(ak_phase, H, &n_min, &min_Am, &voiced);
-	    if (snr > 4.0)
-		voiced = 1;
-	    else
-		voiced = 0;
-	
+	/* determine voicing */
 
+	snr = est_voicing_mbe(&model, Sw, W, (FS/TWO_PI)*model.Wo, Sw_, &voiced);
+	dump_Sw_(Sw_);
 	dump_snr(snr);
-	if (phase_model == 0) {
-	    /* just to make sure we are not cheating - kill all phases */
-	    for(i=0; i<MAX_AMP; i++)
-	    	model.phi[i] = 0;
-	    if (hand_snr) {
-		fscanf(fsnr,"%f\n",&snr);
-		voiced = snr > 2.0;
-	    }
-	    phase_synth_zero_order(voiced, H, ex_phase, voiced);
+
+	/* just to make sure we are not cheating - kill all phases */
+
+	for(i=0; i<MAX_AMP; i++)
+	    model.phi[i] = 0;
+	if (hand_snr) {
+	    fscanf(fsnr,"%f\n",&snr);
+	    voiced = snr > 2.0;
 	}
-
-	if (phase_model == 1) {
-	    phase_synth_first_order(voiced, H, n_min, min_Am, voiced);
-        }
-
-        if (postfilt)
+	phase_synth_zero_order(&model, ak_phase, voiced, ex_phase);
+	
+       if (postfilt)
 	    postfilter(&model, voiced, &bg_est);
-
-        //dump_phase_(&model.phi[0]);
     }
  
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, &model, order, lsp, ak);
+	snr = lpc_model_amplitudes(Sn, w, &model, order, lsp, ak);
 	sum_snr += snr;
         dump_quantised_model(&model);
     }
@@ -370,11 +329,11 @@ int main(int argc, char *argv[])
     if (fout != NULL) {
 
 	if (transition) {
-	    synthesise_mixed(Pn,&model_a,Sn_,1);
-	    synthesise_mixed(Pn,&model_b,Sn_,0);
+	    synthesise(Sn_,&model_a,Pn,1);
+	    synthesise(Sn_,&model_b,Pn,0);
 	}
 	else {
-	    synthesise_mixed(Pn,&model,Sn_,1);
+	    synthesise(Sn_,&model,Pn,1);
 	}
 
 	/* Save output speech to disk */

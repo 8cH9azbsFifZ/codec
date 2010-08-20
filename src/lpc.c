@@ -27,11 +27,12 @@
 */
 
 #define LPC_MAX_N 512		/* maximum no. of samples in frame */
-#define MAX_ORDER 20		/* maximum LPC order */
 #define PI 3.141592654		/* mathematical constant */
 
-#include <lpc.h>
+#include <assert.h>
 #include <math.h>
+#include "defines.h"
+#include "lpc.h"
 
 /*---------------------------------------------------------------------------*\
                                                                          
@@ -99,9 +100,9 @@ void levinson_durbin(
   int order		/* order of the LPC analysis */
 )
 {
-  float E[MAX_ORDER+1];
-  float k[MAX_ORDER+1];
-  float a[MAX_ORDER+1][MAX_ORDER+1];
+  float E[LPC_MAX+1];
+  float k[LPC_MAX+1];
+  float a[LPC_MAX+1][LPC_MAX+1];
   float sum;
   int i,j;				/* loop variables */
 
@@ -212,11 +213,13 @@ void find_aks(
 )
 {
   float Wn[LPC_MAX_N];	/* windowed frame of Nsam speech samples */
-  float R[MAX_ORDER+1];	/* order+1 autocorrelation values of Sn[] */
+  float R[LPC_MAX+1];	/* order+1 autocorrelation values of Sn[] */
   int i;
 
-  hanning_window(Sn,Wn,Nsam);
+  assert(order < LPC_MAX);
+  assert(Nsam < LPC_MAX_N);
 
+  hanning_window(Sn,Wn,Nsam);
   autocorrelate(Wn,R,Nsam,order);
   levinson_durbin(R,a,order);
 

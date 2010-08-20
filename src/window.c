@@ -1,10 +1,10 @@
 /*---------------------------------------------------------------------------*\
                                                                   
-  FILE: initenc.c
-  AUTHOR: David Rowe                               
+  FILE........: window.c
+  AUTHOR......: David Rowe                               
   DATE CREATED: 11/5/94            
                                         
-  Initialises sinusoidal speech encoder.     
+  Generates the time domain analysis window and it's DFT.
                                                           
 \*---------------------------------------------------------------------------*/
 
@@ -26,23 +26,14 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "sine.h"	/* sinusoidal header file */
+#include <math.h>
+#include "defines.h"
+#include "window.h"
 
-void init_encoder()
-{
-  int i;
-
-  frames = 0;
-
-  /* Initialise sample buffer memories, 1 1 stop divide by zero errors
-     and zero energy frames at the start */
-
-  for(i=0; i<M; i++)
-    Sn[i] = 1.0;
-
-}
-
-float make_window()
+float make_window(
+    float w[],   /* time domain analysis window      */
+    COMP  W[]    /* w[] in frequency domain          */
+)
 {
   float m;
   COMP  temp;

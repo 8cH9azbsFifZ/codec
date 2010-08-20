@@ -31,8 +31,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "postfilter.h"
+
+#include "defines.h"
 #include "dump.h"
+#include "postfilter.h"
 
 /*---------------------------------------------------------------------------*\
 
@@ -70,7 +72,7 @@
   This idea is rather experimental.  Some potential problems that may
   happen:
  
-  1/ If someone says "aaaaaaaahhhhhhhhh" willl background estimator track
+  1/ If someone says "aaaaaaaahhhhhhhhh" will background estimator track
      up to speech level?  This would be a bad thing.
 
   2/ If background noise suddenly dissapears from the source speech does

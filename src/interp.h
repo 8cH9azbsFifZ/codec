@@ -29,8 +29,6 @@
 #ifndef __INTERP__
 #define __INTERP__
 
-#include "sine.h"
-
 void interp(MODEL *prev, MODEL *next, MODEL *synth, MODEL *a, MODEL *b, 
 	    int *transition);
 

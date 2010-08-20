@@ -27,8 +27,6 @@
 #ifndef __DUMP__
 #define __DUMP__
 
-#include "sine.h"
-
 void dump_on(char filename_prefix[]);
 void dump_off();
 
@@ -48,8 +46,8 @@ void dump_E(float E);
 /* phase modelling */
 
 void dump_snr(float snr);
-void dump_phase(float phase[]);
-void dump_phase_(float phase[]);
+void dump_phase(float phase[], int L);
+void dump_phase_(float phase[], int L);
 
 /* NLP states */
 

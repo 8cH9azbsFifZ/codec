@@ -35,13 +35,10 @@
   DATE CREATED: 27/5/94 
 
   Finds the DFT of the current speech input speech frame.
-								    
-  INPUT.......: global float Sn[]	speech samples
-  OUTPUT......: global float Sw[]	DFT of speech samples
 
 \*---------------------------------------------------------------------------*/
 
-void dft_speech()
+void dft_speech(float Sn[], COMP Sw[])
 {
   int i;
   

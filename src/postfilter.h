@@ -29,8 +29,6 @@
 #ifndef __POSTFILTER__
 #define __POSTFILTER__
 
-#include "sine.h"
-
 void postfilter(MODEL *model, int voiced, float *bg_est);
 
 #endif

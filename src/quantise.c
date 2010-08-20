@@ -26,13 +26,17 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include "sine.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#include "defines.h"
+#include "dump.h"
 #include "quantise.h"
 #include "lpc.h"
 #include "lsp.h"
-#include "dump.h"
+#include "four1.h"
 
-#define MAX_ORDER    20
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
 #define MAX_CB       20         /* max number of codebooks */
 
@@ -120,8 +124,8 @@ void lsp_quantise(
 ) 
 {
     int   i;
-    float dlsp[MAX_ORDER];
-    float dlsp_[MAX_ORDER];
+    float dlsp[LPC_MAX];
+    float dlsp_[LPC_MAX];
 
     dlsp[0] = lsp[0];
     for(i=1; i<order; i++)
@@ -308,6 +312,7 @@ void force_min_lsp_dist(float lsp[], int lpc_order)
 
 float lpc_model_amplitudes(
   float  Sn[],			/* Input frame of speech samples */
+  float  w[],			
   MODEL *model,			/* sinusoidal model parameters */
   int    order,                 /* LPC model order */
   int    lsp_quant,             /* optional LSP quantisation if non-zero */
@@ -315,19 +320,19 @@ float lpc_model_amplitudes(
 )
 {
   float Wn[M];
-  float R[MAX_ORDER+1];
+  float R[LPC_MAX+1];
   float E;
   int   i,j;
   float snr;	
-  float lsp[MAX_ORDER];
-  float lsp_hz[MAX_ORDER];
-  float lsp_[MAX_ORDER];
-  int   roots;            /* number of LSP roots found */
+  float lsp[LPC_MAX];
+  float lsp_hz[LPC_MAX];
+  float lsp_[LPC_MAX];
+  int   roots;                  /* number of LSP roots found */
   int   index;
   float se;
   int   k,m;
   float *cb;
-  float wt[MAX_ORDER];
+  float wt[LPC_MAX];
 
   for(i=0; i<M; i++)
     Wn[i] = Sn[i]*w[i];
