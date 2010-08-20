@@ -22,7 +22,7 @@ function pitch_test(samname)
     endfor
 
     figure(1);
-    clg;
+    clf;
     plot(s);
 
     fwrite(fs,s,"short");

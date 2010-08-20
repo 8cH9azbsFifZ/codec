@@ -21,7 +21,7 @@ function plpitch(pitch1_name, pitch2_name, start_fr, end_fr)
   endif
 
   figure(1);
-  clg;
+  clf;
   l1 = strcat("r;",pitch1_name,";")
   l1 
   st

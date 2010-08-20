@@ -53,7 +53,7 @@ function plamp(samname, f)
   k = ' ';
   do 
     figure(1);
-    clg;
+    clf;
 %    s = [ Sn(2*(f-2)-1,:) Sn(2*(f-2),:) ];
     s = [ Sn(2*f-1,:) Sn(2*f,:) ];
     plot(s);

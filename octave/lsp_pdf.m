@@ -8,7 +8,7 @@ function lsp_pdf(lsp)
   % LSPs
 
   figure(3);
-  clg;
+  clf;
   [x,y] = hist(lsp(:,1),100);
   plot(y*4000/pi,x,";1;");
   hold on;
@@ -23,7 +23,7 @@ function lsp_pdf(lsp)
   % LSP differences
 
   figure(4);
-  clg;
+  clf;
   subplot(211)
   [x,y] = hist(lsp(:,1),100);
   plot(y,x,";1;");

@@ -33,7 +33,7 @@ function phase(samname, F0, png)
   endfor
 
   figure(1);
-  clg;
+  clf;
   plot(s(1:250));
 
   fs=fopen(samname,"wb");

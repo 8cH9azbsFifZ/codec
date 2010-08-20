@@ -17,7 +17,7 @@ function pl(samname1, start_sam, end_sam, pngname)
   endif
 
   figure(1);
-  clg;
+  clf;
   plot(s(st:en));
   axis([1 en-st min(s) max(s)]);
  

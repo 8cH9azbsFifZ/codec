@@ -39,7 +39,7 @@ function plnlp(samname, f)
 
   do 
     figure(1);
-    clg;
+    clf;
     s = [ Sn(2*f-1,:) Sn(2*f,:) ];
     plot(s, ";Sn;");
     grid

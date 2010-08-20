@@ -19,7 +19,7 @@ function pl2(samname1, samname2, start_sam, end_sam, pngname)
   endif
 
   figure(1);
-  clg;
+  clf;
   subplot(211);
   l1 = strcat("r;",samname1,";");
   plot(s1(st:en), l1);
