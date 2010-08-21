@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   FILE *fin;		/* input speech file                     */
   short buf[N];		/* input/output buffer                   */
   float Sn[M];	        /* float input speech samples            */
-  COMP  Sw[FFT_ENC];	/* DFT of w[]                            */
+  COMP  Sw[FFT_ENC];	/* DFT of Sn[]                           */
   float w[M];	        /* time domain hamming window            */
   COMP  W[FFT_ENC];	/* DFT of w[]                            */
   MODEL model;
@@ -222,8 +222,7 @@ int main(int argc, char *argv[])
     for(i=0; i<N; i++)
       Sn[i+M-N] = buf[i];
     dump_Sn(Sn);
-    dft_speech(Sw, Sn, w); dump_Sw(Sw);   
-
+ 
     /* Estimate pitch */
 
     nlp(Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&prev_Wo);
@@ -232,7 +231,7 @@ int main(int argc, char *argv[])
 
     /* estimate model parameters */
 
-    dft_speech(Sw, Sn, w); 
+    dft_speech(Sw, Sn, w); dump_Sw(Sw);   
     two_stage_pitch_refinement(&model, Sw);
     estimate_amplitudes(&model, Sw, W);
     dump_Sn(Sn); dump_Sw(Sw); dump_model(&model);
@@ -257,13 +256,13 @@ int main(int argc, char *argv[])
 
 	for(i=0; i<M; i++)
 	    Wn[i] = Sn[i]*w[i];
-	autocorrelate(Wn,Rk,M,PHASE_LPC);
-	levinson_durbin(Rk,ak_phase,PHASE_LPC);
+	autocorrelate(Wn,Rk,M,LPC_ORD);
+	levinson_durbin(Rk,ak_phase,LPC_ORD);
 
 	if (lpc_model)
-	    assert(order == PHASE_LPC);
+	    assert(order == LPC_ORD);
 
-	dump_ak(ak_phase, PHASE_LPC);
+	dump_ak(ak_phase, LPC_ORD);
 	
 	/* determine voicing */
 

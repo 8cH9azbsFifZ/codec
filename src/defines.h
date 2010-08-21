@@ -37,20 +37,20 @@
 
 /* General defines */
 
-#define N         80		/* number of samples per frame          */
-#define MAX_AMP   80		/* maximum number of harmonics          */
-#define PI        3.141592654	/* mathematical constant                */
-#define TWO_PI    6.283185307	/* mathematical constant                */
-#define FS        8000		/* sample rate in Hz                    */
-#define MAX_STR   256           /* maximum string size                  */
+#define N          80		/* number of samples per frame          */
+#define MAX_AMP    80		/* maximum number of harmonics          */
+#define PI         3.141592654	/* mathematical constant                */
+#define TWO_PI     6.283185307	/* mathematical constant                */
+#define FS         8000		/* sample rate in Hz                    */
+#define MAX_STR    256          /* maximum string size                  */
 
-#define NW        279           /* analysis window size                 */
-#define FFT_ENC   512		/* size of FFT used for encoder         */
-#define FFT_DEC   512	    	/* size of FFT used in decoder          */
-#define TW        40		/* Trapezoidal synthesis window overlap */
-#define V_THRESH  4.0           /* voicing threshold in dB              */
-#define LPC_MAX   20		/* maximum LPC order */
-#define PHASE_LPC 10		/* maximum LPC order */
+#define NW         279          /* analysis window size                 */
+#define FFT_ENC    512		/* size of FFT used for encoder         */
+#define FFT_DEC    512	    	/* size of FFT used in decoder          */
+#define TW         40		/* Trapezoidal synthesis window overlap */
+#define V_THRESH   4.0          /* voicing threshold in dB              */
+#define LPC_MAX    20		/* maximum LPC order                    */
+#define LPC_ORD    10		/* phase modelling LPC order            */
 
 /* Pitch estimation defines */
 
