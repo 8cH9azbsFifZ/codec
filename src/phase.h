@@ -29,6 +29,6 @@
 #ifndef __PHASE__
 #define __PHASE__
 
-void phase_synth_zero_order(MODEL *model, float aks[], int voiced, float *ex_phase);
+void phase_synth_zero_order(MODEL *model, float aks[], float *ex_phase);
 
 #endif

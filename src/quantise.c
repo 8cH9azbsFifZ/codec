@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*\
                                                                              
   FILE........: quantise.c
-  AUTHOR......: David Rowe                                                          
+  AUTHOR......: David Rowe                                                     
   DATE CREATED: 31/5/92                                                       
                                                                              
   Quantisation functions for the sinusoidal coder.  
@@ -507,4 +507,82 @@ void aks_to_M2(
 	  model->A[1] *= 0.032;
       }
 
+}
+
+/*---------------------------------------------------------------------------*\
+                                                       
+  FUNCTION....: encode_Wo()	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 22/8/2010 
+
+  Encodes Wo using a WO_BITS code and stuffs into bits[] array.
+
+\*---------------------------------------------------------------------------*/
+
+void encode_Wo(char *bits, int *nbits, float Wo)
+{
+    int   code, bit;
+    float Wo_min = TWO_PI/P_MAX;
+    float Wo_max = TWO_PI/P_MIN;
+    float norm;
+    int   i;
+
+    norm = (Wo - Wo_min)/(Wo_max - Wo_min);
+    code = floor(WO_LEVELS * norm + 0.5);
+    if (code < 0 ) code = 0;
+    if (code > (WO_LEVELS-1)) code = WO_LEVELS-1;
+
+    for(i=0; i<WO_BITS; i++) {
+	bit = (code >> (WO_BITS-i-1)) & 0x1;
+	bits[*nbits+i] = bit;
+    }
+
+    *nbits += WO_BITS;
+}
+
+/*---------------------------------------------------------------------------*\
+                                                       
+  FUNCTION....: decode_Wo()	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 22/8/2010 
+
+  Decodes Wo using a WO_BITS quantiser.
+
+\*---------------------------------------------------------------------------*/
+
+float decode_Wo(char *bits, int *nbits)
+{
+    int   code;
+    float Wo_min = TWO_PI/P_MAX;
+    float Wo_max = TWO_PI/P_MIN;
+    float step;
+    float Wo;
+    int   i;
+
+    code = 0;
+    for(i=0; i<WO_BITS; i++) {
+	code <<= 1;
+	code |= bits[i];
+    }
+    
+    step = (Wo_max - Wo_min)/WO_LEVELS;
+    Wo   = Wo_min + step*(code);
+
+    *nbits += WO_BITS;
+
+    return Wo;
+}
+
+void encode_voicing(char bits[], int *nbits, int voiced1, int voiced2)
+{
+    bits[0] = voiced1;
+    bits[1] = voiced2;
+    *nbits  += 2;
+}
+
+void decode_voicing(int *voiced1, int *voiced2, char bits[], int *nbits);
+{
+    *voiced1 = bits[0];
+    *voiced2 = bits[1];
+    *nbits  += 2;
 }

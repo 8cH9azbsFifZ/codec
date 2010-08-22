@@ -29,7 +29,6 @@
 #ifndef __INTERP__
 #define __INTERP__
 
-void interp(MODEL *prev, MODEL *next, MODEL *synth, MODEL *a, MODEL *b, 
-	    int *transition);
+void interpolate(MODEL *interp, MODEL *prev, MODEL *next);
 
 #endif

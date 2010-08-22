@@ -29,6 +29,6 @@
 #ifndef __POSTFILTER__
 #define __POSTFILTER__
 
-void postfilter(MODEL *model, int voiced, float *bg_est);
+void postfilter(MODEL *model, float *bg_est);
 
 #endif

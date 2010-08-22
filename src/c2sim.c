@@ -103,13 +103,12 @@ int main(int argc, char *argv[])
   
   int phase0;
   float ex_phase[MAX_AMP+1];
-  int voiced, voiced_1, voiced_2;
 
   int   postfilt;
   float bg_est;
 
-  int   hand_snr;
-  FILE *fsnr;
+  int   hand_voicing;
+  FILE *fvoicing;
 
   MODEL model_1, model_2, model_3, model_synth, model_a, model_b;
   int transition, decimate;
@@ -121,7 +120,6 @@ int main(int argc, char *argv[])
 
   prev_Wo = TWO_PI/P_MAX;
 
-  voiced_1 = voiced_2 = 0;
   model_1.Wo = TWO_PI/P_MIN;
   model_1.L = floor(PI/model_1.Wo);
   for(i=1; i<=model_1.L; i++) {
@@ -141,7 +139,7 @@ int main(int argc, char *argv[])
       printf("        [--lsp]\n");
       printf("        [--phase0]\n");
       printf("        [--postfilter]\n");
-      printf("        [--hand_snr]\n");
+      printf("        [--hand_voicing]\n");
       printf("        [--dec]\n");
       printf("        [--dump DumpFilePrefix]\n");
     exit(0);
@@ -190,10 +188,10 @@ int main(int argc, char *argv[])
       ex_phase[0] = 0;
   }
 
-  hand_snr = switch_present("--hand_snr",argc,argv);
-  if (hand_snr) {
-      fsnr = fopen(argv[hand_snr+1],"rt");
-      assert(fsnr != NULL);
+  hand_voicing = switch_present("--hand_voicing",argc,argv);
+  if (hand_voicing) {
+      fvoicing = fopen(argv[hand_voicing+1],"rt");
+      assert(fvoicing != NULL);
   }
 
   bg_est = 0.0;
@@ -240,8 +238,8 @@ int main(int argc, char *argv[])
 
     if (phase0) {
 	float Wn[M];		        /* windowed speech samples */
-	float ak_phase[PHASE_LPC+1];	/* autocorrelation coeffs  */
-	float Rk[PHASE_LPC+1];	        /* autocorrelation coeffs  */
+	float ak_phase[LPC_ORD+1];	/* autocorrelation coeffs  */
+	float Rk[LPC_ORD+1];	        /* autocorrelation coeffs  */
 	COMP  Sw_[FFT_ENC];
   	
 	dump_phase(&model.phi[0], model.L);
@@ -266,7 +264,7 @@ int main(int argc, char *argv[])
 	
 	/* determine voicing */
 
-	snr = est_voicing_mbe(&model, Sw, W, (FS/TWO_PI)*model.Wo, Sw_, &voiced);
+	snr = est_voicing_mbe(&model, Sw, W, (FS/TWO_PI)*model.Wo, Sw_);
 	dump_Sw_(Sw_);
 	dump_snr(snr);
 
@@ -274,14 +272,13 @@ int main(int argc, char *argv[])
 
 	for(i=0; i<MAX_AMP; i++)
 	    model.phi[i] = 0;
-	if (hand_snr) {
-	    fscanf(fsnr,"%f\n",&snr);
-	    voiced = snr > 2.0;
+	if (hand_voicing) {
+	    fscanf(fvoicing,"%d\n",&model.voiced);
 	}
-	phase_synth_zero_order(&model, ak_phase, voiced, ex_phase);
+	phase_synth_zero_order(&model, ak_phase, ex_phase);
 	
        if (postfilt)
-	    postfilter(&model, voiced, &bg_est);
+	    postfilter(&model, &bg_est);
     }
  
     /* optional LPC model amplitudes */
@@ -363,8 +360,8 @@ int main(int argc, char *argv[])
   if (dump)
       dump_off();
 
-  if (hand_snr)
-    fclose(fsnr);
+  if (hand_voicing)
+    fclose(fvoicing);
 
   return 0;
 }

@@ -161,16 +161,18 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
     /* Estimate pitch */
 
     nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    prev_Wo = TWO_PI/pitch;
+    c2->prev_Wo = TWO_PI/pitch;
     model.Wo = TWO_PI/pitch;
+    model.L = PI/model.Wo;
 
     /* estimate model parameters */
 
     dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(&model, Sw);
     estimate_amplitudes(&model, Sw, c2->W);
-    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_, &voiced1);
-    
+    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_);
+    voiced1 = model.voiced;
+
     /* Second Frame - send all parameters --------------------------------*/
 
     /* Read input speech */
@@ -184,20 +186,22 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
     /* Estimate pitch */
 
     nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    prev_Wo = TWO_PI/pitch;
+    c2->prev_Wo = TWO_PI/pitch;
     model.Wo = TWO_PI/pitch;
+    model.L = PI/model.Wo;
 
     /* estimate model parameters */
 
     dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(&model, Sw);
     estimate_amplitudes(&model, Sw, c2->W);
-    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_, &voiced2);
+    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_);
+    voiced2 = model.voiced;
 
     /* quantise */
     
     nbits = 0;
-    encode_pitch(bits, &nbits, model.Wo);
+    encode_Wo(bits, &nbits, model.Wo);
     encode_voicing(bits, &nbits, voiced1, voiced2);
     encode_amplitudes(bits, &nbits, c2->Sn, c2->w);
     assert(nbits == CODEC2_BITS_PER_FRAME);
@@ -213,48 +217,58 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
 
 \*---------------------------------------------------------------------------*/
 
-void codec2_decode(float Sn_[], char bits[])
+void codec2_decode(void *codec2_state, short speech[], char bits[])
 {
     CODEC2 *c2;
     MODEL   model;
     float   ak[LPC_ORD+1];
     int     voiced1, voiced2;
-    int     i, nbits, transition;
-    MODEL   model_fwd, model_back, model_interp;
+    int     i, nbits;
+    MODEL   model_interp;
 
     assert(codec2_state != NULL);
     c2 = (CODEC2*)codec2_state;
 
     nbits = 0;
-    model.Wo = decode_pitch(bits, &nbits);
+    model.Wo = decode_Wo(bits, &nbits);
+    model.L = PI/model.Wo;
     decode_voicing(&voiced1, &voiced2, bits, &nbits);
     decode_amplitudes(&model, ak, bits, &nbits);
     assert(nbits == CODEC2_BITS_PER_FRAME);
 
     /* First synthesis frame - interpolated from adjacent frames */
 
-    interp(c2->prev_model, &model, &model_interp, &model_fwd, &model_back, &transition);
-    phase_synth_zero_order(&model, ak, voiced1, &c2->ex_phase);
+    model_interp.voiced = voiced1;
+    interp(&model_interp, &c2->prev_model, &model);
+    phase_synth_zero_order(&model_interp, ak, voiced1, &c2->ex_phase);
+    postfilter(&model_interp, voiced1, &c2->bg_est);
+    synthesise(c2->Sn_, &model_interp, c2->Pn, 1);
 
-    postfilter(&model, voiced, &c2->bg_est);
-	if (transition) {
-	    synthesise(Sn_,&model_a,Pn,1);
-	    synthesise(Sn_,&model_b,Pn,0);
-	}
-	else {
-	    synthesise(Sn_,&model,Pn,1);
-	}
+    for(i=0; i<N; i++) {
+	if (Sn_[i] > 32767.0)
+	    speech[i] = 32767;
+	else if (Sn_[i] < -32767.0)
+	    speech[i] = -32767;
+	else
+	    speech[i] = Sn_[i];
+    }
 
-	/* Save output speech to disk */
+    /* Second synthesis frame */
 
-	for(i=0; i<N; i++) {
-	    if (Sn_[i] > 32767.0)
-		buf[i] = 32767;
-	    else if (Sn_[i] < -32767.0)
-		buf[i] = -32767;
-	    else
-		buf[i] = Sn_[i];
-	}
+    model.voiced = voiced2;
+    phase_synth_zero_order(&model, ak, voiced2, &c2->ex_phase);
+    postfilter(&model, voiced2, &c2->bg_est);
+    synthesise(c2->Sn_, &model, c2->Pn, 1);
 
+    for(i=0; i<N; i++) {
+	if (Sn_[i] > 32767.0)
+	    speech[i+N] = 32767;
+	else if (Sn_[i] < -32767.0)
+	    speech[i+N] = -32767;
+	else
+	    speech[i+N] = Sn_[i];
+    }
+
+    memcpy(&c2->prev_model, model, sizeof(MODEL);
 }
 

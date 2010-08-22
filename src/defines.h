@@ -76,9 +76,9 @@ typedef struct {
 typedef struct {
   float Wo;		/* fundamental frequency estimate in radians  */
   int   L;		/* number of harmonics                        */
-  float v[MAX_AMP];	/* voicing measures (unused at present)       */
   float A[MAX_AMP];	/* amplitiude of each harmonic                */
   float phi[MAX_AMP];	/* phase of each harmonic                     */
+  int   voiced;	        /* non-zero if this frame is voiced           */
 } MODEL;
 
 #endif

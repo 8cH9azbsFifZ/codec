@@ -172,10 +172,7 @@ void dump_model(MODEL *model) {
 	fprintf(fmodel,"%f\t",model->A[l]);
     for(l=model->L+1; l<MAX_AMP; l++)
 	fprintf(fmodel,"0.0\t");
-    for(l=1; l<=model->L; l++)
-	fprintf(fmodel,"%f\t",model->v[l]);
-    for(l=model->L+1; l<MAX_AMP; l++)
-	fprintf(fmodel,"0.0\t");
+    fprintf(fmodel,"%d\t",model->voiced);
     fprintf(fmodel,"\n");    
 }
 

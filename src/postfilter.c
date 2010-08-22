@@ -93,7 +93,6 @@
 
 void postfilter(
   MODEL *model,
-  int    voiced, 
   float *bg_est
 )	
 {
@@ -112,7 +111,7 @@ void postfilter(
      of the threshold is to prevent updating during high level
      speech. */
 
-  if ((e < BG_THRESH) && !voiced)
+  if ((e < BG_THRESH) && !model->voiced)
       *bg_est =  *bg_est*(1.0 - BG_BETA) + e*BG_BETA;
 
   /* now mess with phases during voiced frames to make any harmonics
@@ -120,7 +119,7 @@ void postfilter(
   */
 
   uv = 0;
-  if (voiced)
+  if (model->voiced)
       for(m=1; m<=model->L; m++)
 	  if (20.0*log10(model->A[m]) < *bg_est) {
 	      model->phi[m] = TWO_PI*(float)rand()/RAND_MAX;

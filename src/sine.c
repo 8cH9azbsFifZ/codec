@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
                                                                              
   FILE........: sine.c
-  AUTHOR......: David Rowe                                                          
-  DATE CREATED: 119/8/2010
+  AUTHOR......: David Rowe                                           
+  DATE CREATED: 19/8/2010
                                                                              
   Sinusoidal analysis and synthesis functions.
                                                                              
@@ -46,7 +46,8 @@
                                                                              
 \*---------------------------------------------------------------------------*/
 
-void hs_pitch_refinement(MODEL *model, COMP Sw[], float pmin, float pmax, float pstep);
+void hs_pitch_refinement(MODEL *model, COMP Sw[], float pmin, float pmax, 
+			 float pstep);
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -361,9 +362,8 @@ float est_voicing_mbe(
     COMP   Sw[],
     COMP   W[],
     float  f0,
-    COMP   Sw_[],         /* DFT of all voiced synthesised signal for f0 */
+    COMP   Sw_[]          /* DFT of all voiced synthesised signal for f0 */
                           /* useful for debugging/dump file              */
-    int   *voiced         
 )
 {
     int   i,l,al,bl,m;    /* loop variables */
@@ -424,9 +424,9 @@ float est_voicing_mbe(
 
     snr = 10.0*log10(sig/error);
     if (snr > V_THRESH)
-	*voiced = 1;
+	model->voiced = 1;
     else
-	*voiced = 0;
+	model->voiced = 0;
 
     return snr;
 }

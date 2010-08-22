@@ -35,7 +35,7 @@
 
 void *codec2_create();
 void codec2_destroy(void *codec2_state);
-void codec2_encode(void *codec2_state, char bits[], short speech[]);
-void codec2_decode(float Sn_[], char bits[]);
+void codec2_encode(void *codec2_state, char bits[], short speech_in[]);
+void codec2_decode((void *codec2_state, int speech_out[], char bits[]);
 
 #endif

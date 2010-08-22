@@ -190,7 +190,6 @@ void aks_to_H(
 void phase_synth_zero_order(
     MODEL *model,
     float  aks[],
-    int    voiced,
     float *ex_phase             /* excitation phase of fundamental */
 )
 {
@@ -203,7 +202,7 @@ void phase_synth_zero_order(
   float jitter;
 
   G = 1.0;
-  aks_to_H(model,aks,G,H,PHASE_LPC);
+  aks_to_H(model,aks,G,H,LPC_ORD);
 
   /* 
      Update excitation fundamental phase track, this sets the position
@@ -221,7 +220,7 @@ void phase_synth_zero_order(
 
     /* generate excitation */
 
-    if (voiced) {
+    if (model->voiced) {
 	/* This method of adding jitter really helped remove the clicky
 	   sound in low pitched makes like hts1a. This moves the onset
 	   of each harmonic over at +/- 0.25 of a sample.

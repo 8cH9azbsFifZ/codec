@@ -33,7 +33,7 @@ void make_analysis_window(float w[], COMP W[]);
 void dft_speech(COMP Sw[], float Sn[], float w[]);
 void two_stage_pitch_refinement(MODEL *model, COMP Sw[]);
 void estimate_amplitudes(MODEL *model, COMP Sw[], COMP W[]);
-float est_voicing_mbe(MODEL *model, COMP Sw[], COMP W[], float f0, COMP Sw_[], int *voiced);
+float est_voicing_mbe(MODEL *model, COMP Sw[], COMP W[], float f0, COMP Sw_[]);
 void make_synthesis_window(float Pn[]);
 void synthesise(float Sn_[], MODEL *model, float Pn[], int shift);
 

@@ -26,81 +26,97 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 #include "defines.h"
 #include "interp.h"
 
+float sample_log_amp(MODEL *model, float w);
+
 /*---------------------------------------------------------------------------*\
 
-  interp()
+  FUNCTION....: interp()	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 22/8/10 
         
-  Given two frames decribed by model parameters 20ms apart, determines the
-  model parameters of the 10ms frame between them.
+  Given two frames decribed by model parameters 20ms apart, determines
+  the model parameters of the 10ms frame between them.  Assumes
+  voicing is available for middle (interpolated) frame.  Outputs are
+  amplitudes and Wo for the interpolated frame.
 
+  This version can interpolate the amplitudes between two frames of
+  different Wo and L.
+  
 \*---------------------------------------------------------------------------*/
 
-void interp(
+void interpolate(
+  MODEL *interp,    /* interpolated model params                     */
   MODEL *prev,      /* previous frames model params                  */
-  MODEL *next,      /* next frames model params                      */
-  MODEL *synth,     /* interp model params for cont frame            */
-  MODEL *a,         /* prev frame extended into this frame           */
-  MODEL *b,         /* next frame extended into this frame           */
-  int   *transition /* non-zero if this is a transition frame, this
-		       information is used for synthesis             */
+  MODEL *next       /* next frames model params                      */
 )
 {
-    int m;
-    
-    if (fabs(next->Wo - prev->Wo) < 0.1*next->Wo) {
+    int   l;
+    float w,log_amp;
 
-	/* If the Wo of adjacent frames is within 10% we synthesise a 
-	   continuous track through this frame by linear interpolation
-	   of the amplitudes and Wo.  This is typical of a strongly 
-	   voiced frame.
-	*/
+    /* Wo depends on voicing of this and adjacent frames */
 
-	*transition = 0;
-
-	synth->Wo = (next->Wo + prev->Wo)/2.0;
-	if (next->L > prev->L)
-	    synth->L = prev->L;
-	else
-	    synth->L = next->L;
-	for(m=1; m<=synth->L; m++) {
-	    synth->A[m] = (prev->A[m] + next->A[m])/2.0;
-	}
+    if (interp->voiced) {
+	if (prev->voiced && next->voiced)
+	    interp->Wo = (prev->Wo + next->Wo)/2.0;
+	if (!prev->voiced && next->voiced)
+	    interp->Wo = next->Wo;
+	if (prev->voiced && !next->voiced)
+	    interp->Wo = prev->Wo;
     }
     else {
-	/* 
-	   transition frame, adjacent frames have different Wo and L
-	   so set up two sets of model parameters based on prev and
-	   next.  We then synthesise both of them and add them
-	   together in the time domain.
+	interp->Wo = TWO_PI/P_MAX;
+    }
+    interp->L = PI/interp->Wo;
 
-	   The transition case is typical of unvoiced speech or
-	   background noise or a voiced/unvoiced transition.
-	*/
+    /* Interpolate amplitudes using linear interpolation in log domain */
 
-	*transition = 1;
+    for(l=1; l<=interp->L; l++) {
+	w = l*interp->Wo;
+	log_amp = (sample_log_amp(prev, w) + sample_log_amp(next, w))/2.0;
+	interp->A[l] = pow(10.0, log_amp);
+    }
+}
 
-	/* a is prev extended forward into this frame, b is next
-	   extended backward into this frame.  Note the adjustments to
-	   phase to time-shift the model forward or backward N
-	   samples. */
+/*---------------------------------------------------------------------------*\
 
-	memcpy(a, prev, sizeof(MODEL));
-	memcpy(b, next, sizeof(MODEL));
-	for(m=1; m<=a->L; m++) {
-	    a->A[m] /= 2.0;
-	    a->phi[m] += a->Wo*m*N;
-	}
-	for(m=1; m<=b->L; m++) {
-	    b->A[m] /= 2.0;
-	    b->phi[m] -= b->Wo*m*N;
-	}
+  FUNCTION....: sample_log_amp()
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 22/8/10 
+        
+  Samples the amplitude envelope at an arbitrary frequency w.  Uses
+  linear interpolation in the log domain to sample between harmonic
+  amplitudes.
+  
+\*---------------------------------------------------------------------------*/
+
+float sample_log_amp(MODEL *model, float w)
+{
+    int   m;
+    float f, log_amp;
+
+    assert(w > 0.0); assert (w <= PI);
+
+    m = floor(w/model->Wo);
+    f = w - m*model->Wo;
+    assert(f <= 1.0);
+
+    if (m < 1) {
+	log_amp = f*log10(model->A[1]);
+    }
+    else if ((m+1) > model->L) {
+	log_amp = (1.0-f)*log10(model->A[model->L]);
+    }
+    else {
+	log_amp = (1.0-f)*log10(model->A[m]) + f*log10(model->A[m+1]);
     }
 
+    return log_amp;
 }
 
