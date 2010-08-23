@@ -56,12 +56,15 @@ void encode_amplitudes(int    lsp_indexes[],
 		       float  Sn[], 
 		       float  w[]);
 
-float decode_amplitudes(MODEL *model, 
-		       int lsp_indexes[],
-		       int lpc_correction, 
-		       int energy_index);
+float decode_amplitudes(MODEL *model,
+			float  ak[],
+			int lsp_indexes[],
+			int lpc_correction, 
+			int energy_index);
 
 void pack(char bits[], int *nbit, int index, int index_bits);
-int unpack(char bits[], int *nbit, int index_bits);
+int  unpack(char bits[], int *nbit, int index_bits);
+
+int lsp_bits(int i);
 
 #endif

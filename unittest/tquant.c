@@ -39,11 +39,13 @@
 int test_Wo_quant();
 int test_lsp_quant();
 int test_lsp(int lsp_number, int levels, float max_error_hz);
+int test_energy_quant(int levels, float max_error_dB);
 
 int main() {
     quantise_init();
     test_Wo_quant();
     test_lsp_quant();
+    test_energy_quant(E_LEVELS, 0.5*(E_MAX_DB - E_MIN_DB)/E_LEVELS);
 
     return 0;
 }
@@ -60,6 +62,45 @@ int test_lsp_quant() {
     test_lsp( 9,  8,  50);
     test_lsp(10,  4, 100);
 
+    return 0;
+}
+
+int test_energy_quant(int levels, float max_error_dB) {
+    FILE  *fe;
+    float  e,e_dec, error, low_e, high_e;
+    int    index, index_in, index_out, i;
+
+    /* check 1:1 match between input and output levels */
+
+    for(i=0; i<levels; i++) {
+	index_in = i;
+	e = decode_energy(index_in);
+	index_out = encode_energy(e);
+	if (index_in != index_out) {
+	    printf("edB: %f index_in: %d index_out: %d\n", 
+		   10.0*log10(e), index_in, index_out);
+	    exit(0);
+	}	
+    }
+
+    /* check error over range of quantiser */
+
+    low_e = decode_energy(0);
+    high_e = decode_energy(levels-1);
+    fe = fopen("energy_err.txt", "wt");
+
+    for(e=low_e; e<high_e; e +=(high_e-low_e)/1000.0) {
+	index = encode_energy(e);
+	e_dec = decode_energy(index);
+	error = 10.0*log10(e) - 10.0*log10(e_dec);
+	fprintf(fe, "%f\n", error);
+	if (fabs(error) > max_error_dB) {
+	    printf("error: %f %f\n", error, max_error_dB);
+	    exit(0);
+	}
+    }
+
+    fclose(fe);
     return 0;
 }
 
@@ -117,6 +158,8 @@ int test_lsp(int lsp_number, int levels, float max_error_hz) {
 
     fclose(flsp);
 
+    printf("OK\n");
+
     return 0;
 }
 
@@ -126,7 +169,7 @@ int test_Wo_quant() {
     float  Wo,Wo_dec, error, step_size;
     int    index, index_in, index_out;
 
-    /* output pitch quant curve for plotting */
+    /* output Wo quant curve for plotting */
 
     f = fopen("quant_pitch.txt","wt");
 
@@ -137,7 +180,7 @@ int test_Wo_quant() {
 
     fclose(f);
 
-    /* check for all pitch codes we get 1:1 match between encoder
+    /* check for all Wo codes we get 1:1 match between encoder
        and decoder Wo levels */
 
     for(c=0; c<WO_LEVELS; c++) {

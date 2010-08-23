@@ -5,7 +5,7 @@
   DATE CREATED: 21/8/2010
 
   Codec2 fully quantised encoder and decoder functions.  If you want use 
-  codec2, these are the functions you need to call.
+  codec2, the codec2_xxx functions are for you.
 
 \*---------------------------------------------------------------------------*/
 
@@ -40,8 +40,9 @@
 #include "lpc.h"
 #include "quantise.h"
 #include "phase.h"
-#include "postfilter.h"
 #include "interp.h"
+#include "postfilter.h"
+#include "codec2.h"
 
 typedef struct {
     float  Sn[M];        /* input speech                              */
@@ -52,8 +53,23 @@ typedef struct {
     float  prev_Wo;      /* previous frame's pitch estimate           */
     float  ex_phase;     /* excitation model phase track              */
     float  bg_est;       /* background noise estimate for post filter */
-    MODEL *prev_model;   /* model parameters from 20ms ago            */
+    MODEL  prev_model;   /* model parameters from 20ms ago            */
 } CODEC2;
+
+/*---------------------------------------------------------------------------*\
+                                                       
+                             FUNCTION HEADERS
+
+\*---------------------------------------------------------------------------*/
+
+void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[]);
+void synthesise_one_frame(CODEC2 *c2, short speech[], MODEL *model,float ak[]);
+
+/*---------------------------------------------------------------------------*\
+                                                       
+                                FUNCTIONS
+
+\*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*\
                                                        
@@ -85,7 +101,7 @@ void *codec2_create()
 
     for(l=1; l<=MAX_AMP; l++)
 	c2->prev_model.A[l] = 0.0;
-    c2->prev_model.Wo = = TWO_PI/P_MAX;
+    c2->prev_model.Wo = TWO_PI/P_MAX;
 
     return (void*)c2;
 }
@@ -129,7 +145,7 @@ void codec2_destroy(void *codec2_state)
     Harmonic magnitudes (LSPs)     36
     Low frequency LPC correction    1
     Energy                          5
-    Pitch (fundamental frequnecy)   7
+    Wo (fundamental frequnecy)      7
     Voicing (10ms update)           2
     TOTAL                          51
  
@@ -138,73 +154,44 @@ void codec2_destroy(void *codec2_state)
 void codec2_encode(void *codec2_state, char bits[], short speech[])
 {
     CODEC2 *c2;
-    COMP    Sw[FFT_ENC];
-    COMP    Sw_[FFT_ENC];
     MODEL   model;
-    float   pitch;
     int     voiced1, voiced2;
-    int     i, nbits;
+    int     lsp_indexes[LPC_ORD];
+    int     lpc_correction;
+    int     energy_index;
+    int     Wo_index;
+    int     i, nbit = 0;
 
     assert(codec2_state != NULL);
     c2 = (CODEC2*)codec2_state;
 
-    /* First Frame - just send voicing ----------------------------------*/
+    /* first 10ms analysis frame - we just want voicing */
 
-    /* Read input speech */
-
-    for(i=0; i<M-N; i++)
-      c2->Sn[i] = c2->Sn[i+N];
-    for(i=0; i<N; i++)
-      c2->Sn[i+M-N] = speech[i];
-    dft_speech(Sw, c2->Sn, c2->w);
-
-    /* Estimate pitch */
-
-    nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    c2->prev_Wo = TWO_PI/pitch;
-    model.Wo = TWO_PI/pitch;
-    model.L = PI/model.Wo;
-
-    /* estimate model parameters */
-
-    dft_speech(Sw, c2->Sn, c2->w); 
-    two_stage_pitch_refinement(&model, Sw);
-    estimate_amplitudes(&model, Sw, c2->W);
-    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_);
+    analyse_one_frame(c2, &model, speech);
     voiced1 = model.voiced;
 
-    /* Second Frame - send all parameters --------------------------------*/
+    /* second 10ms analysis frame */
 
-    /* Read input speech */
-
-    for(i=0; i<M-N; i++)
-      c2->Sn[i] = c2->Sn[i+N];
-    for(i=0; i<N; i++)
-      c2->Sn[i+M-N] = speech[i+N];
-    dft_speech(Sw, c2->Sn, c2->w);
-
-    /* Estimate pitch */
-
-    nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    c2->prev_Wo = TWO_PI/pitch;
-    model.Wo = TWO_PI/pitch;
-    model.L = PI/model.Wo;
-
-    /* estimate model parameters */
-
-    dft_speech(Sw, c2->Sn, c2->w); 
-    two_stage_pitch_refinement(&model, Sw);
-    estimate_amplitudes(&model, Sw, c2->W);
-    est_voicing_mbe(&model, Sw, c2->W, (FS/TWO_PI)*model.Wo, Sw_);
+    analyse_one_frame(c2, &model, &speech[N]);
     voiced2 = model.voiced;
-
-    /* quantise */
     
-    nbits = 0;
-    encode_Wo(bits, &nbits, model.Wo);
-    encode_voicing(bits, &nbits, voiced1, voiced2);
-    encode_amplitudes(bits, &nbits, c2->Sn, c2->w);
-    assert(nbits == CODEC2_BITS_PER_FRAME);
+    Wo_index = encode_Wo(model.Wo);
+    encode_amplitudes(lsp_indexes, 
+		      &lpc_correction, 
+		      &energy_index,
+		      &model, 
+		       c2->Sn, 
+		       c2->w);   
+
+    pack(bits, &nbit, Wo_index, WO_BITS);
+    for(i=0; i<LPC_ORD; i++)
+	pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
+    pack(bits, &nbit, lpc_correction, 1);
+    pack(bits, &nbit, energy_index, E_BITS);
+    pack(bits, &nbit, voiced1, 1);
+    pack(bits, &nbit, voiced2, 1);
+
+    assert(nbit == CODEC2_BITS_PER_FRAME);
 }
 
 /*---------------------------------------------------------------------------*\
@@ -221,54 +208,111 @@ void codec2_decode(void *codec2_state, short speech[], char bits[])
 {
     CODEC2 *c2;
     MODEL   model;
-    float   ak[LPC_ORD+1];
     int     voiced1, voiced2;
-    int     i, nbits;
+    int     lsp_indexes[LPC_ORD];
+    int     lpc_correction;
+    int     energy_index;
+    int     Wo_index;
+    float   ak[LPC_ORD+1];
+    int     i, nbit = 0;
     MODEL   model_interp;
 
     assert(codec2_state != NULL);
     c2 = (CODEC2*)codec2_state;
 
-    nbits = 0;
-    model.Wo = decode_Wo(bits, &nbits);
+    Wo_index = unpack(bits, &nbit, WO_BITS);
+    for(i=0; i<LPC_ORD; i++)
+	lsp_indexes[i] = unpack(bits, &nbit, lsp_bits(i));
+    lpc_correction = unpack(bits, &nbit, 1);
+    energy_index = unpack(bits, &nbit, E_BITS);
+    voiced1 = unpack(bits, &nbit, 1);
+    voiced2 = unpack(bits, &nbit, 1);
+    assert(nbit == CODEC2_BITS_PER_FRAME);
+
+    decode_amplitudes(&model, 
+		      ak,
+		      lsp_indexes,
+		      lpc_correction, 
+		      energy_index);
+
+    model.Wo = decode_Wo(Wo_index);
     model.L = PI/model.Wo;
-    decode_voicing(&voiced1, &voiced2, bits, &nbits);
-    decode_amplitudes(&model, ak, bits, &nbits);
-    assert(nbits == CODEC2_BITS_PER_FRAME);
-
-    /* First synthesis frame - interpolated from adjacent frames */
-
-    model_interp.voiced = voiced1;
-    interp(&model_interp, &c2->prev_model, &model);
-    phase_synth_zero_order(&model_interp, ak, voiced1, &c2->ex_phase);
-    postfilter(&model_interp, voiced1, &c2->bg_est);
-    synthesise(c2->Sn_, &model_interp, c2->Pn, 1);
-
-    for(i=0; i<N; i++) {
-	if (Sn_[i] > 32767.0)
-	    speech[i] = 32767;
-	else if (Sn_[i] < -32767.0)
-	    speech[i] = -32767;
-	else
-	    speech[i] = Sn_[i];
-    }
-
-    /* Second synthesis frame */
-
     model.voiced = voiced2;
-    phase_synth_zero_order(&model, ak, voiced2, &c2->ex_phase);
-    postfilter(&model, voiced2, &c2->bg_est);
-    synthesise(c2->Sn_, &model, c2->Pn, 1);
+    model_interp.voiced = voiced1;
+    interpolate(&model_interp, &c2->prev_model, &model);
 
-    for(i=0; i<N; i++) {
-	if (Sn_[i] > 32767.0)
-	    speech[i+N] = 32767;
-	else if (Sn_[i] < -32767.0)
-	    speech[i+N] = -32767;
-	else
-	    speech[i+N] = Sn_[i];
-    }
+    synthesise_one_frame(c2,  speech,     &model_interp, ak);
+    synthesise_one_frame(c2, &speech[N],  &model, ak);
 
-    memcpy(&c2->prev_model, model, sizeof(MODEL);
+    memcpy(&c2->prev_model, &model, sizeof(MODEL));
 }
 
+/*---------------------------------------------------------------------------*\
+                                                       
+  FUNCTION....: synthesise_one_frame()	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 23/8/2010 
+
+  Synthesise 80 speech samples (10ms) from model parameters.
+
+\*---------------------------------------------------------------------------*/
+
+void synthesise_one_frame(CODEC2 *c2, short speech[], MODEL *model, float ak[])
+{
+    int     i;
+
+    phase_synth_zero_order(model, ak, &c2->ex_phase);
+    postfilter(model, &c2->bg_est);
+    synthesise(c2->Sn_, model, c2->Pn, 1);
+
+    for(i=0; i<N; i++) {
+	if (c2->Sn_[i] > 32767.0)
+	    speech[i] = 32767;
+	else if (c2->Sn_[i] < -32767.0)
+	    speech[i] = -32767;
+	else
+	    speech[i] = c2->Sn_[i];
+    }
+
+}
+
+/*---------------------------------------------------------------------------*\
+                                                       
+  FUNCTION....: analyse_one_frame()   
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 23/8/2010 
+
+  Extract sinusoidal model parameters from 80 speech samples (10ms of
+  speech).
+ 
+\*---------------------------------------------------------------------------*/
+
+void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
+{
+    COMP    Sw[FFT_ENC];
+    COMP    Sw_[FFT_ENC];
+    float   pitch;
+    int     i;
+
+    /* Read input speech */
+
+    for(i=0; i<M-N; i++)
+      c2->Sn[i] = c2->Sn[i+N];
+    for(i=0; i<N; i++)
+      c2->Sn[i+M-N] = speech[i];
+    dft_speech(Sw, c2->Sn, c2->w);
+
+    /* Estimate pitch */
+
+    nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
+    c2->prev_Wo = TWO_PI/pitch;
+    model->Wo = TWO_PI/pitch;
+    model->L = PI/model->Wo;
+
+    /* estimate model parameters */
+
+    dft_speech(Sw, c2->Sn, c2->w); 
+    two_stage_pitch_refinement(model, Sw);
+    estimate_amplitudes(model, Sw, c2->W);
+    est_voicing_mbe(model, Sw, c2->W, (FS/TWO_PI)*model->Wo, Sw_);
+}

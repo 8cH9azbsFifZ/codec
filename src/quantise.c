@@ -45,7 +45,7 @@
 
 typedef struct {
     int   k;        /* dimension of vector                   */
-    int   log2k;    /* number of bits in dimension           */
+    int   log2m;    /* number of bits in m                   */
     int   m;        /* elements in codebook                  */
     char *fn;       /* file name of text file storing the VQ */
 } LSP_CB;
@@ -96,6 +96,10 @@ float speech_to_uq_lsps(float lsp[], float ak[], float Sn[], float w[],
                              FUNCTIONS
 
 \*---------------------------------------------------------------------------*/
+
+int lsp_bits(int i) {
+    return lsp_q[i].log2m;
+}
 
 /*---------------------------------------------------------------------------*\
 									      
@@ -774,6 +778,7 @@ int encode_energy(float e)
     float e_max = E_MAX_DB;
     float norm;
 
+    e = 10.0*log10(e);
     norm = (e - e_min)/(e_max - e_min);
     index = floor(E_LEVELS * norm + 0.5);
     if (index < 0 ) index = 0;
@@ -801,6 +806,7 @@ float decode_energy(int index)
 
     step = (e_max - e_min)/E_LEVELS;
     e    = e_min + step*(index);
+    e    = pow(10.0,e/10.0);
 
     return e;
 }
@@ -847,13 +853,13 @@ void encode_amplitudes(int    lsp_indexes[],
 \*---------------------------------------------------------------------------*/
 
 float decode_amplitudes(MODEL *model, 
+			float  ak[],
 		        int    lsp_indexes[], 
 		        int    lpc_correction,
 		        int    energy_index
 )
 {
     float lsps[LPC_ORD];
-    float ak[LPC_ORD+1];
     float e;
     float snr;
 
