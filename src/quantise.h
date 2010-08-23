@@ -29,6 +29,10 @@
 
 #define WO_BITS   7
 #define WO_LEVELS (1<<WO_BITS)
+#define E_BITS    5
+#define E_LEVELS  (1<<E_BITS)
+#define E_MIN_DB -10.0
+#define E_MAX_DB  40.0
 
 void quantise_init();
 float lpc_model_amplitudes(float Sn[], float w[], MODEL *model, int order,
@@ -36,10 +40,28 @@ float lpc_model_amplitudes(float Sn[], float w[], MODEL *model, int order,
 void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr);
 float get_gmin(void);
 
-void  encode_Wo(char bits[], int *nbits, float Wo);
-float decode_Wo(char bits[], int *nbits);
+int   encode_Wo(float Wo);
+float decode_Wo(int index);
 
-void encode_voicing(char bits[], int *nbits, int voiced1, int voiced2);
-void decode_voicing(int *voiced1, int *voiced2, char bits[], int *nbits);
+void encode_lsps(int indexes[], float lsp[], int order);
+void decode_lsps(float lsp[], int indexes[], int order);
+
+int encode_energy(float e);
+float decode_energy(int index);
+
+void encode_amplitudes(int    lsp_indexes[], 
+		       int   *lpc_correction, 
+		       int   *energy_index,
+		       MODEL *model, 
+		       float  Sn[], 
+		       float  w[]);
+
+float decode_amplitudes(MODEL *model, 
+		       int lsp_indexes[],
+		       int lpc_correction, 
+		       int energy_index);
+
+void pack(char bits[], int *nbit, int index, int index_bits);
+int unpack(char bits[], int *nbit, int index_bits);
 
 #endif

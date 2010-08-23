@@ -36,26 +36,103 @@
 #include "dump.h"
 #include "quantise.h"
 
+int test_Wo_quant();
+int test_lsp_quant();
+int test_lsp(int lsp_number, int levels, float max_error_hz);
+
 int main() {
-    int    i,c,bit;
+    quantise_init();
+    test_Wo_quant();
+    test_lsp_quant();
+
+    return 0;
+}
+
+int test_lsp_quant() {
+    test_lsp( 1, 16,  12.5);
+    test_lsp( 2, 16,  12.5);
+    test_lsp( 3, 16,  25);
+    test_lsp( 4, 16,  50);
+    test_lsp( 5, 16,  50);
+    test_lsp( 6, 16,  50);
+    test_lsp( 7, 16,  50);
+    test_lsp( 8,  8,  50);
+    test_lsp( 9,  8,  50);
+    test_lsp(10,  4, 100);
+
+    return 0;
+}
+
+int test_lsp(int lsp_number, int levels, float max_error_hz) {
+    float lsp[LPC_ORD];
+    int   indexes_in[LPC_ORD];
+    int   indexes_out[LPC_ORD];
+    int   indexes[LPC_ORD];
+    int   i;
+    float lowf, highf, f, error;
+    char  s[MAX_STR];
+    FILE *flsp;
+    float max_error_rads;
+
+    lsp_number--;
+    max_error_rads = max_error_hz*TWO_PI/FS;
+    
+    for(i=0; i<LPC_ORD; i++)
+	indexes_in[i] = 0;
+
+    for(i=0; i<levels; i++) {
+	indexes_in[lsp_number] = i;
+	decode_lsps(lsp, indexes_in, LPC_ORD);
+	encode_lsps(indexes_out, lsp,LPC_ORD);
+	if (indexes_in[lsp_number] != indexes_out[lsp_number]) {
+	    printf("freq: %f index_in: %d index_out: %d\n", 
+		   lsp[lsp_number]+1, indexes_in[lsp_number],
+		   indexes_out[lsp_number]);
+	    exit(0);
+	}	
+    }
+
+    for(i=0; i<LPC_ORD; i++)
+	indexes[i] = 0;
+    indexes[lsp_number] = 0;
+    decode_lsps(lsp, indexes, LPC_ORD);
+    lowf = lsp[lsp_number];
+    indexes[lsp_number] = levels - 1;
+    decode_lsps(lsp, indexes, LPC_ORD);
+    highf = lsp[lsp_number];
+    sprintf(s,"lsp%d_err.txt", lsp_number+1);
+    flsp = fopen(s, "wt");
+
+    for(f=lowf; f<highf; f +=(highf-lowf)/1000.0) {
+	lsp[lsp_number] = f;
+	encode_lsps(indexes, lsp, LPC_ORD);
+	decode_lsps(lsp, indexes, LPC_ORD);
+	error = f - lsp[lsp_number];
+	fprintf(flsp, "%f\n", error);
+	if (fabs(error) > max_error_rads) {
+	    printf("%d error: %f %f\n", lsp_number+1, error, max_error_rads);
+	    exit(0);
+	}
+    }
+
+    fclose(flsp);
+
+    return 0;
+}
+
+int test_Wo_quant() {
+    int    c;
     FILE  *f;
     float  Wo,Wo_dec, error, step_size;
-    char   bits[WO_BITS];
-    int    code, nbits, code_in, code_out;
+    int    index, index_in, index_out;
 
     /* output pitch quant curve for plotting */
 
     f = fopen("quant_pitch.txt","wt");
 
     for(Wo=0.9*(TWO_PI/P_MAX); Wo<=1.1*(TWO_PI/P_MIN); Wo += 0.001) {
-	nbits = 0;
-	encode_Wo(bits, &nbits, Wo);
-        code = 0;
-	for(i=0; i<WO_BITS; i++) {
-	    code <<= 1;
-	    code |= bits[i];
-	}
-	fprintf(f, "%f %d\n", Wo, code);
+	index = encode_Wo(Wo);
+	fprintf(f, "%f %d\n", Wo, index);
     }
 
     fclose(f);
@@ -64,25 +141,12 @@ int main() {
        and decoder Wo levels */
 
     for(c=0; c<WO_LEVELS; c++) {
-	code_in = c;
-	for(i=0; i<WO_BITS; i++) {
-	    bit = (code_in >> (WO_BITS-1-i)) & 0x1;
-	    bits[i] = bit;
-	}
-	nbits = 0;
-	Wo = decode_Wo(bits, &nbits);
-	nbits = 0;
-
-	memset(bits, sizeof(bits), 0);
-        encode_Wo(bits, &nbits, Wo);
-        code_out = 0;
-	for(i=0; i<WO_BITS; i++) {
-	    code_out <<= 1;
-	    code_out |= bits[i];
-	}
-	if (code_in != code_out)
-	    printf("  Wo %f code_in %d code_out %d\n", Wo, 
-		   code_in, code_out);
+	index_in = c;
+	Wo = decode_Wo(index_in);
+        index_out = encode_Wo(Wo);
+	if (index_in != index_out)
+	    printf("  Wo %f index_in %d index_out %d\n", Wo, 
+		   index_in, index_out);
     }
 
     /* measure quantisation error stats and compare to expected.  Also
@@ -92,10 +156,10 @@ int main() {
     step_size = ((TWO_PI/P_MIN) - (TWO_PI/P_MAX))/WO_LEVELS;
 
     for(Wo=TWO_PI/P_MAX; Wo<0.99*TWO_PI/P_MIN; Wo += 0.0001) {
-	nbits = 0; encode_Wo(bits, &nbits, Wo);
-	nbits = 0; Wo_dec = decode_Wo(bits, &nbits);
+	index = encode_Wo(Wo);
+	Wo_dec = decode_Wo(index);
 	error = Wo - Wo_dec;
-	if (error > (step_size/2.0)) {
+	if (fabs(error) > (step_size/2.0)) {
 	    printf("error: %f  step_size/2: %f\n", error, step_size/2.0);
 	    exit(0);
 	}

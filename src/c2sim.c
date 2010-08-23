@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 
     /* option decimation to 20ms rate, which enables interpolation
        routine to synthesise in between frame */
-
+#ifdef FIX_ME_FOR_NEW_INTERP_ROUTINE
     if (decimate) {
 	if (frames%2) {
 
@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 	model_1 = model;
 	model = model_synth;
     }
-
+#endif
     /* 
        Simulate Wo quantisation noise
        model.Wo += 2.0*(PI/8000)*(1.0 - 2.0*(float)rand()/RAND_MAX);
