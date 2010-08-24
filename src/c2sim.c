@@ -38,6 +38,7 @@
 #include "nlp.h"
 #include "dump.h"
 #include "lpc.h"
+#include "lsp.h"
 #include "quantise.h"
 #include "phase.h"
 #include "postfilter.h"
@@ -92,7 +93,6 @@ int main(int argc, char *argv[])
   float prev_Wo;
   float pitch;
   int   voiced1;
-  float phi1[MAX_AMP];
 
   char  out_file[MAX_STR];
   int   arg;
@@ -115,10 +115,8 @@ int main(int argc, char *argv[])
   int   hand_voicing;
   FILE *fvoicing;
 
-  MODEL prev_model, interp_model, tmp_model;
+  MODEL prev_model, interp_model;
   int decimate;
-  float tmp_phi = 0;
-  float ak_phase[LPC_ORD+1];
 
   for(i=0; i<M; i++)
       Sn[i] = 1.0;
@@ -246,23 +244,17 @@ int main(int argc, char *argv[])
   	
 	dump_phase(&model.phi[0], model.L);
 
-	/* Determine LPCs for phase modelling.  Note that we may also
-	   find the LPCs as part of the {Am} modelling, this can
-	   probably be combined in the final codec.  However during
-	   development some subtle bugs were found when combining LPC
-	   and phase models so for the purpose of development it's
-	   easier to find LPCs indepenently for phase modelling
-	   here. */
+	/* find aks here, these are overwritten if LPC modelling is enabled */
 
 	for(i=0; i<M; i++)
 	    Wn[i] = Sn[i]*w[i];
 	autocorrelate(Wn,Rk,M,LPC_ORD);
-	levinson_durbin(Rk,ak_phase,LPC_ORD);
+	levinson_durbin(Rk,ak,LPC_ORD);
 
 	if (lpc_model)
 	    assert(order == LPC_ORD);
 
-	dump_ak(ak_phase, LPC_ORD);
+	dump_ak(ak, LPC_ORD);
 	
 	/* determine voicing */
 
@@ -283,7 +275,32 @@ int main(int argc, char *argv[])
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	snr = lpc_model_amplitudes(Sn, w, &model, order, lsp, ak);
+	int lpc_correction;
+	float e;
+	float lsps[LPC_ORD];
+	int   lsp_indexes[LPC_ORD];
+
+	e = speech_to_uq_lsps(lsps, ak, Sn, w, order);
+	lpc_correction = need_lpc_correction(&model, ak, e);
+
+	if (lsp) {
+	    encode_lsps(lsp_indexes, lsps, LPC_ORD);
+	    /*
+	      for(i=0; i<LPC_ORD; i++)
+		printf("lsps[%d] = %f lsp_indexes[%d] = %d\n", 
+		       i, lsps[i], i, lsp_indexes[i]);
+	      printf("\n");
+	    */
+	    decode_lsps(lsps, lsp_indexes, LPC_ORD);
+	    bw_expand_lsps(lsps, LPC_ORD);
+	    lsp_to_lpc(lsps, ak, LPC_ORD);
+	}
+
+	e = decode_energy(encode_energy(e));
+	model.Wo = decode_Wo(encode_Wo(model.Wo));
+
+	aks_to_M2(ak, order, &model, e, &snr); 
+	apply_lpc_correction(&model, lpc_correction);
 	sum_snr += snr;
         dump_quantised_model(&model);
     }
@@ -320,18 +337,18 @@ int main(int argc, char *argv[])
 	    interpolate(&interp_model, &prev_model, &model);
 	    
 	    if (phase0)
-		phase_synth_zero_order(&interp_model, ak_phase, ex_phase);	
+		phase_synth_zero_order(&interp_model, ak, ex_phase);	
 	    if (postfilt)
 		postfilter(&interp_model, &bg_est);
 	    synth_one_frame(buf, &interp_model, Sn_, Pn);
-	    fwrite(buf,sizeof(short),N,fout);
+	    if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
 
 	    if (phase0)
-		phase_synth_zero_order(&model, ak_phase, ex_phase);	
+		phase_synth_zero_order(&model, ak, ex_phase);	
 	    if (postfilt)
 		postfilter(&model, &bg_est);
 	    synth_one_frame(buf, &model, Sn_, Pn);
-	    fwrite(buf,sizeof(short),N,fout);
+	    if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
 
 	    prev_model = model;
 	}
@@ -341,11 +358,11 @@ int main(int argc, char *argv[])
     }
     else {
 	if (phase0)
-	    phase_synth_zero_order(&model, ak_phase, ex_phase);	
+	   phase_synth_zero_order(&model, ak, ex_phase);	
 	if (postfilt)
 	    postfilter(&model, &bg_est);
 	synth_one_frame(buf, &model, Sn_, Pn);
-	fwrite(buf,sizeof(short),N,fout);
+	if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
     }
   }
 

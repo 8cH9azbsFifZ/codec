@@ -74,7 +74,7 @@ LSP_CB lsp_q[] = {
     {1,4,16, "../unittest/lsp7.txt"},
     {1,3,8, "../unittest/lsp8.txt"},
     {1,3,8, "../unittest/lsp9.txt"},
-    {1,3,4, "../unittest/lsp10.txt"},
+    {1,2,4, "../unittest/lsp10.txt"},
     {0,0,0, ""}
 };
 
@@ -697,7 +697,7 @@ void bw_expand_lsps(float lsp[],
 
 /*---------------------------------------------------------------------------*\
                                                        
-  FUNCTION....: lpc_correction()	     
+  FUNCTION....: need_lpc_correction()	     
   AUTHOR......: David Rowe			      
   DATE CREATED: 22/8/2010 
 
@@ -834,6 +834,7 @@ void encode_amplitudes(int    lsp_indexes[],
     float lsps[LPC_ORD];
     float ak[LPC_ORD+1];
     float e;
+    int   i;
 
     e = speech_to_uq_lsps(lsps, ak, Sn, w, LPC_ORD);
     encode_lsps(lsp_indexes, lsps, LPC_ORD);
@@ -865,6 +866,7 @@ float decode_amplitudes(MODEL *model,
 
     decode_lsps(lsps, lsp_indexes, LPC_ORD);
     bw_expand_lsps(lsps, LPC_ORD);
+    lsp_to_lpc(lsps, ak, LPC_ORD);
     e = decode_energy(energy_index);
     aks_to_M2(ak, LPC_ORD, model, e, &snr); 
     apply_lpc_correction(model, lpc_correction);
@@ -911,7 +913,7 @@ int unpack(char bits[], int *nbit, int index_bits)
 
     for(i=0; i<index_bits; i++) {
 	index <<= 1;
-	index |= bits[i];
+	index |= bits[*nbit+i];
     }
     
     *nbit += index_bits;

@@ -184,13 +184,14 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
 		       c2->w);   
 
     pack(bits, &nbit, Wo_index, WO_BITS);
-    for(i=0; i<LPC_ORD; i++)
+    for(i=0; i<LPC_ORD; i++) {
 	pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
+    }
     pack(bits, &nbit, lpc_correction, 1);
     pack(bits, &nbit, energy_index, E_BITS);
     pack(bits, &nbit, voiced1, 1);
     pack(bits, &nbit, voiced2, 1);
-
+    
     assert(nbit == CODEC2_BITS_PER_FRAME);
 }
 
@@ -221,22 +222,23 @@ void codec2_decode(void *codec2_state, short speech[], char bits[])
     c2 = (CODEC2*)codec2_state;
 
     Wo_index = unpack(bits, &nbit, WO_BITS);
-    for(i=0; i<LPC_ORD; i++)
+    for(i=0; i<LPC_ORD; i++) {
 	lsp_indexes[i] = unpack(bits, &nbit, lsp_bits(i));
+    }
     lpc_correction = unpack(bits, &nbit, 1);
     energy_index = unpack(bits, &nbit, E_BITS);
     voiced1 = unpack(bits, &nbit, 1);
     voiced2 = unpack(bits, &nbit, 1);
     assert(nbit == CODEC2_BITS_PER_FRAME);
 
+    model.Wo = decode_Wo(Wo_index);
+    model.L = PI/model.Wo;
     decode_amplitudes(&model, 
 		      ak,
 		      lsp_indexes,
 		      lpc_correction, 
 		      energy_index);
 
-    model.Wo = decode_Wo(Wo_index);
-    model.L = PI/model.Wo;
     model.voiced = voiced2;
     model_interp.voiced = voiced1;
     interpolate(&model_interp, &c2->prev_model, &model);

@@ -67,4 +67,17 @@ int  unpack(char bits[], int *nbit, int index_bits);
 
 int lsp_bits(int i);
 
+int need_lpc_correction(MODEL *model, float ak[], float E);
+void apply_lpc_correction(MODEL *model, int lpc_correction);
+float speech_to_uq_lsps(float lsp[],
+			float ak[],
+		        float Sn[], 
+		        float w[],
+		        int   order
+			);
+void bw_expand_lsps(float lsp[],
+		    int   order
+		    );
+void decode_lsps(float lsp[], int indexes[], int order);
+
 #endif

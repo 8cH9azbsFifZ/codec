@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     FILE *fout;
     short buf[CODEC2_SAMPLES_PER_FRAME];
     char  bits[CODEC2_BITS_PER_FRAME];
+    int   i;
 
     if (argc != 3) {
 	printf("usage: %s InputRawspeechFile OutputBitFile\n", argv[0]);
@@ -63,6 +64,8 @@ int main(int argc, char *argv[])
     while(fread(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fin) ==
 	  CODEC2_SAMPLES_PER_FRAME) {
 	codec2_encode(codec2, bits, buf);
+	//for(i=0; i<CODEC2_BITS_PER_FRAME; i++)
+	//    printf("bit[%d] = %d\n", i, bits[i]);
 	fwrite(bits, sizeof(char), CODEC2_BITS_PER_FRAME, fout);
     }
 

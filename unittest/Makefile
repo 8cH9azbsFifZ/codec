@@ -1,6 +1,6 @@
 CFLAGS = -I. -I../src -Wall -g -DFLOATING_POINT -DVAR_ARRAYS
 
-all: genres genlsp extract vqtrain tnlp tinterp tquant
+all: genres genlsp extract vqtrain tnlp tinterp tquant tcodec2
 
 genres: genres.o ../src/lpc.o
 	gcc $(CFLAGS) -o genres genres.o ../src/lpc.o -lm
@@ -16,6 +16,10 @@ TINTERP_OBJ    = tinterp.o ../src/sine.o ../src/four1.o ../src/interp.o
 
 TQUANT_OBJ     = tquant.o ../src/quantise.o ../src/lpc.o ../src/lsp.o \
                  ../src/dump.o ../src/four1.o
+
+TCODEC2_OBJ    = tcodec2.o ../src/quantise.o ../src/lpc.o ../src/lsp.o \
+                 ../src/dump.o ../src/four1.o ../src/codec2.o ../src/sine.o \
+		../src/nlp.o ../src/postfilter.o ../src/phase.o ../src/interp.o
 
 lsptest: $(LSP_TEST_OBJ)
 	gcc $(CFLAGS) -o lsptest $(LSP_TEST_OBJ) -lm
@@ -43,6 +47,9 @@ tinterp: $(TINTERP_OBJ)
 
 tquant: $(TQUANT_OBJ)
 	gcc $(CFLAGS) -o tquant $(TQUANT_OBJ) -lm
+
+tcodec2: $(TCODEC2_OBJ)
+	gcc $(CFLAGS) -o tcodec2 $(TCODEC2_OBJ) -lm
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
