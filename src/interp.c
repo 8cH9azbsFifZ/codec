@@ -103,8 +103,8 @@ float sample_log_amp(MODEL *model, float w)
 
     assert(w > 0.0); assert (w <= PI);
 
-    m = floor(w/model->Wo);
-    f = w - m*model->Wo;
+    m = floor(w/model->Wo + 0.5);
+    f = (w - m*model->Wo)/w;
     assert(f <= 1.0);
 
     if (m < 1) {

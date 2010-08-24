@@ -12,7 +12,7 @@ TNLP_OBJ     = tnlp.o ../src/sine.o ../src/nlp.o ../src/four1.o ../src/dump.o
 TCONTPHASE_OBJ = tcontphase.o ../src/globals.o ../src/dump.o ../src/synth.o \
                  ../src/four1.c ../src/initdec.o ../src/phase.o
 
-TINTERP_OBJ    = tinterp.o ../src/interp.o
+TINTERP_OBJ    = tinterp.o ../src/sine.o ../src/four1.o ../src/interp.o
 
 TQUANT_OBJ     = tquant.o ../src/quantise.o ../src/lpc.o ../src/lsp.o \
                  ../src/dump.o ../src/four1.o

@@ -67,6 +67,8 @@ register char *argv[];  /* array of command line arguments in string form */
   return 0;
 }
 
+void synth_one_frame(short buf[], MODEL *model, float Sn_[], float Pn[]);
+
 /*---------------------------------------------------------------------------*\
                                                                           
 				MAIN                                        
@@ -89,6 +91,8 @@ int main(int argc, char *argv[])
   int   frames;
   float prev_Wo;
   float pitch;
+  int   voiced1;
+  float phi1[MAX_AMP];
 
   char  out_file[MAX_STR];
   int   arg;
@@ -97,7 +101,8 @@ int main(int argc, char *argv[])
 
   int lpc_model, order;
   int lsp, lsp_quantiser;
-  float ak[LPC_MAX+1];
+  float ak[LPC_MAX];
+  COMP  Sw_[FFT_ENC];
   
   int dump;
   
@@ -110,8 +115,10 @@ int main(int argc, char *argv[])
   int   hand_voicing;
   FILE *fvoicing;
 
-  MODEL model_1, model_2, model_3, model_synth, model_a, model_b;
-  int transition, decimate;
+  MODEL prev_model, interp_model, tmp_model;
+  int decimate;
+  float tmp_phi = 0;
+  float ak_phase[LPC_ORD+1];
 
   for(i=0; i<M; i++)
       Sn[i] = 1.0;
@@ -120,16 +127,15 @@ int main(int argc, char *argv[])
 
   prev_Wo = TWO_PI/P_MAX;
 
-  model_1.Wo = TWO_PI/P_MIN;
-  model_1.L = floor(PI/model_1.Wo);
-  for(i=1; i<=model_1.L; i++) {
-      model_1.A[i] = 0.0;
-      model_1.phi[i] = 0.0;
+  prev_model.Wo = TWO_PI/P_MIN;
+  prev_model.L = floor(PI/prev_model.Wo);
+  for(i=1; i<=prev_model.L; i++) {
+      prev_model.A[i] = 0.0;
+      prev_model.phi[i] = 0.0;
   }
   for(i=1; i<=MAX_AMP; i++) {
       ex_phase[i] = 0.0;
   }
-  model_synth = model_3 = model_2 = model_1;
 
   if (argc < 2) {
       printf("\nCodec2 - 2400 bit/s speech codec - Simulation Program\n");
@@ -198,7 +204,6 @@ int main(int argc, char *argv[])
   postfilt = switch_present("--postfilter",argc,argv);
 
   decimate = switch_present("--dec",argc,argv);
-  transition = 0;
 
   /* Initialise ------------------------------------------------------------*/
 
@@ -219,7 +224,6 @@ int main(int argc, char *argv[])
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
       Sn[i+M-N] = buf[i];
-    dump_Sn(Sn);
  
     /* Estimate pitch */
 
@@ -229,7 +233,7 @@ int main(int argc, char *argv[])
 
     /* estimate model parameters */
 
-    dft_speech(Sw, Sn, w); dump_Sw(Sw);   
+    dft_speech(Sw, Sn, w); 
     two_stage_pitch_refinement(&model, Sw);
     estimate_amplitudes(&model, Sw, W);
     dump_Sn(Sn); dump_Sw(Sw); dump_model(&model);
@@ -238,9 +242,7 @@ int main(int argc, char *argv[])
 
     if (phase0) {
 	float Wn[M];		        /* windowed speech samples */
-	float ak_phase[LPC_ORD+1];	/* autocorrelation coeffs  */
 	float Rk[LPC_ORD+1];	        /* autocorrelation coeffs  */
-	COMP  Sw_[FFT_ENC];
   	
 	dump_phase(&model.phi[0], model.L);
 
@@ -272,13 +274,10 @@ int main(int argc, char *argv[])
 
 	for(i=0; i<MAX_AMP; i++)
 	    model.phi[i] = 0;
+	
 	if (hand_voicing) {
 	    fscanf(fvoicing,"%d\n",&model.voiced);
 	}
-	phase_synth_zero_order(&model, ak_phase, ex_phase);
-	
-       if (postfilt)
-	    postfilter(&model, &bg_est);
     }
  
     /* optional LPC model amplitudes */
@@ -291,64 +290,63 @@ int main(int argc, char *argv[])
 
     /* option decimation to 20ms rate, which enables interpolation
        routine to synthesise in between frame */
-#ifdef FIX_ME_FOR_NEW_INTERP_ROUTINE
+  
     if (decimate) {
+	if (!phase0) {
+	    printf("needs --phase0 to resample phase for interpolated Wo\n");
+	    exit(0);
+	}
+
+	/* odd frame - interpolate */
+
 	if (frames%2) {
 
-	    /* odd frames use the original model parameters */
-
-	    model_synth = model_2;
-	    transition = 0;
-	}
-	else {
-	    interp(&model_3, &model_1, &model_synth, &model_a, &model_b, 
-		   &transition);
-
-	    /* phase need to be supplied outside of this routine, e.g. via
-	       a phase model */
-	       
-	    for(i=1; i<=model_synth.L; i++)
-		model_synth.phi[i] = model_2.phi[i];
-	}
-
-	model_3 = model_2;
-	model_2 = model_1;
-	model_1 = model;
-	model = model_synth;
-    }
-#endif
-    /* 
-       Simulate Wo quantisation noise
-       model.Wo += 2.0*(PI/8000)*(1.0 - 2.0*(float)rand()/RAND_MAX);
-       if (model.Wo > TWO_PI/20.0) model.Wo = TWO_PI/20.0;
-       if (model.Wo < TWO_PI/160.0) model.Wo = TWO_PI/160.0;
-       model.L = floor(PI/model.Wo);   
-    */
-
-    /* Synthesise speech */
-
-    if (fout != NULL) {
-
-	if (transition) {
-	    synthesise(Sn_,&model_a,Pn,1);
-	    synthesise(Sn_,&model_b,Pn,0);
-	}
-	else {
-	    synthesise(Sn_,&model,Pn,1);
-	}
-
-	/* Save output speech to disk */
-
-	for(i=0; i<N; i++) {
-	    if (Sn_[i] > 32767.0)
-		buf[i] = 32767;
-	    else if (Sn_[i] < -32767.0)
-		buf[i] = -32767;
+	    #ifdef TEST
+	    model.voiced = 1;
+	    prev_model.voiced = 1;
+	    if (fabs(prev_model.Wo - model.Wo) < 0.1*model.Wo) {
+		interp_model.voiced = 1;
+		interpolate(&interp_model, &prev_model, &model);
+		for(i=0; i<=interp_model.L; i++) {
+		    interp_model.phi[i] = phi1[i];
+		}
+		printf("interp\n");
+	    }
 	    else
-		buf[i] = Sn_[i];
+		interp_model = tmp_model;
+	    #endif
+
+	    interp_model.voiced = voiced1;
+	    interpolate(&interp_model, &prev_model, &model);
+	    
+	    if (phase0)
+		phase_synth_zero_order(&interp_model, ak_phase, ex_phase);	
+	    if (postfilt)
+		postfilter(&interp_model, &bg_est);
+	    synth_one_frame(buf, &interp_model, Sn_, Pn);
+	    fwrite(buf,sizeof(short),N,fout);
+
+	    if (phase0)
+		phase_synth_zero_order(&model, ak_phase, ex_phase);	
+	    if (postfilt)
+		postfilter(&model, &bg_est);
+	    synth_one_frame(buf, &model, Sn_, Pn);
+	    fwrite(buf,sizeof(short),N,fout);
+
+	    prev_model = model;
 	}
+	else {
+	    voiced1 = model.voiced;
+	}
+    }
+    else {
+	if (phase0)
+	    phase_synth_zero_order(&model, ak_phase, ex_phase);	
+	if (postfilt)
+	    postfilter(&model, &bg_est);
+	synth_one_frame(buf, &model, Sn_, Pn);
 	fwrite(buf,sizeof(short),N,fout);
-    }    
+    }
   }
 
   if (fout != NULL)
@@ -366,3 +364,19 @@ int main(int argc, char *argv[])
   return 0;
 }
 
+void synth_one_frame(short buf[], MODEL *model, float Sn_[], float Pn[])
+{
+    int     i;
+
+    synthesise(Sn_, model, Pn, 1);
+
+    for(i=0; i<N; i++) {
+	if (Sn_[i] > 32767.0)
+	    buf[i] = 32767;
+	else if (Sn_[i] < -32767.0)
+	    buf[i] = -32767;
+	else
+	    buf[i] = Sn_[i];
+    }
+
+}
