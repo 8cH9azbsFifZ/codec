@@ -1,8 +1,8 @@
 Codec 2 README
 --------------
 
-Codec 2 is an open source 2400 bit/s speech codec.  For more
-information please see:
+Codec 2 is an open source 2400 bit/s speech codec (LGPL licensed).
+For more information please see:
 
     http://rowetel.com.codec2.html
 
