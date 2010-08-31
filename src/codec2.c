@@ -54,6 +54,7 @@ typedef struct {
     float  ex_phase;     /* excitation model phase track              */
     float  bg_est;       /* background noise estimate for post filter */
     MODEL  prev_model;   /* model parameters from 20ms ago            */
+    void  *nlp;          /* pitch predictor states                    */
 } CODEC2;
 
 /*---------------------------------------------------------------------------*\
@@ -77,7 +78,11 @@ void synthesise_one_frame(CODEC2 *c2, short speech[], MODEL *model,float ak[]);
   AUTHOR......: David Rowe			      
   DATE CREATED: 21/8/2010 
 
-  Create and initialise an instance of the codec.
+  Create and initialise an instance of the codec.  Returns a pointer
+  to the codec states or NULL on failure.  One set of states is
+  sufficient for a full duuplex codec (i.e. an encoder and decoder).
+  You don't need separate states for encoders and decoders.  See
+  c2enc.c and c2dec.c for examples.
 
 \*---------------------------------------------------------------------------*/
 
@@ -87,6 +92,8 @@ void *codec2_create()
     int     i,l;
 
     c2 = (CODEC2*)malloc(sizeof(CODEC2));
+    if (c2 == NULL)
+	return NULL;
 
     for(i=0; i<M; i++)
 	c2->Sn[i] = 1.0;
@@ -103,6 +110,12 @@ void *codec2_create()
 	c2->prev_model.A[l] = 0.0;
     c2->prev_model.Wo = TWO_PI/P_MAX;
 
+    c2->nlp = nlp_create();
+    if (c2->nlp == NULL) {
+	free (c2);
+	return NULL;
+    }
+
     return (void*)c2;
 }
 
@@ -118,7 +131,11 @@ void *codec2_create()
 
 void codec2_destroy(void *codec2_state)
 {
+    CODEC2 *c2;
+    
     assert(codec2_state != NULL);
+    c2 = (CODEC2*)codec2_state;
+    nlp_destroy(c2->nlp);
     free(codec2_state);
 }
 
@@ -306,7 +323,7 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
 
     /* Estimate pitch */
 
-    nlp(c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
+    nlp(c2->nlp,c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
     c2->prev_Wo = TWO_PI/pitch;
     model->Wo = TWO_PI/pitch;
     model->L = PI/model->Wo;

@@ -8,6 +8,10 @@
   of bits (each bit is stored in the LSB or each output byte). Demo
   program for codec2.
 
+  NOTE: the bit file is not packed, 51 bits/frame actually consumes 51
+  bytes/frame on disk.  If you are using this for a real world
+  application you may want to pack the 51 bytes into 7 bytes.
+
 \*---------------------------------------------------------------------------*/
 
 /*
@@ -40,7 +44,6 @@ int main(int argc, char *argv[])
     FILE *fout;
     short buf[CODEC2_SAMPLES_PER_FRAME];
     char  bits[CODEC2_BITS_PER_FRAME];
-    int   i;
 
     if (argc != 3) {
 	printf("usage: %s InputRawspeechFile OutputBitFile\n", argv[0]);
@@ -64,8 +67,6 @@ int main(int argc, char *argv[])
     while(fread(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fin) ==
 	  CODEC2_SAMPLES_PER_FRAME) {
 	codec2_encode(codec2, bits, buf);
-	//for(i=0; i<CODEC2_BITS_PER_FRAME; i++)
-	//    printf("bit[%d] = %d\n", i, bits[i]);
 	fwrite(bits, sizeof(char), CODEC2_BITS_PER_FRAME, fout);
     }
 

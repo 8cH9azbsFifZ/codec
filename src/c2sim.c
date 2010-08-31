@@ -118,6 +118,8 @@ int main(int argc, char *argv[])
   MODEL prev_model, interp_model;
   int decimate;
 
+  void *nlp_states;
+
   for(i=0; i<M; i++)
       Sn[i] = 1.0;
   for(i=0; i<2*N; i++)
@@ -134,6 +136,8 @@ int main(int argc, char *argv[])
   for(i=1; i<=MAX_AMP; i++) {
       ex_phase[i] = 0.0;
   }
+
+  nlp_states = nlp_create();
 
   if (argc < 2) {
       printf("\nCodec2 - 2400 bit/s speech codec - Simulation Program\n");
@@ -225,7 +229,7 @@ int main(int argc, char *argv[])
  
     /* Estimate pitch */
 
-    nlp(Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&prev_Wo);
+    nlp(nlp_states,Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&prev_Wo);
     prev_Wo = TWO_PI/pitch;
     model.Wo = TWO_PI/pitch;
 
@@ -377,6 +381,8 @@ int main(int argc, char *argv[])
 
   if (hand_voicing)
     fclose(fvoicing);
+
+  nlp_destroy(nlp_states);
 
   return 0;
 }

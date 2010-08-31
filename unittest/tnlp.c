@@ -39,6 +39,7 @@
 
 #include "defines.h"
 #include "dump.h"
+#include "sine.h"
 #include "nlp.h"
 
 int   frames;
@@ -87,7 +88,8 @@ char *argv[];
     int   i; 
     int   dump;
     float prev_Wo;
-    
+    void  *nlp_states;
+
     if (argc < 3) {
 	printf("\nusage: tnlp InputRawSpeechFile OutputPitchTextFile "
 	       "[--dump DumpFile]\n");
@@ -112,6 +114,7 @@ char *argv[];
     if (dump) 
       dump_on(argv[dump+1]);
 
+    nlp_states = nlp_create();
     make_analysis_window(w,W);
 
     frames = 0;
@@ -128,7 +131,7 @@ char *argv[];
       dft_speech(Sw, Sn, w);
       dump_Sn(Sn); dump_Sw(Sw); 
 
-      nlp(Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw,&prev_Wo);
+      nlp(nlp_states,Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw,&prev_Wo);
       prev_Wo = TWO_PI/pitch;
 
       fprintf(fout,"%f\n",pitch);
@@ -137,6 +140,7 @@ char *argv[];
     fclose(fin);
     fclose(fout);
     if (dump) dump_off();
+    nlp_destroy(nlp_states);
 
     return 0;
 }

@@ -272,6 +272,7 @@ void hs_pitch_refinement(MODEL *model, COMP Sw[], float pmin, float pmax, float 
   /* Initialisation */
   
   model->L = PI/model->Wo;	/* use initial pitch est. for L */
+  Wom = model->Wo;
   Em = 0.0;
   r = TWO_PI/FFT_ENC;
   

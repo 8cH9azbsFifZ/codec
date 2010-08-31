@@ -7,6 +7,10 @@
   Decodes a file of bits to a file of raw speech samples using codec2. Demo
   program for codec2.
 
+  NOTE: the bit file is not packed, 51 bits/frame actually consumes 51
+  bytes/frame on disk.  If you are using this for a real world
+  application you may want to pack the 51 bytes into 7 bytes.
+
 \*---------------------------------------------------------------------------*/
 
 /*
@@ -39,7 +43,6 @@ int main(int argc, char *argv[])
     FILE *fout;
     short buf[CODEC2_SAMPLES_PER_FRAME];
     char  bits[CODEC2_BITS_PER_FRAME];
-    int   i;
 
     if (argc != 3) {
 	printf("usage: %s InputBitFile OutputRawSpeechFile\n", argv[0]);
@@ -62,8 +65,6 @@ int main(int argc, char *argv[])
 
     while(fread(bits, sizeof(char), CODEC2_BITS_PER_FRAME, fin) ==
 	  CODEC2_BITS_PER_FRAME) {
-	//for(i=0; i<CODEC2_BITS_PER_FRAME; i++)
-	//    printf("bit[%d] = %d\n", i, bits[i]);
 	codec2_decode(codec2, buf, bits);
 	fwrite(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fout);
     }

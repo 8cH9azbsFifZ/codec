@@ -834,7 +834,6 @@ void encode_amplitudes(int    lsp_indexes[],
     float lsps[LPC_ORD];
     float ak[LPC_ORD+1];
     float e;
-    int   i;
 
     e = speech_to_uq_lsps(lsps, ak, Sn, w, LPC_ORD);
     encode_lsps(lsp_indexes, lsps, LPC_ORD);

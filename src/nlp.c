@@ -27,10 +27,13 @@
 */
 
 #include "defines.h"
-#include "dump.h"
 #include "nlp.h"
+#include "dump.h"
+#include "four1.h"
+
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -47,6 +50,7 @@
 #define T           0.1         /* threshold for local minima candidate */
 #define F0_MAX      500
 #define CNLP        0.3	        /* post processor constant              */
+#define NLP_NTAP 48	        /* Decimation LPF order */
 
 /*---------------------------------------------------------------------------*\
                                                                             
@@ -107,11 +111,57 @@ float nlp_fir[] = {
   -1.0818124e-03
 };
 
+typedef struct {
+    float sq[PMAX_M];	     /* squared speech samples */
+    float mem_x,mem_y;       /* memory for notch filter */
+    float mem_fir[NLP_NTAP]; /* decimation FIR filter memory */
+} NLP;
+
 float post_process_mbe(COMP Fw[], int pmin, int pmax, float gmax);
 float post_process_sub_multiples(COMP Fw[], 
 				 int pmin, int pmax, float gmax, int gmax_bin,
 				 float *prev_Wo);
-extern int frames;
+
+/*---------------------------------------------------------------------------*\
+                                                                             
+  nlp_create()                                                                  
+                                                                             
+  Initialisation function for NLP pitch estimator.
+
+\*---------------------------------------------------------------------------*/
+
+void *nlp_create()
+{
+    NLP *nlp;
+    int  i;
+
+    nlp = (NLP*)malloc(sizeof(NLP));
+    if (nlp == NULL)
+	return NULL;
+
+    for(i=0; i<PMAX_M; i++)
+	nlp->sq[i] = 0.0;
+    nlp->mem_x = 0.0;
+    nlp->mem_y = 0.0;
+    for(i=0; i<NLP_NTAP; i++)
+	nlp->mem_fir[i] = 0.0;
+
+    return (void*)nlp;
+}
+
+/*---------------------------------------------------------------------------*\
+                                                                             
+  nlp_destory()
+                                                                             
+  Initialisation function for NLP pitch estimator.
+
+\*---------------------------------------------------------------------------*/
+
+void nlp_destroy(void *nlp_state)
+{
+    assert(nlp_state != NULL);
+    free(nlp_state);
+}
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -144,6 +194,7 @@ extern int frames;
 \*---------------------------------------------------------------------------*/
 
 float nlp(
+  void *nlp_state, 
   float  Sn[],			/* input speech vector */
   int    n,			/* frames shift (no. new samples in Sn[]) */
   int    m,			/* analysis window size */
@@ -154,78 +205,81 @@ float nlp(
   float *prev_Wo
 )
 {
-  static float sq[PMAX_M];	/* squared speech samples */
-  float  notch;			/* current notch filter output */
-  static float mem_x,mem_y;     /* memory for notch filter */
-  static float mem_fir[NLP_NTAP];/* decimation FIR filter memory */
-  COMP   Fw[PE_FFT_SIZE];	/* DFT of squared signal */
-  float  gmax;
-  int    gmax_bin;
-  int   i,j;
-  float best_f0;
+    NLP   *nlp;
+    float  notch;		    /* current notch filter output */
+    COMP   Fw[PE_FFT_SIZE];	    /* DFT of squared signal */
+    float  gmax;
+    int    gmax_bin;
+    int   i,j;
+    float best_f0;
 
-  /* Square, notch filter at DC, and LP filter vector */
+    assert(nlp_state != NULL);
+    nlp = (NLP*)nlp_state;
 
-  for(i=m-n; i<M; i++) 		/* square latest speech samples */
-    sq[i] = Sn[i]*Sn[i];
+    /* Square, notch filter at DC, and LP filter vector */
 
-  for(i=m-n; i<m; i++) {	/* notch filter at DC */
-    notch = sq[i] - mem_x;
-    notch += COEFF*mem_y;
-    mem_x = sq[i];
-    mem_y = notch;
-    sq[i] = notch;
-  }
+    for(i=m-n; i<M; i++) 	    /* square latest speech samples */
+	nlp->sq[i] = Sn[i]*Sn[i];
 
-  for(i=m-n; i<m; i++) {	/* FIR filter vector */
-
-    for(j=0; j<NLP_NTAP-1; j++)
-      mem_fir[j] = mem_fir[j+1];
-    mem_fir[NLP_NTAP-1] = sq[i];
-
-    sq[i] = 0.0;
-    for(j=0; j<NLP_NTAP; j++)
-      sq[i] += mem_fir[j]*nlp_fir[j];
-  }
-
-  /* Decimate and DFT */
-
-  for(i=0; i<PE_FFT_SIZE; i++) {
-    Fw[i].real = 0.0;
-    Fw[i].imag = 0.0;
-  }
-  for(i=0; i<m/DEC; i++) {
-    Fw[i].real = sq[i*DEC]*(0.5 - 0.5*cos(2*PI*i/(m/DEC-1)));
-  }
-  dump_dec(Fw);
-  four1(&Fw[-1].imag,PE_FFT_SIZE,1);
-  for(i=0; i<PE_FFT_SIZE; i++)
-    Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
-
-  dump_sq(sq);
-  dump_Fw(Fw);
-
-  /* find global peak */
-
-  gmax = 0.0;
-  for(i=PE_FFT_SIZE*DEC/pmax; i<=PE_FFT_SIZE*DEC/pmin; i++) {
-    if (Fw[i].real > gmax) {
-      gmax = Fw[i].real;
-      gmax_bin = i;
+    for(i=m-n; i<m; i++) {	/* notch filter at DC */
+	notch = nlp->sq[i] - nlp->mem_x;
+	notch += COEFF*nlp->mem_y;
+	nlp->mem_x = nlp->sq[i];
+	nlp->mem_y = notch;
+	nlp->sq[i] = notch;
     }
-  }
 
-  best_f0 = post_process_sub_multiples(Fw, pmin, pmax, gmax, gmax_bin, prev_Wo);
+    for(i=m-n; i<m; i++) {	/* FIR filter vector */
 
-  /* Shift samples in buffer to make room for new samples */
+	for(j=0; j<NLP_NTAP-1; j++)
+	    nlp->mem_fir[j] = nlp->mem_fir[j+1];
+	nlp->mem_fir[NLP_NTAP-1] = nlp->sq[i];
 
-  for(i=0; i<m-n; i++)
-    sq[i] = sq[i+n];
+	nlp->sq[i] = 0.0;
+	for(j=0; j<NLP_NTAP; j++)
+	    nlp->sq[i] += nlp->mem_fir[j]*nlp_fir[j];
+    }
 
-  /* return pitch and F0 estimate */
+    /* Decimate and DFT */
 
-  *pitch = (float)SAMPLE_RATE/best_f0;
-  return(best_f0);  
+    for(i=0; i<PE_FFT_SIZE; i++) {
+	Fw[i].real = 0.0;
+	Fw[i].imag = 0.0;
+    }
+    for(i=0; i<m/DEC; i++) {
+	Fw[i].real = nlp->sq[i*DEC]*(0.5 - 0.5*cos(2*PI*i/(m/DEC-1)));
+    }
+    dump_dec(Fw);
+    four1(&Fw[-1].imag,PE_FFT_SIZE,1);
+    for(i=0; i<PE_FFT_SIZE; i++)
+	Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
+
+    dump_sq(nlp->sq);
+    dump_Fw(Fw);
+
+    /* find global peak */
+
+    gmax = 0.0;
+    gmax_bin = PE_FFT_SIZE*DEC/pmax;
+    for(i=PE_FFT_SIZE*DEC/pmax; i<=PE_FFT_SIZE*DEC/pmin; i++) {
+	if (Fw[i].real > gmax) {
+	    gmax = Fw[i].real;
+	    gmax_bin = i;
+	}
+    }
+
+    best_f0 = post_process_sub_multiples(Fw, pmin, pmax, gmax, gmax_bin, 
+					 prev_Wo);
+
+    /* Shift samples in buffer to make room for new samples */
+
+    for(i=0; i<m-n; i++)
+	nlp->sq[i] = nlp->sq[i+n];
+
+    /* return pitch and F0 estimate */
+
+    *pitch = (float)SAMPLE_RATE/best_f0;
+    return(best_f0);  
 }
 
 /*---------------------------------------------------------------------------*\
@@ -284,6 +338,7 @@ float post_process_sub_multiples(COMP Fw[],
 	    thresh = CNLP*gmax;
 
 	lmax = 0;
+	lmax_bin = bmin;
 	for (b=bmin; b<=bmax; b++) 		/* look for maximum in interval */
 	    if (Fw[b].real > lmax) {
 		lmax = Fw[b].real;

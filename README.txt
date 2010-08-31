@@ -19,7 +19,8 @@ Programs
 --------
 
 1/ c2enc encodes a file of speech sample to a file of encoded bits.
-One bit is stored in the LSB or each byte.
+One bit is stored in the LSB of each byte. Note this is unpacked,
+i.e. 51 bits/frame consumes 51 bytes/frame on disk.
 
 2/ c2dec decodes a file of bits to a file of speech samples.
 
