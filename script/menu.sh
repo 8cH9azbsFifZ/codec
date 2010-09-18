@@ -52,18 +52,16 @@ do
   shift
 done
 
-readchar=1
 echo -n -e "\r" $items"- "
-while [ $readchar -ne 0 ]
-do
+while true ; do
   echo -n -e "\r -"
-  stty cbreak         # or stty raw
-  readchar=`dd if=/dev/tty bs=1 count=1 2>/dev/null`
+  stty cbreak         # or stty raw. Stty uses file descriptor 0, not /dev/tty.
+  readchar=`dd bs=1 count=1 2>/dev/null`
   stty -cbreak
-  if [ $readchar == 'q' ] ; then
-    readchar=0
-  fi
-  if [ $readchar -ne 0 ] ; then
+  if [ -n "$readchar" ] ; then
+    if [ $readchar == 'q' -o $readchar == 'Q' ] ; then
+      exit 0
+    fi
     play -r 8000 -s -2 ${file[$readchar]} $dsp 2> /dev/null
   fi
 done

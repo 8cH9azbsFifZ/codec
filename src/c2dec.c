@@ -35,6 +35,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 int main(int argc, char *argv[])
 {
@@ -46,19 +48,19 @@ int main(int argc, char *argv[])
 
     if (argc != 3) {
 	printf("usage: %s InputBitFile OutputRawSpeechFile\n", argv[0]);
-	exit(0);
+	exit(1);
     }
  
-    fin = fopen(argv[1],"rb");
-    if (fin == NULL) {
-	printf("Error opening input bit file: %s\n", argv[1]);
-	exit(0);
+    if ( (fin = fopen(argv[1],"rb")) == NULL ) {
+	fprintf(stderr, "Error opening input bit file: %s: %s.\n",
+         argv[1], strerror(errno));
+	exit(1);
     }
 
-    fout = fopen(argv[2],"wb");
-    if (fout == NULL) {
-	printf("Error opening output speech file: %s\n", argv[2]);
-	exit(0);
+    if ( (fout = fopen(argv[2],"wb")) == NULL ) {
+	fprintf(stderr, "Error opening output speech file: %s: %s.\n",
+         argv[2], strerror(errno));
+	exit(1);
     }
 
     codec2 = codec2_create();

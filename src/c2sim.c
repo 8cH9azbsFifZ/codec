@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <math.h>
 
 #include "defines.h"
@@ -140,17 +141,17 @@ int main(int argc, char *argv[])
   nlp_states = nlp_create();
 
   if (argc < 2) {
-      printf("\nCodec2 - 2400 bit/s speech codec - Simulation Program\n");
-      printf("            http://rowetel.com/codec2.html\n\n");
-      printf("usage: %s InputFile [-o OutputFile]\n", argv[0]);
-      printf("        [-o lpc Order]\n");
-      printf("        [--lsp]\n");
-      printf("        [--phase0]\n");
-      printf("        [--postfilter]\n");
-      printf("        [--hand_voicing]\n");
-      printf("        [--dec]\n");
-      printf("        [--dump DumpFilePrefix]\n");
-    exit(0);
+    fprintf(stderr, "\nCodec2 - 2400 bit/s speech codec - Simulation Program\n"
+     "\thttp://rowetel.com/codec2.html\n\n"
+     "usage: %s InputFile [-o OutputFile]\n"
+     "\t[-o lpc Order]\n"
+     "\t[--lsp]\n"
+     "\t[--phase0]\n"
+     "\t[--postfilter]\n"
+     "\t[--hand_voicing]\n"
+     "\t[--dec]\n"
+     "\t[--dump DumpFilePrefix]\n", argv[0]);
+    exit(1);
   }
 
   /* Interpret command line arguments -------------------------------------*/
@@ -158,7 +159,8 @@ int main(int argc, char *argv[])
   /* Input file */
 
   if ((fin = fopen(argv[1],"rb")) == NULL) {
-    printf("Error opening input speech file: %s\n",argv[1]);
+    fprintf(stderr, "Error opening input bit file: %s: %s.\n",
+     argv[1], strerror(errno));
     exit(1);
   }
 
@@ -166,7 +168,8 @@ int main(int argc, char *argv[])
 
   if ((arg = switch_present("-o",argc,argv))) {
     if ((fout = fopen(argv[arg+1],"wb")) == NULL) {
-      printf("Error opening output speech file: %s\n",argv[arg+1]);
+      fprintf(stderr, "Error opening output speech file: %s: %s.\n",
+       argv[arg+1], strerror(errno));
       exit(1);
     }
     strcpy(out_file,argv[arg+1]);
@@ -179,7 +182,7 @@ int main(int argc, char *argv[])
       lpc_model = 1;
       order = atoi(argv[arg+1]);
       if ((order < 4) || (order > 20)) {
-        printf("Error in lpc order: %d\n", order);
+        fprintf(stderr, "Error in lpc order: %d\n", order);
         exit(1);
       }	  
   }
