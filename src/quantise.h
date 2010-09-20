@@ -37,7 +37,8 @@
 void quantise_init();
 float lpc_model_amplitudes(float Sn[], float w[], MODEL *model, int order,
 			   int lsp,float ak[]);
-void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr);
+void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr, 
+	       int dump);
 float get_gmin(void);
 
 int   encode_Wo(float Wo);
@@ -62,8 +63,8 @@ float decode_amplitudes(MODEL *model,
 			int lpc_correction, 
 			int energy_index);
 
-void pack(char bits[], int *nbit, int index, int index_bits);
-int  unpack(char bits[], int *nbit, int index_bits);
+void pack(unsigned char * bits, unsigned int *nbit, int index, unsigned int index_bits);
+int  unpack(const unsigned char * bits, unsigned int *nbit, unsigned int index_bits);
 
 int lsp_bits(int i);
 

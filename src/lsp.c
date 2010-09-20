@@ -79,7 +79,7 @@ float cheb_poly_eva(float *coef,float x,int m)
     /* Allocate memory for chebyshev series formulation */
 
     if((T = (float *)malloc((m/2+1)*sizeof(float))) == NULL){
-	printf("not enough memory to allocate buffer\n");
+	fprintf(stderr, "not enough memory to allocate buffer\n");
 	exit(1);
     }
 
@@ -143,13 +143,10 @@ int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
 
     /* Allocate memory space for polynomials */
 
-    if((Q = (float *) malloc((m+1)*sizeof(float))) == NULL){
-	printf("not enough memory to allocate buffer\n");
- 	exit(1);
-    }
-
-    if((P = (float *) malloc((m+1)*sizeof(float))) == NULL){
-	printf("not enough memory to allocate buffer\n");
+    Q = (float *) malloc((m+1)*sizeof(float));
+    P = (float *) malloc((m+1)*sizeof(float));
+    if( (P == NULL) || (Q == NULL) ) {
+	fprintf(stderr,"not enough memory to allocate buffer\n");
 	exit(1);
     }
 

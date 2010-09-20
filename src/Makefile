@@ -2,13 +2,13 @@ CC=gcc
 CFLAGS=-g -Wall -I. -I../src -Wall -g -DFLOATING_POINT -DVAR_ARRAYS
 
 C2SIM_OBJ = sine.o nlp.o four1.o dump.o quantise.o lpc.o lsp.o phase.o \
-            postfilter.o interp.o codec2.o c2sim.o 
+            pack.o postfilter.o interp.o codec2.o c2sim.o 
 
 C2ENC_OBJ = sine.o nlp.o four1.o dump.o quantise.o lpc.o lsp.o phase.o \
-            postfilter.o interp.o codec2.o c2enc.o 
+            pack.o postfilter.o interp.o codec2.o c2enc.o 
 
 C2DEC_OBJ = sine.o nlp.o four1.o dump.o quantise.o lpc.o lsp.o phase.o \
-            postfilter.o interp.o codec2.o c2dec.o 
+            pack.o postfilter.o interp.o codec2.o c2dec.o 
 
 all: c2sim c2enc c2dec
 
@@ -25,4 +25,4 @@ c2dec: $(C2DEC_OBJ)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean :
-	rm -f *.o *~ src/*~
+	rm -f *.o *~ src/*~ c2enc c2dec c2sim

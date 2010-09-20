@@ -41,11 +41,12 @@
 
 int main(int argc, char *argv[])
 {
+    static const int bitsSize = ((CODEC2_BITS_PER_FRAME + 7) / 8);
     void *codec2;
     FILE *fin;
     FILE *fout;
     short buf[CODEC2_SAMPLES_PER_FRAME];
-    char  bits[CODEC2_BITS_PER_FRAME];
+    unsigned char  bits[bitsSize];
 
     if (argc != 3) {
 	printf("usage: %s InputRawspeechFile OutputBitFile\n", argv[0]);
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
     while(fread(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fin) ==
 	  CODEC2_SAMPLES_PER_FRAME) {
 	codec2_encode(codec2, bits, buf);
-	fwrite(bits, sizeof(char), CODEC2_BITS_PER_FRAME, fout);
+	fwrite(bits, sizeof(char), bitsSize, fout);
     }
 
     codec2_destroy(codec2);

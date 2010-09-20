@@ -436,7 +436,7 @@ float lpc_model_amplitudes(
   }
   #endif
 
-  aks_to_M2(ak,order,model,E,&snr);   /* {ak} -> {Am} LPC decode */
+  aks_to_M2(ak,order,model,E,&snr, 1);   /* {ak} -> {Am} LPC decode */
 
   return snr;
 }
@@ -452,11 +452,12 @@ float lpc_model_amplitudes(
 \*---------------------------------------------------------------------------*/
 
 void aks_to_M2(
-  float ak[],	/* LPC's */
-  int   order,
+  float  ak[],	/* LPC's */
+  int    order,
   MODEL *model,	/* sinusoidal model parameters for this frame */
-  float E,	/* energy term */
-  float *snr	/* signal to noise ratio for this frame in dB */
+  float  E,	/* energy term */
+  float *snr,	/* signal to noise ratio for this frame in dB */
+  int    dump   /* true to dump sample to dump file */
 )
 {
   COMP Pw[FFT_DEC];	/* power spectrum */
@@ -484,7 +485,8 @@ void aks_to_M2(
 
   for(i=0; i<FFT_DEC/2; i++)
     Pw[i].real = E/(Pw[i].real*Pw[i].real + Pw[i].imag*Pw[i].imag);
-  dump_Pw(Pw);
+  if (dump) 
+      dump_Pw(Pw);
 
   /* Determine magnitudes by linear interpolation of P(w) -------------------*/
 
@@ -717,7 +719,7 @@ int need_lpc_correction(MODEL *model, float ak[], float E)
     */
 
     memcpy(&tmp, model, sizeof(MODEL));
-    aks_to_M2(ak, LPC_ORD, &tmp, E, &snr);   
+    aks_to_M2(ak, LPC_ORD, &tmp, E, &snr, 0);   
 
     /* 
        Attenuate fundamental by 30dB if F0 < 150 Hz and LPC modelling
@@ -867,55 +869,8 @@ float decode_amplitudes(MODEL *model,
     bw_expand_lsps(lsps, LPC_ORD);
     lsp_to_lpc(lsps, ak, LPC_ORD);
     e = decode_energy(energy_index);
-    aks_to_M2(ak, LPC_ORD, model, e, &snr); 
+    aks_to_M2(ak, LPC_ORD, model, e, &snr, 1); 
     apply_lpc_correction(model, lpc_correction);
 
     return snr;
-}
-
-/*---------------------------------------------------------------------------*\
-                                                       
-  FUNCTION....: pack()	     
-  AUTHOR......: David Rowe			      
-  DATE CREATED: 23/8/2010 
-
-  Pack a quantiser index into an array of bits.
-
-\*---------------------------------------------------------------------------*/
-
-void pack(char bits[], int *nbit, int index, int index_bits)
-{
-    int i, bit;
-
-    for(i=0; i<index_bits; i++) {
-	bit = (index >> (index_bits-i-1)) & 0x1;
-	bits[*nbit+i] = bit;
-    }
-
-    *nbit += index_bits;
-}
-
-/*---------------------------------------------------------------------------*\
-                                                       
-  FUNCTION....: unpack()	     
-  AUTHOR......: David Rowe			      
-  DATE CREATED: 23/8/2010 
-
-  Unpack a qunatiser index from an array of bits.
-
-\*---------------------------------------------------------------------------*/
-
-int unpack(char bits[], int *nbit, int index_bits)
-{
-    int index = 0;
-    int i;
-
-    for(i=0; i<index_bits; i++) {
-	index <<= 1;
-	index |= bits[*nbit+i];
-    }
-    
-    *nbit += index_bits;
-
-    return index;    
 }

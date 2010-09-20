@@ -147,9 +147,6 @@ void codec2_destroy(void *codec2_state)
 
   Encodes 160 speech samples (20ms of speech) into 51 bits.  
 
-  The bits[] array is not packed, each bit is stored in the LSB of
-  each byte in the bits[] array.
-
   The codec2 algorithm actually operates internally on 10ms (80
   sample) frames, so we run the encoding algorithm twice.  On the
   first frame we just send the voicing bit.  One the second frame we
@@ -168,7 +165,7 @@ void codec2_destroy(void *codec2_state)
  
 \*---------------------------------------------------------------------------*/
 
-void codec2_encode(void *codec2_state, char bits[], short speech[])
+void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
 {
     CODEC2 *c2;
     MODEL   model;
@@ -177,7 +174,8 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
     int     lpc_correction;
     int     energy_index;
     int     Wo_index;
-    int     i, nbit = 0;
+    int     i;
+    unsigned int nbit = 0;
 
     assert(codec2_state != NULL);
     c2 = (CODEC2*)codec2_state;
@@ -199,7 +197,7 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
 		      &model, 
 		       c2->Sn, 
 		       c2->w);   
-
+    memset(bits, '\0', ((CODEC2_BITS_PER_FRAME + 7) / 8));
     pack(bits, &nbit, Wo_index, WO_BITS);
     for(i=0; i<LPC_ORD; i++) {
 	pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
@@ -222,7 +220,8 @@ void codec2_encode(void *codec2_state, char bits[], short speech[])
 
 \*---------------------------------------------------------------------------*/
 
-void codec2_decode(void *codec2_state, short speech[], char bits[])
+void codec2_decode(void *codec2_state, short speech[],
+                   const unsigned char * bits)
 {
     CODEC2 *c2;
     MODEL   model;
@@ -232,7 +231,8 @@ void codec2_decode(void *codec2_state, short speech[], char bits[])
     int     energy_index;
     int     Wo_index;
     float   ak[LPC_ORD+1];
-    int     i, nbit = 0;
+    int     i;
+    unsigned int nbit = 0;
     MODEL   model_interp;
 
     assert(codec2_state != NULL);
