@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 	e = decode_energy(encode_energy(e));
 	model.Wo = decode_Wo(encode_Wo(model.Wo));
 
-	aks_to_M2(ak, order, &model, e, &snr); 
+	aks_to_M2(ak, order, &model, e, &snr, 1); 
 	apply_lpc_correction(&model, lpc_correction);
 	sum_snr += snr;
         dump_quantised_model(&model);
