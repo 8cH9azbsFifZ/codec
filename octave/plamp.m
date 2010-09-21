@@ -63,7 +63,7 @@ function plamp(samname, f)
     Wo = model(f,1);
     L = model(f,2);
     Am = model(f,3:(L+2));
-    plot((1:L)*Wo*4000/pi, 20*log10(Am),";Am;");
+    plot((1:L)*Wo*4000/pi, 20*log10(Am),";Am;r");
     axis([1 4000 -10 80]);
     hold on;
 %    plot((0:255)*4000/256, Sw(f-2,:),";Sw;");
@@ -71,14 +71,14 @@ function plamp(samname, f)
 
     if (file_in_path(".",modelq_name))
       Amq = modelq(f,3:(L+2));
-      plot((1:L)*Wo*4000/pi, 20*log10(Amq),";Amq;" );
+      plot((1:L)*Wo*4000/pi, 20*log10(Amq),";Amq;g" );
       if (file_in_path(".",pw_name))
-        plot((0:255)*4000/256, 10*log10(Pw(f,:)),";Pw;");
+        plot((0:255)*4000/256, 10*log10(Pw(f,:)),";Pw;c");
       endif	
       signal = Am * Am';
       noise = (Am-Amq) * (Am-Amq)'; 
       snr1 = 10*log10(signal/noise);
-      Am_err_label = sprintf(";Am_err SNR %4.2f dB;",snr1);
+      Am_err_label = sprintf(";Am error SNR %4.2f dB;m",snr1);
       plot((1:L)*Wo*4000/pi, 20*log10(Amq) - 20*log10(Am), Am_err_label);
     endif
 
@@ -107,11 +107,6 @@ function plamp(samname, f)
     endif
 
     hold off;
-
-    if (k == 'p')
-       pngname = sprintf("%s_%d_sn_",samname,f)
-       png(pngname);
-    endif
 
     if (file_in_path(".",phase_name))
       figure(3);
@@ -152,26 +147,17 @@ function plamp(samname, f)
     % optional print to PNG
 
     if (k == 'p')
-    
-      pngname = sprintf("%s_%d",samname,f);
+      figure(1);
+      pngname = sprintf("%s_%d_sn.png",samname,f);
+      print(pngname, '-dpng', "-S500,500")
+      pngname = sprintf("%s_%d_sn_large.png",samname,f);
+      print(pngname, '-dpng', "-S800,600")
 
-      % small image
-
-      __gnuplot_set__ terminal png size 420,300
-      ss = sprintf("__gnuplot_set__ output \"%s.png\"", pngname);
-      eval(ss)
-      replot;
-
-      % larger image
-
-      __gnuplot_set__ terminal png size 800,600
-      ss = sprintf("__gnuplot_set__ output \"%s_large.png\"", pngname);
-      eval(ss)
-      replot;
-
-      % for some reason I need this to stop large plot getting wiped
-      __gnuplot_set__ output "/dev/null"
-
+      figure(2);
+      pngname = sprintf("%s_%d_sw.png",samname,f);
+      print(pngname, '-dpng', "-S500,500")
+      pngname = sprintf("%s_%d_sw_large.png",samname,f);
+      print(pngname, '-dpng', "-S800,600")
     endif
 
   until (k == 'q')
