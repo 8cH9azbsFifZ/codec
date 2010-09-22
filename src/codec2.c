@@ -109,6 +109,8 @@ void *codec2_create()
     for(l=1; l<=MAX_AMP; l++)
 	c2->prev_model.A[l] = 0.0;
     c2->prev_model.Wo = TWO_PI/P_MAX;
+    c2->prev_model.L = PI/c2->prev_model.Wo;
+    c2->prev_model.voiced = 0;
 
     c2->nlp = nlp_create();
     if (c2->nlp == NULL) {
@@ -250,6 +252,7 @@ void codec2_decode(void *codec2_state, short speech[],
 
     model.Wo = decode_Wo(Wo_index);
     model.L = PI/model.Wo;
+    memset(&model.A, 0, (model.L+1)*sizeof(model.A[0]));
     decode_amplitudes(&model, 
 		      ak,
 		      lsp_indexes,
@@ -258,6 +261,8 @@ void codec2_decode(void *codec2_state, short speech[],
 
     model.voiced = voiced2;
     model_interp.voiced = voiced1;
+    model_interp.Wo = P_MAX/2;
+    memset(&model_interp.A, 0, MAX_AMP*sizeof(model_interp.A[0]));
     interpolate(&model_interp, &c2->prev_model, &model);
 
     synthesise_one_frame(c2,  speech,     &model_interp, ak);

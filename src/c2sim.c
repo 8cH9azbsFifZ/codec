@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
   int   frames;
   float prev_Wo;
   float pitch;
-  int   voiced1;
+  int   voiced1 = 0;
 
   char  out_file[MAX_STR];
   int   arg;
@@ -372,6 +372,7 @@ int main(int argc, char *argv[])
 	if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
     }
   }
+  fclose(fin);
 
   if (fout != NULL)
     fclose(fout);

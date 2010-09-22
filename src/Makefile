@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall -I. -I../src -Wall -g -DFLOATING_POINT -DVAR_ARRAYS
+CFLAGS=-g -Wall -I. -I../src -Wall -g -DFLOATING_POINT -DVAR_ARRAYS -O2
 
 C2SIM_OBJ = sine.o nlp.o four1.o dump.o quantise.o lpc.o lsp.o phase.o \
             pack.o postfilter.o interp.o codec2.o c2sim.o 
