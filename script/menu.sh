@@ -62,7 +62,15 @@ while true ; do
     if [ $readchar == 'q' -o $readchar == 'Q' ] ; then
       exit 0
     fi
-    play -r 8000 -s -2 ${file[$readchar]} $dsp 2> /dev/null
+    if ( play --version ) >/dev/null 2>&1; then
+      play -r 8000 -s -2 ${file[$readchar]} $dsp 2> /dev/null
+    elif ( aplay --version ) > /dev/null 2>&1; then
+      aplay -r 8000 -f S16_LE ${file[$readchar]} 2> /dev/null
+    elif ( ossplay -f? ) > /dev/null 2>&1; then
+      ossplay -s8000 -fS16_LE ${file[$readchar]} 2> /dev/null
+    else
+      echo "could not find play, aplay or ossplay program"
+    fi
   fi
 done
 echo

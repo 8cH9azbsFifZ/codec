@@ -13,7 +13,11 @@ $ cd codec2/src
 $ make
 $ ./c2enc ../raw/hts1a.raw hts1a_c2.bit
 $ ./c2dec hts1a_c2.bit hts1a_c2.raw 
-$ ../scripts/menu.sh ../raw/hts1a.raw hts1a_c2.raw
+$ ../script/menu.sh ../raw/hts1a.raw hts1a_c2.raw
+
+For playback testing, menu.sh requires either the 'play', 'aplay' or
+'ossplay' programs to be installed (see http://sox.sourceforge.net/,
+http://www.alsa-project.org/, or http://www.opensound.com/ respectively).
 
 Programs
 --------
