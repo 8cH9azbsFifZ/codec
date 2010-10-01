@@ -106,7 +106,7 @@ void *codec2_create()
     c2->bg_est = 0.0;
     c2->ex_phase = 0.0;
 
-    for(l=1; l<=MAX_AMP; l++)
+    for(l=1; l<MAX_AMP; l++)
 	c2->prev_model.A[l] = 0.0;
     c2->prev_model.Wo = TWO_PI/P_MAX;
     c2->prev_model.L = PI/c2->prev_model.Wo;
