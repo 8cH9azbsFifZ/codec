@@ -126,6 +126,8 @@ void postfilter(
 	      uv++;
 	  }
 
+#ifdef DUMP
   dump_bg(e, *bg_est, 100.0*uv/model->L);
+#endif
 
 }

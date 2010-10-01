@@ -60,7 +60,7 @@
 
 /* 48 tap 600Hz low pass FIR filter coefficients */
 
-float nlp_fir[] = {
+const float nlp_fir[] = {
   -1.0818124e-03,
   -1.1008344e-03,
   -9.2768838e-04,
@@ -249,13 +249,17 @@ float nlp(
     for(i=0; i<m/DEC; i++) {
 	Fw[i].real = nlp->sq[i*DEC]*(0.5 - 0.5*cos(2*PI*i/(m/DEC-1)));
     }
+#ifdef DUMP
     dump_dec(Fw);
+#endif
     four1(&Fw[-1].imag,PE_FFT_SIZE,1);
     for(i=0; i<PE_FFT_SIZE; i++)
 	Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
 
+#ifdef DUMP
     dump_sq(nlp->sq);
     dump_Fw(Fw);
+#endif
 
     /* find global peak */
 

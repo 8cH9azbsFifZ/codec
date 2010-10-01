@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Only 10 gets used, so far. */
+#define LSP_MAX_ORDER	20
 /*---------------------------------------------------------------------------*\
 
   Introduction to Line Spectrum Pairs (LSPs)
@@ -68,20 +70,15 @@
 \*---------------------------------------------------------------------------*/
 
 
-float cheb_poly_eva(float *coef,float x,int m)
+static float
+cheb_poly_eva(float *coef,float x,int m)
 /*  float coef[]  	coefficients of the polynomial to be evaluated 	*/
 /*  float x   		the point where polynomial is to be evaluated 	*/
 /*  int m 		order of the polynomial 			*/
 {
     int i;
-    float *T,*t,*u,*v,sum;
-
-    /* Allocate memory for chebyshev series formulation */
-
-    if((T = (float *)malloc((m/2+1)*sizeof(float))) == NULL){
-	fprintf(stderr, "not enough memory to allocate buffer\n");
-	exit(1);
-    }
+    float *t,*u,*v,sum;
+    float T[(LSP_MAX_ORDER / 2) + 1];
 
     /* Initialise pointers */
 
@@ -104,7 +101,6 @@ float cheb_poly_eva(float *coef,float x,int m)
     for(i=0;i<=m/2;i++)
 	sum+=coef[(m/2)-i]**t++;
 
-    free(T);
     return sum;
 }
 
@@ -126,11 +122,9 @@ int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
 /*  int nb			number of sub-intervals (4) 		*/
 /*  float delta			grid spacing interval (0.02) 		*/
 {
-    float psuml,psumr,psumm,temp_xr,xl,xr,xm;
+    float psuml,psumr,psumm,temp_xr,xl,xr,xm = 0;
     float temp_psumr;
     int i,j,m,flag,k;
-    float *Q;                 	/* ptrs for memory allocation 		*/
-    float *P;
     float *px;                	/* ptrs of respective P'(z) & Q'(z)	*/
     float *qx;
     float *p;
@@ -138,17 +132,13 @@ int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
     float *pt;                	/* ptr used for cheb_poly_eval()
 				   whether P' or Q' 			*/
     int roots=0;              	/* number of roots found 	        */
+    float Q[LSP_MAX_ORDER + 1];
+    float P[LSP_MAX_ORDER + 1];
+
     flag = 1;                	
     m = lpcrdr/2;            	/* order of P'(z) & Q'(z) polynimials 	*/
 
     /* Allocate memory space for polynomials */
-
-    Q = (float *) malloc((m+1)*sizeof(float));
-    P = (float *) malloc((m+1)*sizeof(float));
-    if( (P == NULL) || (Q == NULL) ) {
-	fprintf(stderr,"not enough memory to allocate buffer\n");
-	exit(1);
-    }
 
     /* determine P'(z)'s and Q'(z)'s coefficients where
       P'(z) = P(z)/(1 + z^(-1)) and Q'(z) = Q(z)/(1-z^(-1)) */
@@ -232,8 +222,6 @@ int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
 	    }
 	}
     }
-    free(P);                  		/* free memory space 		*/
-    free(Q);
 
     /* convert from x domain to radians */
 
@@ -264,19 +252,15 @@ void lsp_to_lpc(float *freq, float *ak, int lpcrdr)
 {
     int i,j;
     float xout1,xout2,xin1,xin2;
-    float *Wp;
-    float *pw,*n1,*n2,*n3,*n4;
+    float *pw,*n1,*n2,*n3,*n4 = 0;
     int m = lpcrdr/2;
+    float Wp[(LSP_MAX_ORDER * 4) + 2];
 
     /* convert from radians to the x=cos(w) domain */
 
     for(i=0; i<lpcrdr; i++)
 	freq[i] = cos(freq[i]);
 
-    if((Wp = (float *) malloc((4*m+2)*sizeof(float))) == NULL){
-	printf("not enough memory to allocate buffer\n");
-	exit(1);
-    }
     pw = Wp;
 
     /* initialise contents of array */
@@ -318,6 +302,5 @@ void lsp_to_lpc(float *freq, float *ak, int lpcrdr)
 	xin1 = 0.0;
 	xin2 = 0.0;
     }
-    free(Wp);
 }
 

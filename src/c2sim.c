@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   float snr;
   float sum_snr;
 
-  int lpc_model, order;
+  int lpc_model, order = 0;
   int lsp, lsp_quantiser;
   float ak[LPC_MAX];
   COMP  Sw_[FFT_ENC];
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
   float bg_est;
 
   int   hand_voicing;
-  FILE *fvoicing;
+  FILE *fvoicing = 0;
 
   MODEL prev_model, interp_model;
   int decimate;
@@ -188,8 +188,10 @@ int main(int argc, char *argv[])
   }
 
   dump = switch_present("--dump",argc,argv);
+#ifdef DUMP
   if (dump) 
       dump_on(argv[dump+1]);
+#endif
 
   lsp = switch_present("--lsp",argc,argv);
   lsp_quantiser = 0;
@@ -241,7 +243,9 @@ int main(int argc, char *argv[])
     dft_speech(Sw, Sn, w); 
     two_stage_pitch_refinement(&model, Sw);
     estimate_amplitudes(&model, Sw, W);
+#ifdef DUMP 
     dump_Sn(Sn); dump_Sw(Sw); dump_model(&model);
+#endif
 
     /* optional zero-phase modelling */
 
@@ -249,7 +253,9 @@ int main(int argc, char *argv[])
 	float Wn[M];		        /* windowed speech samples */
 	float Rk[LPC_ORD+1];	        /* autocorrelation coeffs  */
   	
+#ifdef DUMP
 	dump_phase(&model.phi[0], model.L);
+#endif
 
 	/* find aks here, these are overwritten if LPC modelling is enabled */
 
@@ -261,13 +267,17 @@ int main(int argc, char *argv[])
 	if (lpc_model)
 	    assert(order == LPC_ORD);
 
+#ifdef DUMP
 	dump_ak(ak, LPC_ORD);
+#endif
 	
 	/* determine voicing */
 
 	snr = est_voicing_mbe(&model, Sw, W, (FS/TWO_PI)*model.Wo, Sw_);
+#ifdef DUMP
 	dump_Sw_(Sw_);
 	dump_snr(snr);
+#endif
 
 	/* just to make sure we are not cheating - kill all phases */
 
@@ -309,7 +319,9 @@ int main(int argc, char *argv[])
 	aks_to_M2(ak, order, &model, e, &snr, 1); 
 	apply_lpc_correction(&model, lpc_correction);
 	sum_snr += snr;
+#ifdef DUMP
         dump_quantised_model(&model);
+#endif
     }
 
     /* option decimation to 20ms rate, which enables interpolation
@@ -380,8 +392,10 @@ int main(int argc, char *argv[])
   if (lpc_model)
       printf("SNR av = %5.2f dB\n", sum_snr/frames);
 
+#ifdef DUMP
   if (dump)
       dump_off();
+#endif
 
   if (hand_voicing)
     fclose(fvoicing);

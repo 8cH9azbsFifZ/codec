@@ -86,9 +86,11 @@ char *argv[];
     COMP  W[FFT_ENC];	        /* DFT of w[] */
     float pitch;
     int   i; 
-    int   dump;
     float prev_Wo;
     void  *nlp_states;
+#ifdef DUMP
+    int   dump;
+#endif
 
     if (argc < 3) {
 	printf("\nusage: tnlp InputRawSpeechFile OutputPitchTextFile "
@@ -110,9 +112,13 @@ char *argv[];
       exit(1);
     }
 
+#ifdef DUMP
     dump = switch_present("--dump",argc,argv);
     if (dump) 
       dump_on(argv[dump+1]);
+#else
+#warning "Compile with -DDUMP if you expect to dump anything."
+#endif
 
     nlp_states = nlp_create();
     make_analysis_window(w,W);
@@ -129,7 +135,9 @@ char *argv[];
       for(i=0; i<N; i++)
         Sn[i+M-N] = buf[i];
       dft_speech(Sw, Sn, w);
+#ifdef DUMP
       dump_Sn(Sn); dump_Sw(Sw); 
+#endif
 
       nlp(nlp_states,Sn,N,M,PITCH_MIN,PITCH_MAX,&pitch,Sw,&prev_Wo);
       prev_Wo = TWO_PI/pitch;
@@ -139,7 +147,9 @@ char *argv[];
 
     fclose(fin);
     fclose(fout);
+#ifdef DUMP
     if (dump) dump_off();
+#endif
     nlp_destroy(nlp_states);
 
     return 0;

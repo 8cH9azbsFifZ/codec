@@ -38,14 +38,15 @@
 #include <string.h>
 #include <errno.h>
 
+#define BITS_SIZE	((CODEC2_BITS_PER_FRAME + 7) / 8)
+
 int main(int argc, char *argv[])
 {
-    static const int bitsSize = ((CODEC2_BITS_PER_FRAME + 7) / 8);
     void *codec2;
     FILE *fin;
     FILE *fout;
     short buf[CODEC2_SAMPLES_PER_FRAME];
-    unsigned char  bits[bitsSize];
+    unsigned char  bits[BITS_SIZE];
 
     if (argc != 3) {
 	printf("usage: %s InputBitFile OutputRawSpeechFile\n", argv[0]);
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
 
     codec2 = codec2_create();
 
-    while(fread(bits, sizeof(char), bitsSize, fin) == bitsSize) {
+    while(fread(bits, sizeof(char), BITS_SIZE, fin) == BITS_SIZE) {
 	codec2_decode(codec2, buf, bits);
 	fwrite(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fout);
     }

@@ -14,10 +14,12 @@ TCONTPHASE_OBJ = tcontphase.o ../src/globals.o ../src/dump.o ../src/synth.o \
 
 TINTERP_OBJ    = tinterp.o ../src/sine.o ../src/four1.o ../src/interp.o
 
-TQUANT_OBJ     = tquant.o ../src/quantise.o ../src/lpc.o ../src/lsp.o \
+TQUANT_OBJ     = tquant.o ../src/quantise.o ../src/codebook.o \
+		 ../src/lpc.o ../src/lsp.o \
                  ../src/dump.o ../src/four1.o
 
-TCODEC2_OBJ    = tcodec2.o ../src/quantise.o ../src/lpc.o ../src/lsp.o \
+TCODEC2_OBJ    = tcodec2.o ../src/quantise.o  ../src/codebook.o \
+		../src/lpc.o ../src/lsp.o ../src/pack.o \
                  ../src/dump.o ../src/four1.o ../src/codec2.o ../src/sine.o \
 		../src/nlp.o ../src/postfilter.o ../src/phase.o ../src/interp.o
 
@@ -55,4 +57,5 @@ tcodec2: $(TCODEC2_OBJ)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean :
-	rm -f *.o *~ src/*~
+	rm -f *.o *~ src/*~ \
+	extract genlsp genres tcodec2 tinterp tnlp tquant vqtrain

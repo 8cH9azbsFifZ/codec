@@ -81,4 +81,14 @@ typedef struct {
   int   voiced;	        /* non-zero if this frame is voiced           */
 } MODEL;
 
+/* describes each codebook  */
+
+struct lsp_codebook {
+    int			k;        /* dimension of vector	*/
+    int			log2m;    /* number of bits in m	*/
+    int			m;        /* elements in codebook	*/
+    const float	*	cb;	  /* The elements		*/
+};
+extern const struct lsp_codebook lsp_cb[];
+
 #endif

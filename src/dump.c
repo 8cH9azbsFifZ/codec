@@ -32,6 +32,7 @@
 #include <string.h>
 #include <math.h>
 
+#ifdef DUMP
 static int dumpon = 0;
 
 static FILE *fsn = NULL;
@@ -400,3 +401,4 @@ void dump_E(float E) {
 
     fprintf(fE,"%f\n", 10.0*log10(E));
 }
+#endif
