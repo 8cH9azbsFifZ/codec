@@ -475,7 +475,17 @@ float speech_to_uq_lsps(float lsp[],
 	E += ak[i]*R[i];
  
     roots = lpc_to_lsp(ak, order, lsp, 5, LSP_DELTA1);
-    assert(roots == order);
+    if (roots != order) {
+	/* for some reason LSP roots could not be found   */
+	/* some alpha testers are reporting this condition */
+	fprintf(stderr, "LSP roots not found!\nroots = %d\n", roots);
+	for(i=0; i<=order; i++)
+	    fprintf(stderr, "a[%d] = %f\n", i, ak[i]);	
+	
+	/* some benign LSP values we can use instead */
+	for(i=0; i<order; i++)
+	    lsp[i] = (PI/order)*(float)i;
+    }
 
     return E;
 }

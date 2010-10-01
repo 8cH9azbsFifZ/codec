@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "\nCodec2 - 2400 bit/s speech codec - Simulation Program\n"
      "\thttp://rowetel.com/codec2.html\n\n"
      "usage: %s InputFile [-o OutputFile]\n"
-     "\t[-o lpc Order]\n"
+     "\t[--lpc Order]\n"
      "\t[--lsp]\n"
      "\t[--phase0]\n"
      "\t[--postfilter]\n"
