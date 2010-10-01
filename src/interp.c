@@ -108,13 +108,14 @@ float sample_log_amp(MODEL *model, float w)
     assert(f <= 1.0);
 
     if (m < 1) {
-	log_amp = f*log10(model->A[1]);
+	log_amp = f*log10(model->A[1] + 1E-6);
     }
     else if ((m+1) > model->L) {
-	log_amp = (1.0-f)*log10(model->A[model->L]);
+	log_amp = (1.0-f)*log10(model->A[model->L] + 1E-6);
     }
     else {
-	log_amp = (1.0-f)*log10(model->A[m]) + f*log10(model->A[m+1]);
+	log_amp = (1.0-f)*log10(model->A[m] + 1E-6) + 
+                  f*log10(model->A[m+1] + 1E-6);
     }
 
     return log_amp;
