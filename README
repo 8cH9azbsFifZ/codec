@@ -37,7 +37,6 @@ Directories
   src      - C source code
   octave   - Octave scripts used for visualising internal signals 
              during development
-  pitch    - pitch estimator output files
   raw      - speech files in raw format (16 bits signed linear 8 KHz)
   unittest - unit test source code
   wav      - speech files in wave file format
