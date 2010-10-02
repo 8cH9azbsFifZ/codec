@@ -650,7 +650,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
-	clean-libtool clean-noinstPROGRAMS mostlyclean-am
+	clean-libtool clean-local clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -700,7 +700,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-libLTLIBRARIES uninstall-library_includeHEADERS
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-generic clean-libLTLIBRARIES clean-libtool clean-local \
 	clean-noinstPROGRAMS ctags distclean distclean-compile \
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
@@ -721,6 +721,9 @@ codebook.lo: codebook.c
 
 codebook.c: generate_codebook $(CODEBOOKS)
 	./generate_codebook $(CODEBOOKS) > codebook.c
+
+clean-local:
+	-rm -f codebook.c
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

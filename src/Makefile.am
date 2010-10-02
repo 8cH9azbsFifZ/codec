@@ -25,6 +25,9 @@ codebook.lo: codebook.c
 codebook.c: generate_codebook $(CODEBOOKS)
 	./generate_codebook $(CODEBOOKS) > codebook.c
 
+clean-local:
+	-rm -f codebook.c
+
 lib_LTLIBRARIES	= libcodec2.la
 libcodec2_la_SOURCES = dump.c \
 lpc.c \
