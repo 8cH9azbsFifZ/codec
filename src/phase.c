@@ -28,6 +28,7 @@
 #include "defines.h"
 #include "phase.h"
 #include "four1.h"
+#include "comp.h"
 
 #include <assert.h>
 #include <math.h>

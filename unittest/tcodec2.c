@@ -31,6 +31,7 @@
 #include <string.h>
 #include <math.h>
 #include "defines.h"
+#include "comp.h"
 #include "codec2.h"
 #include "quantise.h"
 #include "interp.h"

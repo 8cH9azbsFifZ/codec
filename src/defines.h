@@ -63,13 +63,6 @@
                                                                              
 \*---------------------------------------------------------------------------*/
 
-/* Complex number */
-
-typedef struct {
-  float real;
-  float imag;
-} COMP;
-
 /* Structure to hold model parameters for one frame */
 
 typedef struct {

@@ -56,7 +56,6 @@ phase.h \
 quantise.h \
 comp.h \
 dump.h \
-globals.h \
 lpc.h \
 nlp.h  \
 postfilter.h \

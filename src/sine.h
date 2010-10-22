@@ -28,6 +28,9 @@
 #ifndef __SINE__
 #define __SINE__
 
+#include "defines.h"
+#include "comp.h"
+
 void make_analysis_window(float w[], COMP W[]);
 void dft_speech(COMP Sw[], float Sn[], float w[]);
 void two_stage_pitch_refinement(MODEL *model, COMP Sw[]);

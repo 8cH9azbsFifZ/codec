@@ -13,9 +13,8 @@
 
 #define SWAP(a,b) tempr=(a);(a)=(b);(b)=tempr
 
-void four1(data,nn,isign)
-float data[];
-int nn,isign;
+void
+four1(float * data, int nn, int isign)
 {
 	int n,mmax,m,j,istep,i;
 	double wtemp,wr,wpr,wpi,wi,theta;

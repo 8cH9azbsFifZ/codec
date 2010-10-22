@@ -26,6 +26,8 @@
 #ifndef __DUMP__
 #define __DUMP__
 
+#include "comp.h"
+
 void dump_on(char filename_prefix[]);
 void dump_off();
 
