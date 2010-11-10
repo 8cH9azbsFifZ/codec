@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*\
 
   FILE........: defines.h                                                     
-  AUTHOR......: David Rowe                                                          
+  AUTHOR......: David Rowe 
   DATE CREATED: 23/4/93                                                       
                                                                              
   Defines and structures used throughout the codec.			     
