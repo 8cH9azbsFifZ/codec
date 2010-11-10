@@ -207,7 +207,7 @@ void phase_synth_zero_order(
   /* 
      Update excitation fundamental phase track, this sets the position
      of each pitch pulse during voiced speech.  After much experiment
-     I found that using just this frame Wo improved quality for UV
+     I found that using just this frame's Wo improved quality for UV
      sounds compared to interpolating two frames Wo like this:
      
      ex_phase[0] += (*prev_Wo+mode->Wo)*N/2;
@@ -221,9 +221,9 @@ void phase_synth_zero_order(
     /* generate excitation */
 
     if (model->voiced) {
-	/* This method of adding jitter really helped remove the clicky
-	   sound in low pitched makes like hts1a. This moves the onset
-	   of each harmonic over at +/- 0.25 of a sample.
+	/* I think adding a little jitter helps improve low pitch
+	   males like hts1a. This moves the onset of each harmonic
+	   over at +/- 0.25 of a sample.
 	*/
         jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
 	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m);
