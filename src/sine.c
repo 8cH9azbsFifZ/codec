@@ -461,6 +461,7 @@ void make_synthesis_window(float Pn[])
     Pn[i] = win;
   for(i=3*N/2+TW; i<2*N; i++)
     Pn[i] = 0.0;
+
 }
 
 /*---------------------------------------------------------------------------*\
@@ -470,16 +471,16 @@ void make_synthesis_window(float Pn[])
   DATE CREATED: 20/2/95		       
 									      
   Synthesise a speech signal in the frequency domain from the
-  sinusodal model parameters.  Uses overlap-add a triangular window to
-  smoothly interpolate betwen frames.
+  sinusodal model parameters.  Uses overlap-add with a trapezoidal
+  window to smoothly interpolate betwen frames.
 									      
 \*---------------------------------------------------------------------------*/
 
 void synthesise(
-  float  Sn_[],		/* time domain synthesised signal         */
-  MODEL *model,		/* ptr to model parameters for this frame */
-  float  Pn[],		/* time domain Parzen window              */
-  int    shift          /* used to handle transition frames       */
+  float  Sn_[],		/* time domain synthesised signal              */
+  MODEL *model,		/* ptr to model parameters for this frame      */
+  float  Pn[],		/* time domain Parzen window                   */
+  int    shift          /* flag used to handle transition frames       */
 )
 {
     int   i,l,j,b;	/* loop variables */
@@ -499,8 +500,23 @@ void synthesise(
 	Sw_[i].imag = 0.0;
     }
 
-    /* Now set up frequency domain synthesised speech */
+    /*
+      Nov 2010 - found that synthesis using time domain cos() functions
+      gives better results for synthesis frames greater than 10ms.  Inverse
+      FFT synthesis using a 512 pt FFT works well for 10ms window.  I think
+      (but am not sure) that the problem is realted to the quantisation of
+      the harmonic frequencies to the FFT bin size, e.g. there is a 
+      8000/512 Hz step between FFT bins.  For some reason this makes
+      the speech from longer frame > 10ms sound poor.  The effect can also
+      be seen when synthesising test signals like single sine waves, some
+      sort of amplitude modulation at the frame rate.
 
+      Another possibility is using a larger FFT size (1024 or 2048).
+    */
+
+#define FFT_SYNTHESIS
+#ifdef FFT_SYNTHESIS
+    /* Now set up frequency domain synthesised speech */
     for(l=1; l<=model->L; l++) {
 	b = floor(l*model->Wo*FFT_DEC/TWO_PI + 0.5);
 	Sw_[b].real = model->A[l]*cos(model->phi[l]);
@@ -509,9 +525,34 @@ void synthesise(
 	Sw_[FFT_DEC-b].imag = -Sw_[b].imag;
     }
 
+    /* zero out anything above 3500 Hz */
+
+    for(i=(3500.0/4000.0)*FFT_DEC/2; i<FFT_DEC/2; i++) {
+	Sw_[i].real = 0.0;
+	Sw_[i].imag = 0.0;
+	Sw_[FFT_DEC-i].real = 0.0;
+	Sw_[FFT_DEC-i].imag = 0.0;
+    }
+
     /* Perform inverse DFT */
 
     four1(&Sw_[-1].imag,FFT_DEC,1);
+#else
+    /*
+       Direct time domain synthesis using the cos() function.  Works
+       well at 10ms and 20ms frames rates.  Note synthesis window is
+       still used to handle overlap-add between adjacent frames.  This
+       could be simplified as we don't need to synthesise where Pn[]
+       is zero.
+    */
+    for(l=1; l<=model->L; l++) {
+	for(i=0,j=-N+1; i<N-1; i++,j++) {
+	    Sw_[FFT_DEC-N+1+i].real += 2.0*model->A[l]*cos(j*model->Wo*l + model->phi[l]);
+	}
+ 	for(i=N-1,j=0; i<2*N; i++,j++)
+	    Sw_[j].real += 2.0*model->A[l]*cos(j*model->Wo*l + model->phi[l]);
+    }	
+#endif
 
     /* Overlap add to previous samples */
 
