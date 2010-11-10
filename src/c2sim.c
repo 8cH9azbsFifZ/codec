@@ -117,6 +117,11 @@ int main(int argc, char *argv[])
 
   MODEL prev_model, interp_model;
   int decimate;
+  float lsps[LPC_ORD];
+  float prev_lsps[LPC_ORD];
+  float e, prev_e;
+  int lpc_correction;
+  float ak_interp[LPC_MAX];
 
   void *nlp_states;
 
@@ -136,6 +141,10 @@ int main(int argc, char *argv[])
   for(i=1; i<=MAX_AMP; i++) {
       ex_phase[i] = 0.0;
   }
+  for(i=0; i<LPC_ORD; i++) {
+      prev_lsps[i] = i*PI/(LPC_ORD+1);
+  }
+  prev_e = 1;
 
   nlp_states = nlp_create();
 
@@ -287,13 +296,10 @@ int main(int argc, char *argv[])
 	    fscanf(fvoicing,"%d\n",&model.voiced);
 	}
     }
- 
+
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	int lpc_correction;
-	float e;
-	float lsps[LPC_ORD];
 	int   lsp_indexes[LPC_ORD];
 
 	e = speech_to_uq_lsps(lsps, ak, Sn, w, order);
@@ -331,31 +337,27 @@ int main(int argc, char *argv[])
 	    printf("needs --phase0 to resample phase for interpolated Wo\n");
 	    exit(0);
 	}
+	if (!lpc_model) {
+	    printf("needs --lpc 10 to resample amplitudes\n");
+	    exit(0);
+	}
 
 	/* odd frame - interpolate */
 
 	if (frames%2) {
 
-	    #ifdef TEST
-	    model.voiced = 1;
-	    prev_model.voiced = 1;
-	    if (fabs(prev_model.Wo - model.Wo) < 0.1*model.Wo) {
-		interp_model.voiced = 1;
-		interpolate(&interp_model, &prev_model, &model);
-		for(i=0; i<=interp_model.L; i++) {
-		    interp_model.phi[i] = phi1[i];
-		}
-		printf("interp\n");
-	    }
-	    else
-		interp_model = tmp_model;
-	    #endif
-
 	    interp_model.voiced = voiced1;
+
+	    #ifdef LOG_LIN_INTERP
 	    interpolate(&interp_model, &prev_model, &model);
+	    #else
+	    interpolate_lsp(&interp_model, &prev_model, &model,
+			    prev_lsps, prev_e, lsps, e, ak_interp);
+	    apply_lpc_correction(&interp_model, lpc_correction);
+	    #endif
 	    
 	    if (phase0)
-		phase_synth_zero_order(&interp_model, ak, ex_phase);	
+		phase_synth_zero_order(&interp_model, ak_interp, ex_phase);	
 	    if (postfilt)
 		postfilter(&interp_model, &bg_est);
 	    synth_one_frame(buf, &interp_model, Sn_, Pn);
@@ -369,6 +371,9 @@ int main(int argc, char *argv[])
 	    if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
 
 	    prev_model = model;
+	    for(i=0; i<LPC_ORD; i++)
+		prev_lsps[i] = lsps[i];
+	    prev_e = e;
 	}
 	else {
 	    voiced1 = model.voiced;
