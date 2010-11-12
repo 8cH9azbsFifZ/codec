@@ -314,6 +314,7 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
 {
     COMP    Sw[FFT_ENC];
     COMP    Sw_[FFT_ENC];
+    COMP    Ew[FFT_ENC];
     float   pitch;
     int     i;
 
@@ -337,5 +338,5 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
     dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(model, Sw);
     estimate_amplitudes(model, Sw, c2->W);
-    est_voicing_mbe(model, Sw, c2->W, (FS/TWO_PI)*model->Wo, Sw_);
+    est_voicing_mbe(model, Sw, c2->W, Sw_, Ew);
 }

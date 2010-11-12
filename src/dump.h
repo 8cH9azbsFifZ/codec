@@ -34,6 +34,7 @@ void dump_off();
 void dump_Sn(float Sn[]);
 void dump_Sw(COMP Sw[]);
 void dump_Sw_(COMP Sw_[]);
+void dump_Ew(COMP Ew[]);
 
 /* amplitude modelling */
 
@@ -56,6 +57,7 @@ void dump_sq(float sq[]);
 void dump_dec(COMP Fw[]);
 void dump_Fw(COMP Fw[]);
 void dump_e(float e_hz[]);
+void dump_Rk(float Rk[]);
 
 /* post filter */
 

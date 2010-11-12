@@ -361,9 +361,9 @@ float est_voicing_mbe(
     MODEL *model,
     COMP   Sw[],
     COMP   W[],
-    float  f0,
-    COMP   Sw_[]          /* DFT of all voiced synthesised signal for f0 */
-                          /* useful for debugging/dump file              */
+    COMP   Sw_[],         /* DFT of all voiced synthesised signal  */
+                          /* useful for debugging/dump file        */
+    COMP   Ew[]           /* DFT of error                        */
 )
 {
     int   i,l,al,bl,m;    /* loop variables */
@@ -371,28 +371,26 @@ float est_voicing_mbe(
     int   offset;         /* centers Hw[] about current harmonic */
     float den;            /* denominator of Am expression */
     float error;          /* accumulated error between originl and synthesised */
-    float Wo;             /* current "test" fundamental freq. */
-    int   L;
+    float Wo;            
     float sig, snr;
 
     sig = 0.0;
     for(l=1; l<=model->L/4; l++) {
 	sig += model->A[l]*model->A[l];
     }
-
     for(i=0; i<FFT_ENC; i++) {
 	Sw_[i].real = 0.0;
 	Sw_[i].imag = 0.0;
+	Ew[i].real = 0.0;
+	Ew[i].imag = 0.0;
     }
 
-    L = floor((FS/2.0)/f0);
-    Wo = f0*(TWO_PI/FS);
-
+    Wo = model->Wo;
     error = 0.0;
 
     /* Just test across the harmonics in the first 1000 Hz (L/4) */
 
-    for(l=1; l<=L/4; l++) {
+    for(l=1; l<=model->L/4; l++) {
 	Am.real = 0.0;
 	Am.imag = 0.0;
 	den = 0.0;
@@ -417,17 +415,19 @@ float est_voicing_mbe(
 	    offset = FFT_ENC/2 + m - l*Wo*FFT_ENC/TWO_PI + 0.5;
 	    Sw_[m].real = Am.real*W[offset].real - Am.imag*W[offset].imag;
 	    Sw_[m].imag = Am.real*W[offset].imag + Am.imag*W[offset].real;
-	    error += (Sw[m].real - Sw_[m].real)*(Sw[m].real - Sw_[m].real);
-	    error += (Sw[m].imag - Sw_[m].imag)*(Sw[m].imag - Sw_[m].imag);
+	    Ew[m].real = Sw[m].real - Sw_[m].real;
+	    Ew[m].imag = Sw[m].imag - Sw_[m].imag;
+	    error += Ew[m].real*Ew[m].real;
+	    error += Ew[m].imag*Ew[m].imag;
 	}
     }
-
+    
     snr = 10.0*log10(sig/error);
     if (snr > V_THRESH)
 	model->voiced = 1;
     else
 	model->voiced = 0;
-
+   
     return snr;
 }
 
@@ -461,7 +461,6 @@ void make_synthesis_window(float Pn[])
     Pn[i] = win;
   for(i=3*N/2+TW; i<2*N; i++)
     Pn[i] = 0.0;
-
 }
 
 /*---------------------------------------------------------------------------*\

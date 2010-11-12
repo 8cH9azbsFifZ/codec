@@ -103,7 +103,8 @@ int main(int argc, char *argv[])
   int lsp, lsp_quantiser;
   float ak[LPC_MAX];
   COMP  Sw_[FFT_ENC];
-  
+  COMP  Ew[FFT_ENC]; 
+ 
   int dump;
   
   int phase0;
@@ -281,9 +282,10 @@ int main(int argc, char *argv[])
 	
 	/* determine voicing */
 
-	snr = est_voicing_mbe(&model, Sw, W, (FS/TWO_PI)*model.Wo, Sw_);
+	snr = est_voicing_mbe(&model, Sw, W, Sw_, Ew);
 #ifdef DUMP
 	dump_Sw_(Sw_);
+	dump_Ew(Ew);
 	dump_snr(snr);
 #endif
 
@@ -307,12 +309,6 @@ int main(int argc, char *argv[])
 
 	if (lsp) {
 	    encode_lsps(lsp_indexes, lsps, LPC_ORD);
-	    /*
-	      for(i=0; i<LPC_ORD; i++)
-		printf("lsps[%d] = %f lsp_indexes[%d] = %d\n", 
-		       i, lsps[i], i, lsp_indexes[i]);
-	      printf("\n");
-	    */
 	    decode_lsps(lsps, lsp_indexes, LPC_ORD);
 	    bw_expand_lsps(lsps, LPC_ORD);
 	    lsp_to_lpc(lsps, ak, LPC_ORD);
