@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
   sum_snr = 0;
   while(fread(buf,sizeof(short),N,fin)) {
     frames++;
-    printf("frame: %d", frames);
+    //printf("frame: %d", frames);
 
     /* Read input speech */
 

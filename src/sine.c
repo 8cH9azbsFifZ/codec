@@ -479,7 +479,7 @@ float est_voicing_mbe(
 	if ((eratio < -4.0) && (model->Wo <= sixty))
 	    model->voiced = 0;
     }
-    printf(" v: %d snr: %f eratio: %3.2f %f\n", model->voiced, snr, eratio, dF0);
+    //printf(" v: %d snr: %f eratio: %3.2f %f\n", model->voiced, snr, eratio, dF0);
 
     return snr;
 }
