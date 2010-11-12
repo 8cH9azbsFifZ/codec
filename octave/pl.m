@@ -19,7 +19,7 @@ function pl(samname1, start_sam, end_sam, pngname)
   figure(1);
   clf;
   plot(s(st:en));
-  axis([1 en-st min(s) max(s)]);
+  axis([1 en-st 1.1*min(s) 1.1*max(s)]);
  
   if (nargin == 4)
 
