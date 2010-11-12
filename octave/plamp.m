@@ -17,6 +17,16 @@ function plamp(samname, f)
     Sw_ = load(sw__name);
   endif
 
+  ew_name = strcat(samname,"_ew.txt");
+  if (file_in_path(".",ew_name))
+    Ew = load(ew_name);
+  endif
+
+  rk_name = strcat(samname,"_rk.txt");
+  if (file_in_path(".",rk_name))
+    Rk = load(rk_name);
+  endif
+
   model_name = strcat(samname,"_model.txt");
   model = load(model_name);
 
@@ -50,6 +60,7 @@ function plamp(samname, f)
     snr = load(snr_name);
   endif
 
+  Ew_on = 1;
   k = ' ';
   do 
     figure(1);
@@ -68,7 +79,11 @@ function plamp(samname, f)
     hold on;
 %    plot((0:255)*4000/256, Sw(f-2,:),";Sw;");
     plot((0:255)*4000/256, Sw(f,:),";Sw;");
-
+    plot((0:255)*4000/256, Sw_(f,:),";Sw_;g");
+    if (Ew_on == 1)
+        plot((0:255)*4000/256, Ew(f,:),";Ew_;r");
+    endif
+ 
     if (file_in_path(".",modelq_name))
       Amq = modelq(f,3:(L+2));
       plot((1:L)*Wo*4000/pi, 20*log10(Amq),";Amq;g" );
@@ -83,7 +98,7 @@ function plamp(samname, f)
     endif
 
     if (file_in_path(".",snr_name))
-      snr_label = sprintf(";phase SNR %4.2f dB;",snr(f));
+      snr_label = sprintf(";Voicing SNR %4.2f dB;",snr(f));
       plot(1,1,snr_label);
     endif
 
@@ -96,8 +111,8 @@ function plamp(samname, f)
       noise = (orig-synth) * (orig-synth)';
       snr_phase = 10*log10(signal/noise);
 
-      phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr_phase);
-      plot((1:L)*Wo*4000/pi, 20*log10(orig-synth), phase_err_label);
+      %phase_err_label = sprintf(";phase_err SNR %4.2f dB;",snr_phase);
+      %plot((1:L)*Wo*4000/pi, 20*log10(orig-synth), phase_err_label);
     endif
 
     if (file_in_path(".",lsp_name))
@@ -108,33 +123,33 @@ function plamp(samname, f)
 
     hold off;
 
-    if (file_in_path(".",phase_name))
-      figure(3);
-      plot((1:L)*Wo*4000/pi, phase(f,1:L), ";phase;");
-      axis;
-      if (file_in_path(".",phase_name_))
-        hold on;
-        plot((1:L)*Wo*4000/pi, phase_(f,1:L), ";phase_;");
-	hold off;
-      endif
-      figure(2);
-    endif
+    %if (file_in_path(".",phase_name))
+      %figure(3);
+      %plot((1:L)*Wo*4000/pi, phase(f,1:L), ";phase;");
+      %axis;
+      %if (file_in_path(".",phase_name_))
+        %hold on;
+        %plot((1:L)*Wo*4000/pi, phase_(f,1:L), ";phase_;");
+	%hold off;
+      %endif
+      %figure(2);
+    %endif
 
     % autocorrelation function to research voicing est
     
-    %M = length(s);
-    %sw = s .* hanning(M)';
-    %for k=0:159
-    %  R(k+1) = sw(1:320-k) * sw(1+k:320)';
-    %endfor
-    %figure(4);
-    %R_label = sprintf(";R(k) %3.2f;",max(R(20:159))/R(1));
-    %plot(R/R(1),R_label);
-    %grid
+    if (file_in_path(".",rk_name))
+      figure(3);
+      plot(Rk(f,:) / Rk(f,1), ";Rk;");
+      hold on;
+      p = floor(2*pi/Wo);
+      plot([p p ], [0 1], 'r');
+      hold off;
+      %figure(2);
+    endif
 
     % interactive menu
 
-    printf("\rframe: %d  menu: n-next  b-back  p-png  q-quit ", f);
+    printf("\rframe: %d  menu: n-next  b-back  p-png  q-quit e-toggle Ew", f);
     fflush(stdout);
     k = kbhit();
     if (k == 'n')
@@ -142,6 +157,13 @@ function plamp(samname, f)
     endif
     if (k == 'b')
       f = f - 1;
+    endif
+    if (k == 'e')
+	if (Ew_on == 1)
+	    Ew_on = 0;
+        else
+	    Ew_on = 1;
+        endif
     endif
 
     % optional print to PNG
