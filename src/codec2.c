@@ -329,7 +329,6 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
     /* Estimate pitch */
 
     nlp(c2->nlp,c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    c2->prev_Wo = TWO_PI/pitch;
     model->Wo = TWO_PI/pitch;
     model->L = PI/model->Wo;
 
@@ -338,5 +337,7 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
     dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(model, Sw);
     estimate_amplitudes(model, Sw, c2->W);
-    est_voicing_mbe(model, Sw, c2->W, Sw_, Ew);
+    est_voicing_mbe(model, Sw, c2->W, Sw_, Ew, c2->prev_Wo);
+
+    c2->prev_Wo = model->Wo;
 }

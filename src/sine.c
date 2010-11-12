@@ -363,8 +363,8 @@ float est_voicing_mbe(
     COMP   W[],
     COMP   Sw_[],         /* DFT of all voiced synthesised signal  */
                           /* useful for debugging/dump file        */
-    COMP   Ew[]           /* DFT of error                        */
-)
+    COMP   Ew[],          /* DFT of error                        */
+    float prev_Wo)
 {
     int   i,l,al,bl,m;    /* loop variables */
     COMP  Am;             /* amplitude sample for this band */
@@ -373,6 +373,8 @@ float est_voicing_mbe(
     float error;          /* accumulated error between originl and synthesised */
     float Wo;            
     float sig, snr;
+    float elow, ehigh, eratio;
+    float dF0, sixty;
 
     sig = 0.0;
     for(l=1; l<=model->L/4; l++) {
@@ -427,7 +429,58 @@ float est_voicing_mbe(
 	model->voiced = 1;
     else
 	model->voiced = 0;
-   
+ 
+    /* post processing, helps clean up some voicing errors ---------------------*/
+
+    /* 
+       Determine the ratio of low freancy to high frequency energy,
+       voiced speech tends to be dominated by low frequency energy,
+       unvoiced by high frequency. This measure can be used to
+       determine if we have made any gross errors.
+    */
+
+    elow = ehigh = 0.0;
+    for(l=1; l<=model->L/2; l++) {
+	elow += model->A[l]*model->A[l];
+    }
+    for(l=model->L/2; l<=model->L; l++) {
+	ehigh += model->A[l]*model->A[l];
+    }
+    eratio = 10.0*log10(elow/ehigh);
+    dF0 = 0.0;
+
+    /* Look for Type 1 errors, strongly V speech that has been
+       accidentally declared UV */
+
+    if (model->voiced == 0)
+	if (eratio > 10.0)
+	    model->voiced = 1;
+
+    /* Look for Type 2 errors, strongly UV speech that has been
+       accidentally declared V */
+
+    if (model->voiced == 1) {
+	if (eratio < -10.0)
+	    model->voiced = 0;
+
+	/* If pitch is jumping about it's likely this is UV */
+
+	dF0 = (model->Wo - prev_Wo)*FS/TWO_PI;
+	if (fabs(dF0) > 15.0) 
+	    model->voiced = 0;
+
+	/* A common source of Type 2 errors is the pitch estimator
+	   gives a low (50Hz) estimate for UV speech, which gives a
+	   good match with noise due to the close harmoonic spacing.
+	   These errors are much more common than people with 50Hz
+	   pitch, so we have just a small eratio threshold. */
+
+	sixty = 60.0*TWO_PI/FS;
+	if ((eratio < -4.0) && (model->Wo <= sixty))
+	    model->voiced = 0;
+    }
+    printf(" v: %d snr: %f eratio: %3.2f %f\n", model->voiced, snr, eratio, dF0);
+
     return snr;
 }
 

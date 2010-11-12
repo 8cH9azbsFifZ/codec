@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
   for(i=0; i<LPC_ORD; i++) {
       prev_lsps[i] = i*PI/(LPC_ORD+1);
   }
-  prev_e = 1;
+  e = prev_e = 1;
 
   nlp_states = nlp_create();
 
@@ -233,7 +233,8 @@ int main(int argc, char *argv[])
   sum_snr = 0;
   while(fread(buf,sizeof(short),N,fin)) {
     frames++;
-    
+    printf("frame: %d", frames);
+
     /* Read input speech */
 
     for(i=0; i<M-N; i++)
@@ -244,7 +245,6 @@ int main(int argc, char *argv[])
     /* Estimate pitch */
 
     nlp(nlp_states,Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&prev_Wo);
-    prev_Wo = TWO_PI/pitch;
     model.Wo = TWO_PI/pitch;
 
     /* estimate model parameters */
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 	
 	/* determine voicing */
 
-	snr = est_voicing_mbe(&model, Sw, W, Sw_, Ew);
+	snr = est_voicing_mbe(&model, Sw, W, Sw_, Ew, prev_Wo);
 #ifdef DUMP
 	dump_Sw_(Sw_);
 	dump_Ew(Ew);
@@ -383,6 +383,7 @@ int main(int argc, char *argv[])
 	synth_one_frame(buf, &model, Sn_, Pn);
 	if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
     }
+    prev_Wo = TWO_PI/pitch;
   }
   fclose(fin);
 
