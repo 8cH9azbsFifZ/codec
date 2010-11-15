@@ -363,14 +363,14 @@ float est_voicing_mbe(
     COMP   W[],
     COMP   Sw_[],         /* DFT of all voiced synthesised signal  */
                           /* useful for debugging/dump file        */
-    COMP   Ew[],          /* DFT of error                        */
+    COMP   Ew[],          /* DFT of error                          */
     float prev_Wo)
 {
     int   i,l,al,bl,m;    /* loop variables */
     COMP  Am;             /* amplitude sample for this band */
     int   offset;         /* centers Hw[] about current harmonic */
     float den;            /* denominator of Am expression */
-    float error;          /* accumulated error between originl and synthesised */
+    float error;          /* accumulated error between original and synthesised */
     float Wo;            
     float sig, snr;
     float elow, ehigh, eratio;
@@ -430,7 +430,7 @@ float est_voicing_mbe(
     else
 	model->voiced = 0;
  
-    /* post processing, helps clean up some voicing errors ---------------------*/
+    /* post processing, helps clean up some voicing errors ------------------*/
 
     /* 
        Determine the ratio of low freancy to high frequency energy,
@@ -479,7 +479,7 @@ float est_voicing_mbe(
 	if ((eratio < -4.0) && (model->Wo <= sixty))
 	    model->voiced = 0;
     }
-    //printf(" v: %d snr: %f eratio: %3.2f %f\n", model->voiced, snr, eratio, dF0);
+    //printf(" v: %d snr: %f eratio: %3.2f %f\n",model->voiced,snr,eratio,dF0);
 
     return snr;
 }
