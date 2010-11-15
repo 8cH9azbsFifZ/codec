@@ -59,7 +59,9 @@ float decode_amplitudes(MODEL *model,
 			float  ak[],
 			int lsp_indexes[],
 			int lpc_correction, 
-			int energy_index);
+			int energy_index,
+			float  lsps[],
+			float *e);
 
 void pack(unsigned char * bits, unsigned int *nbit, int index, unsigned int index_bits);
 int  unpack(const unsigned char * bits, unsigned int *nbit, unsigned int index_bits);

@@ -755,18 +755,18 @@ float decode_amplitudes(MODEL *model,
 			float  ak[],
 		        int    lsp_indexes[], 
 		        int    lpc_correction,
-		        int    energy_index
+		        int    energy_index,
+			float  lsps[],
+			float *e
 )
 {
-    float lsps[LPC_ORD];
-    float e;
     float snr;
 
     decode_lsps(lsps, lsp_indexes, LPC_ORD);
     bw_expand_lsps(lsps, LPC_ORD);
     lsp_to_lpc(lsps, ak, LPC_ORD);
-    e = decode_energy(energy_index);
-    aks_to_M2(ak, LPC_ORD, model, e, &snr, 1); 
+    *e = decode_energy(energy_index);
+    aks_to_M2(ak, LPC_ORD, model, *e, &snr, 1); 
     apply_lpc_correction(model, lpc_correction);
 
     return snr;
