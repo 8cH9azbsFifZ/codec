@@ -61,15 +61,19 @@ nlp.h  \
 postfilter.h \
 sine.h
 
-bin_PROGRAMS = c2dec c2enc c2sim
+bin_PROGRAMS = c2demo c2enc c2dec c2sim
 
-c2dec_SOURCES = c2dec.c
-c2dec_LDADD = $(lib_LTLIBRARIES) 
-c2dec_LDFLAGS = $(LIBS)
+c2demo_SOURCES = c2demo.c
+c2demo_LDADD = $(lib_LTLIBRARIES) 
+c2demo_LDFLAGS = $(LIBS)
 
 c2enc_SOURCES = c2enc.c
 c2enc_LDADD = $(lib_LTLIBRARIES) 
 c2enc_LDFLAGS = $(LIBS)
+
+c2dec_SOURCES = c2dec.c
+c2dec_LDADD = $(lib_LTLIBRARIES) 
+c2dec_LDFLAGS = $(LIBS)
 
 c2sim_SOURCES = c2sim.c
 c2sim_LDADD = $(lib_LTLIBRARIES) 

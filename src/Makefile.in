@@ -39,7 +39,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = generate_codebook$(EXEEXT)
-bin_PROGRAMS = c2dec$(EXEEXT) c2enc$(EXEEXT) c2sim$(EXEEXT)
+bin_PROGRAMS = c2demo$(EXEEXT) c2enc$(EXEEXT) c2dec$(EXEEXT) \
+	c2sim$(EXEEXT)
 subdir = src
 DIST_COMMON = $(library_include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
@@ -74,6 +75,9 @@ am_c2dec_OBJECTS = c2dec.$(OBJEXT)
 c2dec_OBJECTS = $(am_c2dec_OBJECTS)
 am__DEPENDENCIES_1 = libcodec2.la
 c2dec_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_c2demo_OBJECTS = c2demo.$(OBJEXT)
+c2demo_OBJECTS = $(am_c2demo_OBJECTS)
+c2demo_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_c2enc_OBJECTS = c2enc.$(OBJEXT)
 c2enc_OBJECTS = $(am_c2enc_OBJECTS)
 c2enc_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -94,10 +98,11 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libcodec2_la_SOURCES) $(c2dec_SOURCES) $(c2enc_SOURCES) \
-	$(c2sim_SOURCES) generate_codebook.c
-DIST_SOURCES = $(libcodec2_la_SOURCES) $(c2dec_SOURCES) \
+SOURCES = $(libcodec2_la_SOURCES) $(c2dec_SOURCES) $(c2demo_SOURCES) \
 	$(c2enc_SOURCES) $(c2sim_SOURCES) generate_codebook.c
+DIST_SOURCES = $(libcodec2_la_SOURCES) $(c2dec_SOURCES) \
+	$(c2demo_SOURCES) $(c2enc_SOURCES) $(c2sim_SOURCES) \
+	generate_codebook.c
 library_includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(library_include_HEADERS)
 ETAGS = etags
@@ -256,12 +261,15 @@ nlp.h  \
 postfilter.h \
 sine.h
 
-c2dec_SOURCES = c2dec.c
-c2dec_LDADD = $(lib_LTLIBRARIES) 
-c2dec_LDFLAGS = $(LIBS)
+c2demo_SOURCES = c2demo.c
+c2demo_LDADD = $(lib_LTLIBRARIES) 
+c2demo_LDFLAGS = $(LIBS)
 c2enc_SOURCES = c2enc.c
 c2enc_LDADD = $(lib_LTLIBRARIES) 
 c2enc_LDFLAGS = $(LIBS)
+c2dec_SOURCES = c2dec.c
+c2dec_LDADD = $(lib_LTLIBRARIES) 
+c2dec_LDFLAGS = $(LIBS)
 c2sim_SOURCES = c2sim.c
 c2sim_LDADD = $(lib_LTLIBRARIES) 
 c2sim_LDFLAGS = $(LIBS)
@@ -365,6 +373,9 @@ clean-noinstPROGRAMS:
 c2dec$(EXEEXT): $(c2dec_OBJECTS) $(c2dec_DEPENDENCIES) 
 	@rm -f c2dec$(EXEEXT)
 	$(LINK) $(c2dec_LDFLAGS) $(c2dec_OBJECTS) $(c2dec_LDADD) $(LIBS)
+c2demo$(EXEEXT): $(c2demo_OBJECTS) $(c2demo_DEPENDENCIES) 
+	@rm -f c2demo$(EXEEXT)
+	$(LINK) $(c2demo_LDFLAGS) $(c2demo_OBJECTS) $(c2demo_LDADD) $(LIBS)
 c2enc$(EXEEXT): $(c2enc_OBJECTS) $(c2enc_DEPENDENCIES) 
 	@rm -f c2enc$(EXEEXT)
 	$(LINK) $(c2enc_LDFLAGS) $(c2enc_OBJECTS) $(c2enc_LDADD) $(LIBS)
@@ -382,6 +393,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c2dec.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c2demo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c2enc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c2sim.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generate_codebook.Po@am__quote@
