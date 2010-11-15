@@ -27,7 +27,7 @@
 */
 
 #define P 	10	/* LP order					*/
-#define LSP_DELTA1 0.05 /* grid spacing for LSP root searches */
+#define LSP_DELTA1 0.01 /* grid spacing for LSP root searches */
 #define NW	279	/* frame size in samples 			*/
 #define	N  	80 	/* frame to frame shift				*/
 #define THRESH	40.0	/* threshold energy/sample for frame inclusion 	*/
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
 	    printf("Active Frame: %ld  unstables: %d\n",af, unstables);
 
 	    find_aks(Sn, ak, NW, P, &Eres);
-	    roots = lpc_to_lsp(&ak[1], P , lsp, 5, LSP_DELTA1);
+	    roots = lpc_to_lsp(ak, P , lsp, 5, LSP_DELTA1);
 	    if (roots == P) {
 		if (lspd) {
 		    fprintf(flsp,"%f ",lsp[0]);
