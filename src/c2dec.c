@@ -4,12 +4,7 @@
   AUTHOR......: David Rowe
   DATE CREATED: 23/8/2010
 
-  Decodes a file of bits to a file of raw speech samples using codec2. Demo
-  program for codec2.
-
-  NOTE: the bit file is not packed, 51 bits/frame actually consumes 51
-  bytes/frame on disk.  If you are using this for a real world
-  application you may want to pack the 51 bytes into 7 bytes.
+  Decodes a file of bits to a file of raw speech samples using codec2.
 
 \*---------------------------------------------------------------------------*/
 

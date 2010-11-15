@@ -4,13 +4,8 @@
   AUTHOR......: David Rowe
   DATE CREATED: 23/8/2010
 
-  Encodes a file of raw speech samples using codec2 and ouputs a file
-  of bits (each bit is stored in the LSB or each output byte). Demo
-  program for codec2.
-
-  NOTE: the bit file is not packed, 51 bits/frame actually consumes 51
-  bytes/frame on disk.  If you are using this for a real world
-  application you may want to pack the 51 bytes into 7 bytes.
+  Encodes a file of raw speech samples using codec2 and outputs a file
+  of bits.
 
 \*---------------------------------------------------------------------------*/
 
