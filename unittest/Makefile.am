@@ -26,7 +26,7 @@ tnlp_SOURCES = tnlp.c ../src/sine.c ../src/nlp.c ../src/four1.c ../src/dump.c
 tnlp_LDADD = $(lib_LTLIBRARIES) 
 tnlp_LDFLAGS = $(LIBS)
 
-tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c
+tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c ../src/lpc.c ../src/lsp.c ../src/quantise.c ../src/codebook.c ../src/dump.c
 tinterp_LDADD = $(lib_LTLIBRARIES) 
 tinterp_LDFLAGS = $(LIBS)
 

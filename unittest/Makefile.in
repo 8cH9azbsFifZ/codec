@@ -67,7 +67,8 @@ am_tcodec2_OBJECTS = tcodec2.$(OBJEXT) quantise.$(OBJEXT) \
 tcodec2_OBJECTS = $(am_tcodec2_OBJECTS)
 tcodec2_DEPENDENCIES =
 am_tinterp_OBJECTS = tinterp.$(OBJEXT) sine.$(OBJEXT) four1.$(OBJEXT) \
-	interp.$(OBJEXT)
+	interp.$(OBJEXT) lpc.$(OBJEXT) lsp.$(OBJEXT) \
+	quantise.$(OBJEXT) codebook.$(OBJEXT) dump.$(OBJEXT)
 tinterp_OBJECTS = $(am_tinterp_OBJECTS)
 tinterp_DEPENDENCIES =
 am_tnlp_OBJECTS = tnlp.$(OBJEXT) sine.$(OBJEXT) nlp.$(OBJEXT) \
@@ -225,7 +226,7 @@ vqtrain_LDFLAGS = $(LIBS)
 tnlp_SOURCES = tnlp.c ../src/sine.c ../src/nlp.c ../src/four1.c ../src/dump.c
 tnlp_LDADD = $(lib_LTLIBRARIES) 
 tnlp_LDFLAGS = $(LIBS)
-tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c
+tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c ../src/lpc.c ../src/lsp.c ../src/quantise.c ../src/codebook.c ../src/dump.c
 tinterp_LDADD = $(lib_LTLIBRARIES) 
 tinterp_LDFLAGS = $(LIBS)
 tquant_SOURCES = tquant.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/four1.c ../src/codebook.c
