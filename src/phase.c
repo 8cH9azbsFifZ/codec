@@ -29,13 +29,14 @@
 #include "phase.h"
 #include "four1.h"
 #include "comp.h"
+#include "glottal.c"
 
 #include <assert.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
 
-#define VTHRESH 4.0
+#define GLOTTAL_FFT_SIZE 512
 
 /*---------------------------------------------------------------------------*\
 
@@ -199,6 +200,8 @@ void phase_synth_zero_order(
   COMP  H[MAX_AMP];             /* LPC freq domain samples */
   float G;
   float jitter;
+  float r;
+  int   b;
 
   G = 1.0;
   aks_to_H(model,aks,G,H,LPC_ORD);
@@ -214,6 +217,7 @@ void phase_synth_zero_order(
   
   ex_phase[0] += (model->Wo)*N;
   ex_phase[0] -= TWO_PI*floor(ex_phase[0]/TWO_PI + 0.5);
+  r = TWO_PI/GLOTTAL_FFT_SIZE;
 
   for(m=1; m<=model->L; m++) {
 
@@ -225,8 +229,9 @@ void phase_synth_zero_order(
 	   over at +/- 0.25 of a sample.
 	*/
         jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
-	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m);
-	Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m);
+        b = floor(m*model->Wo/r + 0.5);
+	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
+	Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
     }
     else {
 
