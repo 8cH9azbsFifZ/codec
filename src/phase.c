@@ -149,24 +149,26 @@ void aks_to_H(
    This E[m] then gets passed through the LPC synthesis filter to
    determine the final harmonic phase.
      
-   For a while there were prolems with low pitched males like hts1
-   sounding "clicky".  The synthesied time domain waveform also looked
-   clicky.  Many methods were tried to improve the sounds quality of
-   low pitched males. Finally adding a small amount of jitter to each
-   harmonic worked.
+   Comparing to speech synthesised using original phases:
 
-   The current result sounds very close to the original phases, with
-   only 1 voicing bit per frame.  For example hts1a using original
-   amplitudes and this phase model produces speech hard to distinguish
-   from speech synthesise with the orginal phases.  The sound quality
-   of this patrtiallyuantised codec (nb original amplitudes) is higher
-   than g729, even though all the phase information has been
-   discarded.
+   - Through headphones speech synthesised with this model is not as 
+     good. Through a loudspeaker it is very close to original phases.
+
+   - If there are voicing errors, the speech can sound clicky or
+     staticy.  If V speech is mistakenly declared UV, this model tends to
+     synthesise impulses or clicks, as there is usually very little shift or
+     dispersion through the LPC filter.
+
+   - When combined with LPC amplitude modelling there is an additional
+     drop in quality.  I am not sure why, theory is interformant energy
+     is raised making any phase errors more obvious.
 
    NOTES:
 
-     1/ This synthesis model is effectvely the same as simple LPC-10
-     vocoders, and yet sounds much better.  Why?
+     1/ This synthesis model is effectively the same as a simple LPC-10
+     vocoders, and yet sounds much better.  Why? Conventional wisdom
+     (AMBE, MELP) says mixed voicing is required for high quality
+     speech.
 
      2/ I am pretty sure the Lincoln Lab sinusoidal coding guys (like xMBE
      also from MIT) first described this zero phase model, I need to look
@@ -181,9 +183,6 @@ void aks_to_H(
      bit.  More research needed, e.g. test a synthesis model that adds
      a small delta-W to make phase tracks line up for voiced
      harmonics.
-
-     4/ Why does this sound so great with 1 V/UV decision?  Conventional
-     wisdom says mixed voicing is required for high qaulity speech.
 
 \*---------------------------------------------------------------------------*/
 
