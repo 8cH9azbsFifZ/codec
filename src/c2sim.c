@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
   float ak_interp[LPC_MAX];
 
   void *nlp_states;
+  float hpf_states[2];
 
   for(i=0; i<M; i++)
       Sn[i] = 1.0;
@@ -146,6 +147,7 @@ int main(int argc, char *argv[])
       prev_lsps[i] = i*PI/(LPC_ORD+1);
   }
   e = prev_e = 1;
+  hpf_states[0] = hpf_states[1] = 0.0;
 
   nlp_states = nlp_create();
 
@@ -240,7 +242,7 @@ int main(int argc, char *argv[])
     for(i=0; i<M-N; i++)
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
-      Sn[i+M-N] = buf[i];
+	Sn[i+M-N] = hpf((float)buf[i], hpf_states);
  
     /* Estimate pitch */
 

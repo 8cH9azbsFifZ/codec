@@ -32,10 +32,12 @@
 #include "comp.h"
 
 void make_analysis_window(float w[], COMP W[]);
+float hpf(float x, float states[]);
 void dft_speech(COMP Sw[], float Sn[], float w[]);
 void two_stage_pitch_refinement(MODEL *model, COMP Sw[]);
 void estimate_amplitudes(MODEL *model, COMP Sw[], COMP W[]);
-float est_voicing_mbe(MODEL *model, COMP Sw[], COMP W[], COMP Sw_[],COMP Ew[], float prev_Wo);
+float est_voicing_mbe(MODEL *model, COMP Sw[], COMP W[], COMP Sw_[],COMP Ew[], 
+		      float prev_Wo);
 void make_synthesis_window(float Pn[]);
 void synthesise(float Sn_[], MODEL *model, float Pn[], int shift);
 
