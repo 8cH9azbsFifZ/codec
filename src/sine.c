@@ -39,6 +39,8 @@
 #include "sine.h"
 #include "four1.h"
 
+#define HPF_BETA 0.125
+
 /*---------------------------------------------------------------------------*\
                                                                              
 				HEADERS                                     
@@ -164,6 +166,26 @@ void make_analysis_window(float w[],COMP W[])
     W[i+FFT_ENC/2].imag = temp.imag;
   }
 
+}
+
+/*---------------------------------------------------------------------------*\
+                                                       
+  FUNCTION....: hpf	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 16 Nov 2010
+
+  High pass filter with a -3dB point of about 160Hz.
+
+    y(n) = -HPF_BETA*y(n-1) + x(n) - x(n-1)
+ 
+\*---------------------------------------------------------------------------*/
+
+float hpf(float x, float states[])
+{
+    states[0] += -HPF_BETA*states[0] + x - states[1];
+    states[1] = x;
+
+    return states[0];
 }
 
 /*---------------------------------------------------------------------------*\
@@ -575,15 +597,6 @@ void synthesise(
 	Sw_[b].imag = model->A[l]*sin(model->phi[l]);
 	Sw_[FFT_DEC-b].real = Sw_[b].real;
 	Sw_[FFT_DEC-b].imag = -Sw_[b].imag;
-    }
-
-    /* zero out anything above 3500 Hz */
-
-    for(i=(3500.0/4000.0)*FFT_DEC/2; i<FFT_DEC/2; i++) {
-	Sw_[i].real = 0.0;
-	Sw_[i].imag = 0.0;
-	Sw_[FFT_DEC-i].real = 0.0;
-	Sw_[FFT_DEC-i].imag = 0.0;
     }
 
     /* Perform inverse DFT */
