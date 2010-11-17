@@ -48,6 +48,7 @@ typedef struct {
     COMP   W[FFT_ENC];	       /* DFT of w[]                                */
     float  Pn[2*N];	       /* trapezoidal synthesis window              */
     float  Sn[M];              /* input speech                              */
+    float  hpf_states[2];      /* high pass filter states                   */
     void  *nlp;                /* pitch predictor states                    */
     float  Sn_[2*N];	       /* synthesised output speech                 */
     float  ex_phase;           /* excitation model phase track              */
@@ -98,6 +99,7 @@ void *codec2_create()
 
     for(i=0; i<M; i++)
 	c2->Sn[i] = 1.0;
+    c2->hpf_states[0] = c2->hpf_states[1] = 0.0;
     for(i=0; i<2*N; i++)
 	c2->Sn_[i] = 0;
     make_analysis_window(c2->w,c2->W);
@@ -350,7 +352,8 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
     for(i=0; i<M-N; i++)
       c2->Sn[i] = c2->Sn[i+N];
     for(i=0; i<N; i++)
-      c2->Sn[i+M-N] = speech[i];
+      c2->Sn[i+M-N] = hpf((float)speech[i], c2->hpf_states);
+
     dft_speech(Sw, c2->Sn, c2->w);
 
     /* Estimate pitch */
