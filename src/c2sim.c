@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   float sum_snr;
 
   int lpc_model, order = 0;
-  int lsp, lsp_quantiser;
+  int lsp, dlsp, lsp_quantiser;
   float ak[LPC_MAX];
   COMP  Sw_[FFT_ENC];
   COMP  Ew[FFT_ENC]; 
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
      "usage: %s InputFile [-o OutputFile]\n"
      "\t[--lpc Order]\n"
      "\t[--lsp]\n"
+     "\t[--dlsp]\n"
      "\t[--phase0]\n"
      "\t[--postfilter]\n"
      "\t[--hand_voicing]\n"
@@ -206,6 +207,12 @@ int main(int argc, char *argv[])
 
   lsp = switch_present("--lsp",argc,argv);
   lsp_quantiser = 0;
+  if (lsp)
+      assert(order == LPC_ORD);
+
+  dlsp = switch_present("--dlsp",argc,argv);
+  if (dlsp)
+      assert(order == LPC_ORD);
 
   phase0 = switch_present("--phase0",argc,argv);
   if (phase0) {
@@ -262,7 +269,7 @@ int main(int argc, char *argv[])
 
     if (phase0) {
 	float Wn[M];		        /* windowed speech samples */
-	float Rk[LPC_ORD+1];	        /* autocorrelation coeffs  */
+	float Rk[LPC_MAX+1];	        /* autocorrelation coeffs  */
   	
 #ifdef DUMP
 	dump_phase(&model.phi[0], model.L);
@@ -272,11 +279,8 @@ int main(int argc, char *argv[])
 
 	for(i=0; i<M; i++)
 	    Wn[i] = Sn[i]*w[i];
-	autocorrelate(Wn,Rk,M,LPC_ORD);
-	levinson_durbin(Rk,ak,LPC_ORD);
-
-	if (lpc_model)
-	    assert(order == LPC_ORD);
+	autocorrelate(Wn,Rk,M,order);
+	levinson_durbin(Rk,ak,order);
 
 #ifdef DUMP
 	dump_ak(ak, LPC_ORD);
@@ -304,10 +308,10 @@ int main(int argc, char *argv[])
     /* optional LPC model amplitudes */
 
     if (lpc_model) {
-	int   lsp_indexes[LPC_ORD];
+	int   lsp_indexes[LPC_MAX];
 
 	e = speech_to_uq_lsps(lsps, ak, Sn, w, order);
-	lpc_correction = need_lpc_correction(&model, ak, e);
+	lpc_correction = need_lpc_correction(&model, ak, e, order);
 
 	if (lsp) {
 	    encode_lsps(lsp_indexes, lsps, LPC_ORD);
@@ -316,8 +320,15 @@ int main(int argc, char *argv[])
 	    lsp_to_lpc(lsps, ak, LPC_ORD);
 	}
 
-	e = decode_energy(encode_energy(e));
-	model.Wo = decode_Wo(encode_Wo(model.Wo));
+	if (dlsp) {
+	    float lsps_[LPC_ORD];
+
+	    lspd_quantise(lsps, lsps_, LPC_ORD);
+	    lsp_to_lpc(lsps_, ak, LPC_ORD);
+ 	}
+
+	//e = decode_energy(encode_energy(e));
+	//model.Wo = decode_Wo(encode_Wo(model.Wo));
 
 	aks_to_M2(ak, order, &model, e, &snr, 1); 
 	apply_lpc_correction(&model, lpc_correction);
@@ -355,14 +366,15 @@ int main(int argc, char *argv[])
 	    #endif
 	    
 	    if (phase0)
-		phase_synth_zero_order(&interp_model, ak_interp, ex_phase);	
+		phase_synth_zero_order(&interp_model, ak_interp, ex_phase,
+				       order);	
 	    if (postfilt)
 		postfilter(&interp_model, &bg_est);
 	    synth_one_frame(buf, &interp_model, Sn_, Pn);
 	    if (fout != NULL) fwrite(buf,sizeof(short),N,fout);
 
 	    if (phase0)
-		phase_synth_zero_order(&model, ak, ex_phase);	
+		phase_synth_zero_order(&model, ak, ex_phase, order);	
 	    if (postfilt)
 		postfilter(&model, &bg_est);
 	    synth_one_frame(buf, &model, Sn_, Pn);
@@ -379,7 +391,7 @@ int main(int argc, char *argv[])
     }
     else {
 	if (phase0)
-	   phase_synth_zero_order(&model, ak, ex_phase);	
+	    phase_synth_zero_order(&model, ak, ex_phase, order);	
 	if (postfilt)
 	    postfilter(&model, &bg_est);
 	synth_one_frame(buf, &model, Sn_, Pn);

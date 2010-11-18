@@ -4,6 +4,9 @@ NAME = codec2
 AM_CPPFLAGS = $(AM_CFLAGS)
 
 D=codebook
+
+# lsp quantisers
+
 CODEBOOKS= \
   $D/lsp1.txt \
   $D/lsp2.txt \
@@ -16,17 +19,35 @@ CODEBOOKS= \
   $D/lsp9.txt \
   $D/lsp10.txt
 
+# lspd quantisers
+
+CODEBOOKSD= \
+  $D/dlsp1.txt \
+  $D/dlsp2.txt \
+  $D/dlsp3.txt \
+  $D/dlsp4.txt \
+  $D/dlsp5.txt \
+  $D/dlsp6.txt \
+  $D/dlsp7.txt \
+  $D/dlsp8.txt \
+  $D/dlsp9.txt \
+  $D/dlsp10.txt
+
 noinst_PROGRAMS = generate_codebook
 
 codebook.$(OBJEXT): codebook.c
+codebookd.$(OBJEXT): codebookd.c
 
 codebook.lo: codebook.c
 
 codebook.c: generate_codebook $(CODEBOOKS)
-	./generate_codebook $(CODEBOOKS) > codebook.c
+	./generate_codebook lsp_cb $(CODEBOOKS) > codebook.c
+
+codebookd.c: generate_codebook $(CODEBOOKSD)
+	./generate_codebook  lsp_cbd $(CODEBOOKSD) > codebookd.c
 
 clean-local:
-	-rm -f codebook.c
+	-rm -f codebook.c codebookd.c
 
 lib_LTLIBRARIES	= libcodec2.la
 libcodec2_la_SOURCES = dump.c \
@@ -41,7 +62,8 @@ lsp.c \
 phase.c \
 quantise.c \
 pack.c \
-codebook.c
+codebook.c \
+codebookd.c
 
 libcodec2_la_CFLAGS = $(AM_CFLAGS)
 libcodec2_la_LDFLAGS = $(LIBS)

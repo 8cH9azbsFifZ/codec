@@ -89,37 +89,6 @@ void quantise_uniform(float *val, float min, float max, int bits)
     printf("index %d  val_: %f\n", index, val[0]);
 }
 
-/*---------------------------------------------------------------------------*\
-									      
-  lspd_quantise
-
-  Simulates differential lsp quantiser
-
-\*---------------------------------------------------------------------------*/
-
-void lsp_quantise(
-  float lsp[], 
-  float lsp_[],
-  int   order
-) 
-{
-    int   i;
-    float dlsp[LPC_MAX];
-    float dlsp_[LPC_MAX];
-
-    dlsp[0] = lsp[0];
-    for(i=1; i<order; i++)
-	dlsp[i] = lsp[i] - lsp[i-1];
-
-    for(i=0; i<order; i++)
-	dlsp_[i] = dlsp[i];
-
-    quantise_uniform(&dlsp_[0], 0.1, 0.5, 5);
-
-    lsp_[0] = dlsp_[0];
-    for(i=1; i<order; i++)
-	lsp_[i] = lsp_[i-1] + dlsp_[i];
-}
 #endif
 
 /*---------------------------------------------------------------------------*\
@@ -174,6 +143,69 @@ long quantise(const float * cb, float vec[], float w[], int k, int m, float *se)
    *se += beste;
 
    return(besti);
+}
+
+/*---------------------------------------------------------------------------*\
+									      
+  lspd_quantise
+
+  Differential lsp quantiser
+
+\*---------------------------------------------------------------------------*/
+
+void lspd_quantise(
+  float lsp[], 
+  float lsp_[],
+  int   order
+) 
+{
+    int   i,k,m;
+    float lsp_hz[LPC_MAX];
+    float lsp__hz[LPC_MAX];
+    float dlsp[LPC_MAX];
+    float dlsp_[LPC_MAX];
+    float  wt[1];
+    const float *cb;
+    float se;
+    int   indexes[LPC_MAX];
+
+    /* convert from radians to Hz so we can use human readable
+       frequencies */
+
+    for(i=0; i<order; i++)
+	lsp_hz[i] = (4000.0/PI)*lsp[i];
+
+    dlsp[0] = lsp_hz[0];
+    for(i=1; i<order; i++)
+    	dlsp[i] = lsp_hz[i] - lsp_hz[i-1];
+
+    /* simple uniform scalar quantisers */
+
+    wt[0] = 1.0;
+    for(i=0; i<order; i++) {
+	if (i) 
+	    dlsp[i] = lsp_hz[i] - lsp__hz[i-1];	    
+	else
+	    dlsp[0] = lsp_hz[0];
+
+	k = lsp_cbd[i].k;
+	m = lsp_cbd[i].m;
+	cb = lsp_cbd[i].cb;
+	indexes[i] = quantise(cb, &dlsp[i], wt, k, m, &se);
+ 	dlsp_[i] = cb[indexes[i]*k];
+
+	if (i) 
+	    lsp__hz[i] = lsp__hz[i-1] + dlsp_[i];
+	else
+	    lsp__hz[0] = dlsp_[0];
+    }
+    for(; i<order; i++)
+    	lsp__hz[i] = lsp__hz[i-1] + dlsp[i];
+    
+    /* convert back to radians */
+
+    for(i=0; i<order; i++)
+	lsp_[i] = (PI/4000.0)*lsp__hz[i];
 }
 
 void check_lsp_order(float lsp[], int lpc_order)
@@ -604,7 +636,7 @@ void bw_expand_lsps(float lsp[],
 
 \*---------------------------------------------------------------------------*/
 
-int need_lpc_correction(MODEL *model, float ak[], float E)
+int need_lpc_correction(MODEL *model, float ak[], float E, int order)
 {
     MODEL  tmp;
     float  snr,E1;
@@ -616,7 +648,7 @@ int need_lpc_correction(MODEL *model, float ak[], float E)
     */
 
     memcpy(&tmp, model, sizeof(MODEL));
-    aks_to_M2(ak, LPC_ORD, &tmp, E, &snr, 0);   
+    aks_to_M2(ak, order, &tmp, E, &snr, 0);   
 
     /* 
        Attenuate fundamental by 30dB if F0 < 150 Hz and LPC modelling
@@ -736,7 +768,7 @@ void encode_amplitudes(int    lsp_indexes[],
 
     e = speech_to_uq_lsps(lsps, ak, Sn, w, LPC_ORD);
     encode_lsps(lsp_indexes, lsps, LPC_ORD);
-    *lpc_correction = need_lpc_correction(model, ak, e);
+    *lpc_correction = need_lpc_correction(model, ak, e, LPC_ORD);
     *energy_index = encode_energy(e);
 }
 

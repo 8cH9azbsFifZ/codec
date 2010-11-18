@@ -82,5 +82,6 @@ struct lsp_codebook {
     const float	*	cb;	  /* The elements		*/
 };
 extern const struct lsp_codebook lsp_cb[];
+extern const struct lsp_codebook lsp_cbd[];
 
 #endif

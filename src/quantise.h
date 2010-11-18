@@ -44,6 +44,7 @@ float decode_Wo(int index);
 
 void encode_lsps(int indexes[], float lsp[], int order);
 void decode_lsps(float lsp[], int indexes[], int order);
+void lspd_quantise(float lsp[], float lsp_[], int order);
 
 int encode_energy(float e);
 float decode_energy(int index);
@@ -68,7 +69,7 @@ int  unpack(const unsigned char * bits, unsigned int *nbit, unsigned int index_b
 
 int lsp_bits(int i);
 
-int need_lpc_correction(MODEL *model, float ak[], float E);
+int need_lpc_correction(MODEL *model, float ak[], float E, int order);
 void apply_lpc_correction(MODEL *model, int lpc_correction);
 float speech_to_uq_lsps(float lsp[],
 			float ak[],
