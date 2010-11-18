@@ -96,13 +96,14 @@ int test2()
     float   ak[LPC_ORD+1];
     int     voiced1, voiced2;
     int     lsp_indexes[LPC_ORD];
-    int     lpc_correction;
     int     energy_index;
     int     Wo_index;
     char    bits[CODEC2_BITS_PER_FRAME];
     int     nbit;
     int     i;
-
+    float   lsps[LPC_ORD];
+    float   e;
+       
     c2 = codec2_create();
     c3 = (CODEC2*)c2;
 
@@ -124,7 +125,6 @@ int test2()
     
 	Wo_index = encode_Wo(model.Wo);
 	encode_amplitudes(lsp_indexes, 
-			  &lpc_correction, 
 			  &energy_index,
 			  &model, 
 			  c3->Sn, 
@@ -134,7 +134,6 @@ int test2()
 	for(i=0; i<LPC_ORD; i++) {
 	    pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
 	}
-	pack(bits, &nbit, lpc_correction, 1);
 	pack(bits, &nbit, energy_index, E_BITS);
 	pack(bits, &nbit, voiced1, 1);
 	pack(bits, &nbit, voiced2, 1);
@@ -144,7 +143,6 @@ int test2()
 	for(i=0; i<LPC_ORD; i++) {
 	    lsp_indexes[i] = unpack(bits, &nbit, lsp_bits(i));
 	}
-	lpc_correction = unpack(bits, &nbit, 1);
 	energy_index = unpack(bits, &nbit, E_BITS);
 	voiced1 = unpack(bits, &nbit, 1);
 	voiced2 = unpack(bits, &nbit, 1);
@@ -154,8 +152,9 @@ int test2()
 	decode_amplitudes(&model, 
 			  ak,
 			  lsp_indexes,
-			  lpc_correction, 
-			  energy_index);
+			  energy_index,
+			  lsps,
+			  &e);
 
 	model.voiced = voiced2;
 	model_interp.voiced = voiced1;

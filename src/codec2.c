@@ -181,7 +181,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     MODEL   model;
     int     voiced1, voiced2;
     int     lsp_indexes[LPC_ORD];
-    int     lpc_correction;
     int     energy_index;
     int     Wo_index;
     int     i;
@@ -202,7 +201,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     
     Wo_index = encode_Wo(model.Wo);
     encode_amplitudes(lsp_indexes, 
-		      &lpc_correction, 
 		      &energy_index,
 		      &model, 
 		       c2->Sn, 
@@ -212,7 +210,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     for(i=0; i<LPC_ORD; i++) {
 	pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
     }
-    pack(bits, &nbit, lpc_correction, 1);
     pack(bits, &nbit, energy_index, E_BITS);
     pack(bits, &nbit, voiced1, 1);
     pack(bits, &nbit, voiced2, 1);
@@ -238,7 +235,6 @@ void codec2_decode(void *codec2_state, short speech[],
     int     voiced1, voiced2;
     int     lsp_indexes[LPC_ORD];
     float   lsps[LPC_ORD];
-    int     lpc_correction;
     int     energy_index;
     float   energy;
     int     Wo_index;
@@ -257,7 +253,6 @@ void codec2_decode(void *codec2_state, short speech[],
     for(i=0; i<LPC_ORD; i++) {
 	lsp_indexes[i] = unpack(bits, &nbit, lsp_bits(i));
     }
-    lpc_correction = unpack(bits, &nbit, 1);
     energy_index = unpack(bits, &nbit, E_BITS);
     voiced1 = unpack(bits, &nbit, 1);
     voiced2 = unpack(bits, &nbit, 1);
@@ -271,7 +266,6 @@ void codec2_decode(void *codec2_state, short speech[],
     decode_amplitudes(&model, 
 		      ak,
 		      lsp_indexes,
-		      lpc_correction, 
 		      energy_index,
 		      lsps,
 		      &energy);
@@ -285,7 +279,7 @@ void codec2_decode(void *codec2_state, short speech[],
 
     interpolate_lsp(&model_interp, &c2->prev_model, &model,
     		    c2->prev_lsps, c2->prev_energy, lsps, energy, ak_interp);
-    apply_lpc_correction(&model_interp, lpc_correction);
+    apply_lpc_correction(&model_interp);
 
     /* synthesis two 10ms frames */
 

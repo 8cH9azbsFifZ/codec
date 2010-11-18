@@ -50,7 +50,6 @@ int encode_energy(float e);
 float decode_energy(int index);
 
 void encode_amplitudes(int    lsp_indexes[], 
-		       int   *lpc_correction, 
 		       int   *energy_index,
 		       MODEL *model, 
 		       float  Sn[], 
@@ -59,7 +58,6 @@ void encode_amplitudes(int    lsp_indexes[],
 float decode_amplitudes(MODEL *model,
 			float  ak[],
 			int lsp_indexes[],
-			int lpc_correction, 
 			int energy_index,
 			float  lsps[],
 			float *e);
@@ -69,8 +67,7 @@ int  unpack(const unsigned char * bits, unsigned int *nbit, unsigned int index_b
 
 int lsp_bits(int i);
 
-int need_lpc_correction(MODEL *model, float ak[], float E, int order);
-void apply_lpc_correction(MODEL *model, int lpc_correction);
+void apply_lpc_correction(MODEL *model);
 float speech_to_uq_lsps(float lsp[],
 			float ak[],
 		        float Sn[], 

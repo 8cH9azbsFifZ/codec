@@ -121,7 +121,6 @@ int main(int argc, char *argv[])
   float lsps[LPC_ORD];
   float prev_lsps[LPC_ORD];
   float e, prev_e;
-  int lpc_correction;
   float ak_interp[LPC_MAX];
 
   void *nlp_states;
@@ -330,7 +329,7 @@ int main(int argc, char *argv[])
 	model.Wo = decode_Wo(encode_Wo(model.Wo));
 
 	aks_to_M2(ak, order, &model, e, &snr, 1); 
-	apply_lpc_correction(&model, lpc_correction);
+	apply_lpc_correction(&model);
 	sum_snr += snr;
 #ifdef DUMP
         dump_quantised_model(&model);
@@ -361,7 +360,7 @@ int main(int argc, char *argv[])
 	    #else
 	    interpolate_lsp(&interp_model, &prev_model, &model,
 			    prev_lsps, prev_e, lsps, e, ak_interp);
-	    apply_lpc_correction(&interp_model, lpc_correction);
+	    apply_lpc_correction(&interp_model);
 	    #endif
 	    
 	    if (phase0)

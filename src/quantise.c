@@ -637,7 +637,7 @@ void bw_expand_lsps(float lsp[],
 
 \*---------------------------------------------------------------------------*/
 
-void apply_lpc_correction(MODEL *model, int lpc_correction)
+void apply_lpc_correction(MODEL *model)
 {
     if (model->Wo < (PI*150.0/4000)) {
 	model->A[1] *= 0.032;
@@ -708,7 +708,6 @@ float decode_energy(int index)
 \*---------------------------------------------------------------------------*/
 
 void encode_amplitudes(int    lsp_indexes[], 
-		       int   *lpc_correction,
 		       int   *energy_index,
 		       MODEL *model, 
 		       float  Sn[], 
@@ -720,7 +719,6 @@ void encode_amplitudes(int    lsp_indexes[],
 
     e = speech_to_uq_lsps(lsps, ak, Sn, w, LPC_ORD);
     encode_lsps(lsp_indexes, lsps, LPC_ORD);
-    *lpc_correction = need_lpc_correction(model, ak, e, LPC_ORD);
     *energy_index = encode_energy(e);
 }
 
@@ -738,7 +736,6 @@ void encode_amplitudes(int    lsp_indexes[],
 float decode_amplitudes(MODEL *model, 
 			float  ak[],
 		        int    lsp_indexes[], 
-		        int    lpc_correction,
 		        int    energy_index,
 			float  lsps[],
 			float *e
@@ -751,7 +748,7 @@ float decode_amplitudes(MODEL *model,
     lsp_to_lpc(lsps, ak, LPC_ORD);
     *e = decode_energy(energy_index);
     aks_to_M2(ak, LPC_ORD, model, *e, &snr, 1); 
-    apply_lpc_correction(model, lpc_correction);
+    apply_lpc_correction(model);
 
     return snr;
 }

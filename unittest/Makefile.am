@@ -26,17 +26,17 @@ tnlp_SOURCES = tnlp.c ../src/sine.c ../src/nlp.c ../src/four1.c ../src/dump.c
 tnlp_LDADD = $(lib_LTLIBRARIES) 
 tnlp_LDFLAGS = $(LIBS)
 
-tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c ../src/lpc.c ../src/lsp.c ../src/quantise.c ../src/codebook.c ../src/dump.c
+tinterp_SOURCES = tinterp.c ../src/sine.c ../src/four1.c ../src/interp.c ../src/lpc.c ../src/lsp.c ../src/quantise.c ../src/codebook.c ../src/codebookd.c ../src/dump.c
 tinterp_LDADD = $(lib_LTLIBRARIES) 
 tinterp_LDFLAGS = $(LIBS)
 
-tquant_SOURCES = tquant.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/four1.c ../src/codebook.c
+tquant_SOURCES = tquant.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/four1.c ../src/codebook.c ../src/codebookd.c 
 tquant_LDADD = $(lib_LTLIBRARIES) 
 tquant_LDFLAGS = $(LIBS)
 
 tcodec2_SOURCES = tcodec2.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/four1.c \
 ../src/codec2.c ../src/sine.c ../src/nlp.c ../src/postfilter.c ../src/phase.c ../src/interp.c \
-../src/codebook.c ../src/pack.c
+../src/codebook.c ../src/codebookd.c ../src/pack.c
 tcodec2_LDADD = $(lib_LTLIBRARIES) 
 tcodec2_LDFLAGS = $(LIBS)
 
