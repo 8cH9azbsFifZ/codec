@@ -313,7 +313,7 @@ void synthesise_one_frame(CODEC2 *c2, short speech[], MODEL *model, float ak[])
 {
     int     i;
 
-    phase_synth_zero_order(model, ak, &c2->ex_phase);
+    phase_synth_zero_order(model, ak, &c2->ex_phase, LPC_ORD);
     postfilter(model, &c2->bg_est);
     synthesise(c2->Sn_, model, c2->Pn, 1);
 

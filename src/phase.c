@@ -190,7 +190,8 @@ void aks_to_H(
 void phase_synth_zero_order(
     MODEL *model,
     float  aks[],
-    float *ex_phase             /* excitation phase of fundamental */
+    float *ex_phase,            /* excitation phase of fundamental */
+    int    order
 )
 {
   int   m;
@@ -204,7 +205,7 @@ void phase_synth_zero_order(
   int   b;
 
   G = 1.0;
-  aks_to_H(model,aks,G,H,LPC_ORD);
+  aks_to_H(model, aks, G, H, order);
 
   /* 
      Update excitation fundamental phase track, this sets the position
