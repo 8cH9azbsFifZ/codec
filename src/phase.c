@@ -199,7 +199,7 @@ void phase_synth_zero_order(
   COMP  A_[MAX_AMP];		/* synthesised harmonic samples */
   COMP  H[MAX_AMP];             /* LPC freq domain samples */
   float G;
-  float jitter;
+  float jitter = 0.0;
   float r;
   int   b;
 
