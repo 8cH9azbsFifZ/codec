@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
   /* Input file */
 
   if ((fin = fopen(argv[1],"rb")) == NULL) {
-    fprintf(stderr, "Error opening input bit file: %s: %s.\n",
+    fprintf(stderr, "Error opening input speech file: %s: %s.\n",
      argv[1], strerror(errno));
     exit(1);
   }
