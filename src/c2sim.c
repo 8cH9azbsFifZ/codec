@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
   float snr;
   float sum_snr;
 
-  int lpc_model, order = 0;
+  int lpc_model, order = LPC_ORD;
   int lsp, dlsp, lsp_quantiser;
   float ak[LPC_MAX];
   COMP  Sw_[FFT_ENC];
@@ -327,8 +327,8 @@ int main(int argc, char *argv[])
 	    lsp_to_lpc(lsps_, ak, LPC_ORD);
  	}
 
-	//e = decode_energy(encode_energy(e));
-	//model.Wo = decode_Wo(encode_Wo(model.Wo));
+	e = decode_energy(encode_energy(e));
+	model.Wo = decode_Wo(encode_Wo(model.Wo));
 
 	aks_to_M2(ak, order, &model, e, &snr, 1); 
 	apply_lpc_correction(&model, lpc_correction);
