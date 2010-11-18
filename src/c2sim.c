@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
     for(i=0; i<M-N; i++)
       Sn[i] = Sn[i+N];
     for(i=0; i<N; i++)
-	Sn[i+M-N] = hpf((float)buf[i], hpf_states);
+	Sn[i+M-N] = buf[i];
  
     /* Estimate pitch */
 
@@ -311,7 +311,6 @@ int main(int argc, char *argv[])
 	int   lsp_indexes[LPC_MAX];
 
 	e = speech_to_uq_lsps(lsps, ak, Sn, w, order);
-	lpc_correction = need_lpc_correction(&model, ak, e, order);
 
 	if (lsp) {
 	    encode_lsps(lsp_indexes, lsps, LPC_ORD);

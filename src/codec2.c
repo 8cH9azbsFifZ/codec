@@ -352,7 +352,7 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
     for(i=0; i<M-N; i++)
       c2->Sn[i] = c2->Sn[i+N];
     for(i=0; i<N; i++)
-      c2->Sn[i+M-N] = hpf((float)speech[i], c2->hpf_states);
+      c2->Sn[i+M-N] = speech[i];
 
     dft_speech(Sw, c2->Sn, c2->w);
 

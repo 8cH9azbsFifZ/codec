@@ -628,67 +628,19 @@ void bw_expand_lsps(float lsp[],
 
 /*---------------------------------------------------------------------------*\
                                                        
-  FUNCTION....: need_lpc_correction()	     
-  AUTHOR......: David Rowe			      
-  DATE CREATED: 22/8/2010 
-
-  Determine if we need LPC correction of first harmonic.
-
-\*---------------------------------------------------------------------------*/
-
-int need_lpc_correction(MODEL *model, float ak[], float E, int order)
-{
-    MODEL  tmp;
-    float  snr,E1;
-
-    /* Find amplitudes so we can check if we need LPC correction.
-       TODO: replace call to aks_to_M2() by a single DFT calculation
-       of E/A(exp(jWo)) to make much more efficient.  We only need
-       A[1].
-    */
-
-    memcpy(&tmp, model, sizeof(MODEL));
-    aks_to_M2(ak, order, &tmp, E, &snr, 0);   
-
-    /* 
-       Attenuate fundamental by 30dB if F0 < 150 Hz and LPC modelling
-       error for A[1] is larger than 6dB.
-
-       LPC modelling often makes big errors on 1st harmonic, for example
-       when the fundamental has been removed by analog high pass
-       filtering before sampling.  However on unfiltered speech from
-       high quality sources we would like to keep the fundamental to
-       maintain the speech quality.  So we check the error in A[1] and
-       attenuate it if the error is large to avoid annoying low
-       frequency energy after LPC modelling.
-
-       This requires a single bit to quantise, on top of the other
-       spectral magnitude bits (i.e. LSP bits + 1 total).
-    */
-
-    E1 = fabs(20.0*log10(model->A[1]) - 20.0*log10(tmp.A[1]));
-    if (E1 > 6.0)
-	return 1;
-    else 
-	return 0;
-}
-
-/*---------------------------------------------------------------------------*\
-                                                       
   FUNCTION....: apply_lpc_correction()	     
   AUTHOR......: David Rowe			      
   DATE CREATED: 22/8/2010 
 
-  Apply first harmonic LPC correction at decoder.
+  Apply first harmonic LPC correction at decoder.  This helps improve
+  low pitch males after LPC modelling, like hts1a and morig.
 
 \*---------------------------------------------------------------------------*/
 
 void apply_lpc_correction(MODEL *model, int lpc_correction)
 {
-    if (lpc_correction) {
-	if (model->Wo < (PI*150.0/4000)) {
-	    model->A[1] *= 0.032;
-	}
+    if (model->Wo < (PI*150.0/4000)) {
+	model->A[1] *= 0.032;
     }
 }
 
