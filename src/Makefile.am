@@ -33,10 +33,21 @@ CODEBOOKSD= \
   $D/dlsp9.txt \
   $D/dlsp10.txt
 
+# lspd VQ quantisers
+
+CODEBOOKSDVQ= \
+  $D/dlsp1.txt \
+  $D/dlsp2.txt \
+  $D/dlsp3.txt \
+  $D/dlsp4.txt \
+  $D/dlsp5.txt \
+  ../unittest/lspd678910.txt
+
 noinst_PROGRAMS = generate_codebook
 
 codebook.$(OBJEXT): codebook.c
 codebookd.$(OBJEXT): codebookd.c
+codebookdvq.$(OBJEXT): codebookdvq.c
 
 codebook.lo: codebook.c
 
@@ -46,8 +57,11 @@ codebook.c: generate_codebook $(CODEBOOKS)
 codebookd.c: generate_codebook $(CODEBOOKSD)
 	./generate_codebook  lsp_cbd $(CODEBOOKSD) > codebookd.c
 
+codebookdvq.c: generate_codebook $(CODEBOOKSDVQ)
+	./generate_codebook  lsp_cbdvq $(CODEBOOKSDVQ) > codebookdvq.c
+
 clean-local:
-	-rm -f codebook.c codebookd.c
+	-rm -f codebook.c codebookd.c codebookdvq.c
 
 lib_LTLIBRARIES	= libcodec2.la
 libcodec2_la_SOURCES = dump.c \
@@ -63,7 +77,8 @@ phase.c \
 quantise.c \
 pack.c \
 codebook.c \
-codebookd.c
+codebookd.c \
+codebookdvq.c
 
 libcodec2_la_CFLAGS = $(AM_CFLAGS)
 libcodec2_la_LDFLAGS = $(LIBS)

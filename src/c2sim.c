@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   float sum_snr;
 
   int lpc_model, order = LPC_ORD;
-  int lsp, dlsp, lsp_quantiser;
+  int lsp, lspd, lspdvq, lsp_quantiser;
   float ak[LPC_MAX];
   COMP  Sw_[FFT_ENC];
   COMP  Ew[FFT_ENC]; 
@@ -156,7 +156,8 @@ int main(int argc, char *argv[])
      "usage: %s InputFile [-o OutputFile]\n"
      "\t[--lpc Order]\n"
      "\t[--lsp]\n"
-     "\t[--dlsp]\n"
+     "\t[--lspd]\n"
+     "\t[--lspdvq]\n"
      "\t[--phase0]\n"
      "\t[--postfilter]\n"
      "\t[--hand_voicing]\n"
@@ -209,8 +210,12 @@ int main(int argc, char *argv[])
   if (lsp)
       assert(order == LPC_ORD);
 
-  dlsp = switch_present("--dlsp",argc,argv);
-  if (dlsp)
+  lspd = switch_present("--lspd",argc,argv);
+  if (lspd)
+      assert(order == LPC_ORD);
+
+  lspdvq = switch_present("--lspdvq",argc,argv);
+  if (lspdvq)
       assert(order == LPC_ORD);
 
   phase0 = switch_present("--phase0",argc,argv);
@@ -318,10 +323,17 @@ int main(int argc, char *argv[])
 	    lsp_to_lpc(lsps, ak, LPC_ORD);
 	}
 
-	if (dlsp) {
+	if (lspd) {
 	    float lsps_[LPC_ORD];
 
 	    lspd_quantise(lsps, lsps_, LPC_ORD);
+	    lsp_to_lpc(lsps_, ak, LPC_ORD);
+ 	}
+
+	if (lspdvq) {
+	    float lsps_[LPC_ORD];
+
+	    lspdvq_quantise(lsps, lsps_, LPC_ORD);
 	    lsp_to_lpc(lsps_, ak, LPC_ORD);
  	}
 

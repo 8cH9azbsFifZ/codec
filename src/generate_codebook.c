@@ -63,7 +63,10 @@ dump_array(const struct codebook * b, int index)
     printf("  %g", b->cb[i]);
     if ( i < limit - 1 )
       printf(",");
-    printf("\n");
+
+    /* organise VQs by rows, looks prettier */
+    if ( ((i+1) % b->k) == 0 )
+	printf("\n");
   }
   printf("};\n");
 }

@@ -149,7 +149,7 @@ long quantise(const float * cb, float vec[], float w[], int k, int m, float *se)
 									      
   lspd_quantise
 
-  Differential lsp quantiser
+  Scalar lsp difference quantiser.
 
 \*---------------------------------------------------------------------------*/
 
@@ -206,6 +206,103 @@ void lspd_quantise(
 
     for(i=0; i<order; i++)
 	lsp_[i] = (PI/4000.0)*lsp__hz[i];
+}
+
+/*---------------------------------------------------------------------------*\
+									      
+  lspd_vq_quantise
+
+  Vector lsp difference quantiser.
+
+\*---------------------------------------------------------------------------*/
+
+void lspdvq_quantise(
+  float lsp[], 
+  float lsp_[],
+  int   order
+) 
+{
+    int   i,k,m,ncb, nlsp;
+    float dlsp[LPC_MAX];
+    float dlsp_[LPC_MAX];
+    float  wt[LPC_ORD];
+    const float *cb;
+    float se;
+    int   index;
+
+    dlsp[0] = lsp[0];
+    for(i=1; i<order; i++)
+    	dlsp[i] = lsp[i] - lsp[i-1];
+
+    for(i=0; i<order; i++)
+    	dlsp_[i] = dlsp[i];
+
+    for(i=0; i<order; i++)
+	wt[i] = 1.0;
+
+    /* scalar quantise dLSPs 1,2,3,4,5 */
+
+    for(i=0; i<5; i++) {
+	if (i) 
+	    dlsp[i] = (lsp[i] - lsp_[i-1])*4000.0/PI;	    
+	else
+	    dlsp[0] = lsp[0]*4000.0/PI;
+
+	k = lsp_cbdvq[i].k;
+	m = lsp_cbdvq[i].m;
+	cb = lsp_cbdvq[i].cb;
+	index = quantise(cb, &dlsp[i], wt, k, m, &se);
+ 	dlsp_[i] = cb[index*k]*PI/4000.0;
+	
+	if (i) 
+	    lsp_[i] = lsp_[i-1] + dlsp_[i];
+	else
+	    lsp_[0] = dlsp_[0];
+    }
+    dlsp[i] = lsp[i] - lsp_[i-1];
+    dlsp_[i] = dlsp[i];
+
+    //printf("lsp[0] %f lsp_[0] %f\n", lsp[0], lsp_[0]);
+    //printf("lsp[1] %f lsp_[1] %f\n", lsp[1], lsp_[1]);
+
+#ifdef TT
+    /* VQ dLSPs 3,4,5 */
+
+    ncb = 2;
+    nlsp = 2;
+    k = lsp_cbdvq[ncb].k;
+    m = lsp_cbdvq[ncb].m;
+    cb = lsp_cbdvq[ncb].cb;
+    index = quantise(cb, &dlsp[nlsp], wt, k, m, &se);
+    dlsp_[nlsp] = cb[index*k];
+    dlsp_[nlsp+1] = cb[index*k+1];
+    dlsp_[nlsp+2] = cb[index*k+2];
+
+    lsp_[0] = dlsp_[0];
+    for(i=1; i<5; i++)
+    	lsp_[i] = lsp_[i-1] + dlsp_[i];
+    dlsp[i] = lsp[i] - lsp_[i-1];
+    dlsp_[i] = dlsp[i];
+#endif
+    /* VQ dLSPs 6,7,8,9,10 */
+
+    ncb = 5;
+    nlsp = 5;
+    k = lsp_cbdvq[ncb].k;
+    m = lsp_cbdvq[ncb].m;
+    cb = lsp_cbdvq[ncb].cb;
+    index = quantise(cb, &dlsp[nlsp], wt, k, m, &se);
+    dlsp_[nlsp] = cb[index*k];
+    dlsp_[nlsp+1] = cb[index*k+1];
+    dlsp_[nlsp+2] = cb[index*k+2];
+    dlsp_[nlsp+3] = cb[index*k+3];
+    dlsp_[nlsp+4] = cb[index*k+4];
+
+    /* rebuild LSPs for dLSPs */
+
+    lsp_[0] = dlsp_[0];
+    for(i=1; i<order; i++)
+    	lsp_[i] = lsp_[i-1] + dlsp_[i];
 }
 
 void check_lsp_order(float lsp[], int lpc_order)
