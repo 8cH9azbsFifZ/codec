@@ -44,7 +44,7 @@
 
 \*-----------------------------------------------------------------------*/
 
-#define	DELTAQ 	0.01		/* quiting distortion			*/
+#define	DELTAQ 	0.001		/* quiting distortion			*/
 #define	MAX_STR	80		/* maximum string length		*/
 
 /*-----------------------------------------------------------------------*\
@@ -170,6 +170,7 @@ int main(int argc, char *argv[]) {
 	exit(1);
     }
 
+    fprintf(fvq,"%d %d\n",k,m);
     for(j=0; j<m; j++) {
 	for(i=0; i<k; i++)
 	    fprintf(fvq,"%f  ",cb[j*k+i]);
