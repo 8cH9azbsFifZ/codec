@@ -17,7 +17,7 @@ G = fft(kexc);
 plot((1:256)*(4000/256),unwrap(angle(G(1:256))))
 
 f=fopen("glottal.c","wt");
-fprintf(f,"float glottal[]={\n");
+fprintf(f,"const float glottal[]={\n");
 for m=1:255
   fprintf(f,"  %f,\n",angle(G(m)));
 endfor

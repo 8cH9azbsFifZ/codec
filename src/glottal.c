@@ -1,4 +1,4 @@
-float glottal[]={
+const float glottal[]={
   0.000000,
   -0.057687,
   -0.115338,
