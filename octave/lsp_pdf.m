@@ -7,7 +7,7 @@ function lsp_pdf(lsp)
 
   % LSPs
 
-  figure(3);
+  figure(1);
   clf;
   [x,y] = hist(lsp(:,1),100);
   plot(y*4000/pi,x,";1;");
@@ -26,7 +26,7 @@ function lsp_pdf(lsp)
 
   % LSP differences
 
-  figure(4);
+  figure(2);
   clf;
   subplot(211)
   [x,y] = hist(lsp(:,1),100);
@@ -51,4 +51,36 @@ function lsp_pdf(lsp)
   endfor
   hold off;
   grid;
+
+  % LSP differences delta from last frame
+
+  lspd(:,1) = lsp(:,1);
+  lspd(:,2:10) = lsp(:,2:10) - lsp(:,1:9);
+
+  [m,n] = size(lspd);
+  lspdd = lspd(5:m,:) -  lspd(1:m-4,:);
+  
+  figure(3);
+  clf;
+  subplot(211)
+  for i=1:5
+    [x,y] = hist(lspdd(:,i),100);
+    legend = sprintf("%d;%d;",i,i);
+    plot(y*4000/pi,x,legend);
+    hold on;
+  endfor
+  hold off;
+  grid;
+  axis([-200 200 0 35000]);
+
+  subplot(212)
+  for i=6:10
+    [x,y] = hist(lspdd(:,i),100);
+    legend = sprintf("%d;%d;",i-5,i);
+    plot(y*4000/pi,x,legend);
+    hold on;
+  endfor
+  hold off;
+  grid;
+  axis([-200 200 0 16000]);
 endfunction

@@ -79,9 +79,12 @@ function plamp(samname, f)
     hold on;
 %    plot((0:255)*4000/256, Sw(f-2,:),";Sw;");
     plot((0:255)*4000/256, Sw(f,:),";Sw;");
-    plot((0:255)*4000/256, Sw_(f,:),";Sw_;g");
-    if (Ew_on == 1)
-        plot((0:255)*4000/256, Ew(f,:),";Ew_;r");
+    
+    if (file_in_path(".",sw__name))
+       plot((0:255)*4000/256, Sw_(f,:),";Sw_;g");
+       if (Ew_on == 1)
+          plot((0:255)*4000/256, Ew(f,:),";Ew_;r");
+       endif
     endif
  
     if (file_in_path(".",modelq_name))
@@ -179,7 +182,7 @@ function plamp(samname, f)
       pngname = sprintf("%s_%d_sw.png",samname,f);
       print(pngname, '-dpng', "-S500,500")
       pngname = sprintf("%s_%d_sw_large.png",samname,f);
-      print(pngname, '-dpng', "-S800,600")
+      print(pngname, '-dpng', "-S1200,800")
     endif
 
   until (k == 'q')
