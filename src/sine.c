@@ -593,6 +593,9 @@ void synthesise(
     /* Now set up frequency domain synthesised speech */
     for(l=1; l<=model->L; l++) {
 	b = floor(l*model->Wo*FFT_DEC/TWO_PI + 0.5);
+	if (b > ((FFT_DEC/2)-1)) {
+		b = (FFT_DEC/2)-1;
+	}
 	Sw_[b].real = model->A[l]*cos(model->phi[l]);
 	Sw_[b].imag = model->A[l]*sin(model->phi[l]);
 	Sw_[FFT_DEC-b].real = Sw_[b].real;

@@ -231,6 +231,9 @@ void phase_synth_zero_order(
 	*/
         jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
         b = floor(m*model->Wo/r + 0.5);
+	if (b > ((GLOTTAL_FFT_SIZE/2)-1)) {
+		b = (GLOTTAL_FFT_SIZE/2)-1;
+	}
 	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
 	Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
     }
