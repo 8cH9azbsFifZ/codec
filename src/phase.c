@@ -27,7 +27,7 @@
 
 #include "defines.h"
 #include "phase.h"
-#include "four1.h"
+#include "fft.h"
 #include "comp.h"
 #include "glottal.c"
 
@@ -76,7 +76,7 @@ void aks_to_H(
   for(i=0; i<=order; i++)
     Pw[i].real = aks[i];
 
-  four1(&Pw[-1].imag,FFT_DEC,-1);
+  fft(&Pw[0].real,FFT_DEC,-1);
 
   /* Sample magnitude and phase at harmonics */
 

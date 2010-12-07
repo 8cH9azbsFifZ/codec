@@ -70,7 +70,8 @@ nlp.c \
 postfilter.c \
 sine.c \
 codec2.c \
-four1.c \
+fft.c \
+kiss_fft.c \
 interp.c \
 lsp.c \
 phase.c \
@@ -86,7 +87,9 @@ libcodec2_la_LDFLAGS = $(LIBS)
 library_includedir = $(prefix)
 library_include_HEADERS	= codec2.h \
 defines.h \
-four1.h \
+kiss_fft.h\
+_kiss_fft_guts.h \
+fft.h \
 interp.h \
 lsp.h \
 phase.h \

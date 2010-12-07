@@ -48,13 +48,15 @@ int main(int argc, char *argv[])
 	exit(1);
     }
  
-    if ( (fin = fopen(argv[1],"rb")) == NULL ) {
+    if (strcmp(argv[1], "-")  == 0) fin = stdin;
+    else if ( (fin = fopen(argv[1],"rb")) == NULL ) {
 	fprintf(stderr, "Error opening input bit file: %s: %s.\n",
          argv[1], strerror(errno));
 	exit(1);
     }
 
-    if ( (fout = fopen(argv[2],"wb")) == NULL ) {
+    if (strcmp(argv[2], "-") == 0) fout = stdout;
+    else if ( (fout = fopen(argv[2],"wb")) == NULL ) {
 	fprintf(stderr, "Error opening output speech file: %s: %s.\n",
          argv[2], strerror(errno));
 	exit(1);
@@ -66,6 +68,10 @@ int main(int argc, char *argv[])
 	  CODEC2_SAMPLES_PER_FRAME) {
 	codec2_encode(codec2, bits, buf);
 	fwrite(bits, sizeof(char), BITS_SIZE, fout);
+	//if this is in a pipeline, we probably don't want the usual
+        //buffering to occur
+        if (fout == stdout) fflush(stdout);
+        if (fin == stdin) fflush(stdin);
     }
 
     codec2_destroy(codec2);

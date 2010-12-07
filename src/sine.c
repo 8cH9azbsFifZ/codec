@@ -37,7 +37,7 @@
 
 #include "defines.h"
 #include "sine.h"
-#include "four1.h"
+#include "fft.h"
 
 #define HPF_BETA 0.125
 
@@ -131,7 +131,7 @@ void make_analysis_window(float w[],COMP W[])
   for(i=FFT_ENC-NW/2,j=M/2-NW/2; i<FFT_ENC; i++,j++)
     W[i].real = w[j];
 
-  four1(&W[-1].imag,FFT_ENC,-1);         /* "Numerical Recipes in C" FFT */
+  fft(&W[0].real,FFT_ENC,-1);         /* "Numerical Recipes in C" FFT */
 
   /* 
       Re-arrange W[] to be symmetrical about FFT_ENC/2.  Makes later 
@@ -220,7 +220,7 @@ void dft_speech(COMP Sw[], float Sn[], float w[])
   for(i=0; i<NW/2; i++)
     Sw[FFT_ENC-NW/2+i].real = Sn[i+M/2-NW/2]*w[i+M/2-NW/2];
 
-  four1(&Sw[-1].imag,FFT_ENC,-1);
+  fft(&Sw[0].real,FFT_ENC,-1);
 }
 
 /*---------------------------------------------------------------------------*\
@@ -604,7 +604,7 @@ void synthesise(
 
     /* Perform inverse DFT */
 
-    four1(&Sw_[-1].imag,FFT_DEC,1);
+    fft(&Sw_[0].real,FFT_DEC,1);
 #else
     /*
        Direct time domain synthesis using the cos() function.  Works

@@ -46,14 +46,16 @@ int main(int argc, char *argv[])
 	printf("usage: %s InputBitFile OutputRawSpeechFile\n", argv[0]);
 	exit(1);
     }
- 
-    if ( (fin = fopen(argv[1],"rb")) == NULL ) {
+
+    if (strcmp(argv[1], "-")  == 0) fin = stdin;
+    else if ( (fin = fopen(argv[1],"rb")) == NULL ) {
 	fprintf(stderr, "Error opening input bit file: %s: %s.\n",
          argv[1], strerror(errno));
 	exit(1);
     }
 
-    if ( (fout = fopen(argv[2],"wb")) == NULL ) {
+    if (strcmp(argv[2], "-") == 0) fout = stdout;
+    else if ( (fout = fopen(argv[2],"wb")) == NULL ) {
 	fprintf(stderr, "Error opening output speech file: %s: %s.\n",
          argv[2], strerror(errno));
 	exit(1);
@@ -63,8 +65,13 @@ int main(int argc, char *argv[])
 
     while(fread(bits, sizeof(char), BITS_SIZE, fin) == BITS_SIZE) {
 	codec2_decode(codec2, buf, bits);
-	fwrite(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fout);
-    }
+ 	fwrite(buf, sizeof(short), CODEC2_SAMPLES_PER_FRAME, fout);
+	//if this is in a pipeline, we probably don't want the usual
+        //buffering to occur
+        if (fout == stdout) fflush(stdout);
+        if (fin == stdin) fflush(stdin);
+          
+ }
 
     codec2_destroy(codec2);
 

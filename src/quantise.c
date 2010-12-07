@@ -36,7 +36,7 @@
 #include "quantise.h"
 #include "lpc.h"
 #include "lsp.h"
-#include "four1.h"
+#include "fft.h"
 
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
 
@@ -492,7 +492,7 @@ void aks_to_M2(
 
   for(i=0; i<=order; i++)
     Pw[i].real = ak[i];
-  four1(&Pw[-1].imag,FFT_DEC,1);
+  fft(&Pw[0].real,FFT_DEC,1);
 
   /* Determine power spectrum P(w) = E/(A(exp(jw))^2 ------------------------*/
 
