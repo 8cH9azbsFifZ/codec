@@ -358,7 +358,6 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
 
     /* estimate model parameters */
 
-    dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(model, Sw);
     estimate_amplitudes(model, Sw, c2->W);
     est_voicing_mbe(model, Sw, c2->W, Sw_, Ew, c2->prev_Wo);
