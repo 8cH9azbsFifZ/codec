@@ -228,7 +228,9 @@ CODEBOOKS = \
   $D/lsp5.txt \
   $D/lsp6.txt \
   $D/lsp7.txt \
-  $D/lsp8910.txt
+  $D/lsp8.txt \
+  $D/lsp9.txt \
+  $D/lsp10.txt
 
 
 # lspd quantisers
