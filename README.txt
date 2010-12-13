@@ -42,6 +42,19 @@ samples.
 selective use of the various Codec 2 algorithms.  For example
 switching phase modelling or LSP quantisation on and off.
 
+Debugging
+---------
+
+1/ For dump file support:
+
+  $ cd codec2
+  $ CFLAGS=-DDUMP ./configure
+  $ make clean && make
+
+2/ To use gdb:
+
+  $ $ libtool --mode=execute gdb c2sim
+
 Directories
 -----------
 

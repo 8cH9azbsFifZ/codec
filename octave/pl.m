@@ -1,6 +1,9 @@
 % Copyright David Rowe 2009
 % This program is distributed under the terms of the GNU General Public License 
 % Version 2
+%
+% Plots a raw speech sample file, you can optionally specify the start and end
+% samples and create a large and small PNGs
 
 function pl(samname1, start_sam, end_sam, pngname)
   
