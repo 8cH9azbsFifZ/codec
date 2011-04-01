@@ -125,6 +125,11 @@ int main(int argc, char *argv[])
 
   void *nlp_states;
   float hpf_states[2];
+  int   resample;
+  float AresdB_prev[MAX_AMP];
+
+  for(i=0; i<MAX_AMP; i++)
+      AresdB_prev[i] = 0.0; 
 
   for(i=0; i<M; i++)
       Sn[i] = 1.0;
@@ -234,6 +239,9 @@ int main(int argc, char *argv[])
 
   decimate = switch_present("--dec",argc,argv);
 
+  arg = switch_present("--resample",argc,argv);
+  resample = atoi(argv[arg+1]);
+
   /* Initialise ------------------------------------------------------------*/
 
   make_analysis_window(w,W);
@@ -252,8 +260,10 @@ int main(int argc, char *argv[])
 
     for(i=0; i<M-N; i++)
       Sn[i] = Sn[i+N];
-    for(i=0; i<N; i++)
-	Sn[i+M-N] = buf[i];
+    for(i=0; i<N; i++) {
+	//Sn[i+M-N] = hpf((float)buf[i], hpf_states);
+	Sn[i+M-N] = (float)buf[i];
+    }
  
     /* Estimate pitch */
 
@@ -348,6 +358,17 @@ int main(int argc, char *argv[])
 #endif
     }
 
+    /* optional resampling of model amplitudes */
+
+    printf("frames=%d\n", frames);
+    if (resample) {
+	snr = resample_amp_nl(&model, resample, AresdB_prev);
+	sum_snr += snr;
+#ifdef DUMP
+        dump_quantised_model(&model);
+#endif
+    }
+
     /* option decimation to 20ms rate, which enables interpolation
        routine to synthesise in between frame */
   
@@ -414,7 +435,7 @@ int main(int argc, char *argv[])
   if (fout != NULL)
     fclose(fout);
 
-  if (lpc_model)
+  if (lpc_model || resample)
       printf("SNR av = %5.2f dB\n", sum_snr/frames);
 
 #ifdef DUMP
