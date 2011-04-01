@@ -12,7 +12,7 @@ Quickstart
 1/ Listen to Codec 2:
 
    $ cd codec2/src
-   $ make
+   $ ./configure && make
    $ ./c2demo ../raw/hts1a.raw hts1a_c2.raw
    $ ../script/menu.sh ../raw/hts1a.raw hts1a_c2.raw
 

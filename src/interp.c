@@ -341,8 +341,9 @@ float resample_amp_nl(MODEL *model, int m, float AresdB_prev[])
 	AresdB_prev[i] = AresdB_q[i];
     }
 
-
+#ifdef DUMP
     dump_resample(wres,Ares,M_MAX);
+#endif
 
     signal = noise = 0.0;
     
