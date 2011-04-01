@@ -66,9 +66,9 @@ int test1()
     c2 = codec2_create();
     c3 = (CODEC2*)c2;
 
-    fin = fopen("../raw/hts1a.raw", "rb");
+    fin = fopen("../raw/hts2a.raw", "rb");
     assert(fin != NULL);
-    fout = fopen("hts1a_test.raw", "wb");
+    fout = fopen("hts2a_test.raw", "wb");
     assert(fout != NULL);
 
     while(fread(buf, sizeof(short), N, fin) == N) {
@@ -209,6 +209,6 @@ int test3()
 }
 
 int main() {
-    test3();
+    test1();
     return 0;
 }

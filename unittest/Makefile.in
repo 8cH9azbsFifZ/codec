@@ -37,8 +37,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = genres$(EXEEXT) genlsp$(EXEEXT) extract$(EXEEXT) \
-	vqtrain$(EXEEXT) tnlp$(EXEEXT) tinterp$(EXEEXT) \
-	tquant$(EXEEXT) tcodec2$(EXEEXT)
+	vqtrain$(EXEEXT) vqtrain_clip$(EXEEXT) tnlp$(EXEEXT) \
+	tinterp$(EXEEXT) tquant$(EXEEXT) tcodec2$(EXEEXT) \
+	genbands$(EXEEXT) vq_clip_test$(EXEEXT)
 subdir = unittest
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -53,6 +54,14 @@ PROGRAMS = $(bin_PROGRAMS)
 am_extract_OBJECTS = extract.$(OBJEXT)
 extract_OBJECTS = $(am_extract_OBJECTS)
 extract_DEPENDENCIES =
+am_genbands_OBJECTS = genbands.$(OBJEXT) quantise.$(OBJEXT) \
+	lpc.$(OBJEXT) lsp.$(OBJEXT) dump.$(OBJEXT) fft.$(OBJEXT) \
+	kiss_fft.$(OBJEXT) codec2.$(OBJEXT) sine.$(OBJEXT) \
+	nlp.$(OBJEXT) postfilter.$(OBJEXT) phase.$(OBJEXT) \
+	interp.$(OBJEXT) codebook.$(OBJEXT) codebookd.$(OBJEXT) \
+	codebookdvq.$(OBJEXT) pack.$(OBJEXT)
+genbands_OBJECTS = $(am_genbands_OBJECTS)
+genbands_DEPENDENCIES =
 am_genlsp_OBJECTS = genlsp.$(OBJEXT) lpc.$(OBJEXT) lsp.$(OBJEXT)
 genlsp_OBJECTS = $(am_genlsp_OBJECTS)
 genlsp_DEPENDENCIES =
@@ -82,9 +91,20 @@ am_tquant_OBJECTS = tquant.$(OBJEXT) quantise.$(OBJEXT) lpc.$(OBJEXT) \
 	codebook.$(OBJEXT) codebookd.$(OBJEXT) codebookdvq.$(OBJEXT)
 tquant_OBJECTS = $(am_tquant_OBJECTS)
 tquant_DEPENDENCIES =
+am_vq_clip_test_OBJECTS = vq_clip_test.$(OBJEXT) quantise.$(OBJEXT) \
+	lpc.$(OBJEXT) lsp.$(OBJEXT) dump.$(OBJEXT) fft.$(OBJEXT) \
+	kiss_fft.$(OBJEXT) codec2.$(OBJEXT) sine.$(OBJEXT) \
+	nlp.$(OBJEXT) postfilter.$(OBJEXT) phase.$(OBJEXT) \
+	interp.$(OBJEXT) codebook.$(OBJEXT) codebookd.$(OBJEXT) \
+	codebookdvq.$(OBJEXT) pack.$(OBJEXT)
+vq_clip_test_OBJECTS = $(am_vq_clip_test_OBJECTS)
+vq_clip_test_DEPENDENCIES =
 am_vqtrain_OBJECTS = vqtrain.$(OBJEXT)
 vqtrain_OBJECTS = $(am_vqtrain_OBJECTS)
 vqtrain_DEPENDENCIES =
+am_vqtrain_clip_OBJECTS = vqtrain_clip.$(OBJEXT)
+vqtrain_clip_OBJECTS = $(am_vqtrain_clip_OBJECTS)
+vqtrain_clip_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -96,12 +116,15 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(extract_SOURCES) $(genlsp_SOURCES) $(genres_SOURCES) \
-	$(tcodec2_SOURCES) $(tinterp_SOURCES) $(tnlp_SOURCES) \
-	$(tquant_SOURCES) $(vqtrain_SOURCES)
-DIST_SOURCES = $(extract_SOURCES) $(genlsp_SOURCES) $(genres_SOURCES) \
-	$(tcodec2_SOURCES) $(tinterp_SOURCES) $(tnlp_SOURCES) \
-	$(tquant_SOURCES) $(vqtrain_SOURCES)
+SOURCES = $(extract_SOURCES) $(genbands_SOURCES) $(genlsp_SOURCES) \
+	$(genres_SOURCES) $(tcodec2_SOURCES) $(tinterp_SOURCES) \
+	$(tnlp_SOURCES) $(tquant_SOURCES) $(vq_clip_test_SOURCES) \
+	$(vqtrain_SOURCES) $(vqtrain_clip_SOURCES)
+DIST_SOURCES = $(extract_SOURCES) $(genbands_SOURCES) \
+	$(genlsp_SOURCES) $(genres_SOURCES) $(tcodec2_SOURCES) \
+	$(tinterp_SOURCES) $(tnlp_SOURCES) $(tquant_SOURCES) \
+	$(vq_clip_test_SOURCES) $(vqtrain_SOURCES) \
+	$(vqtrain_clip_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -225,6 +248,9 @@ extract_LDFLAGS = $(LIBS)
 vqtrain_SOURCES = vqtrain.c
 vqtrain_LDADD = $(lib_LTLIBRARIES) 
 vqtrain_LDFLAGS = $(LIBS)
+vqtrain_clip_SOURCES = vqtrain_clip.c
+vqtrain_clip_LDADD = $(lib_LTLIBRARIES) 
+vqtrain_clip_LDFLAGS = $(LIBS)
 tnlp_SOURCES = tnlp.c ../src/sine.c ../src/nlp.c ../src/fft.c ../src/kiss_fft.c ../src/dump.c
 tnlp_LDADD = $(lib_LTLIBRARIES) 
 tnlp_LDFLAGS = $(LIBS)
@@ -240,6 +266,18 @@ tcodec2_SOURCES = tcodec2.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/d
 
 tcodec2_LDADD = $(lib_LTLIBRARIES) 
 tcodec2_LDFLAGS = $(LIBS)
+genbands_SOURCES = genbands.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/fft.c ../src/kiss_fft.c \
+../src/codec2.c ../src/sine.c ../src/nlp.c ../src/postfilter.c ../src/phase.c ../src/interp.c \
+../src/codebook.c ../src/codebookd.c ../src/codebookdvq.c ../src/pack.c
+
+genbands_LDADD = $(lib_LTLIBRARIES) 
+genbands_LDFLAGS = $(LIBS)
+vq_clip_test_SOURCES = vq_clip_test.c ../src/quantise.c ../src/lpc.c ../src/lsp.c ../src/dump.c ../src/fft.c ../src/kiss_fft.c \
+../src/codec2.c ../src/sine.c ../src/nlp.c ../src/postfilter.c ../src/phase.c ../src/interp.c \
+../src/codebook.c ../src/codebookd.c ../src/codebookdvq.c ../src/pack.c
+
+vq_clip_test_LDADD = $(lib_LTLIBRARIES) 
+vq_clip_test_LDFLAGS = $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -304,6 +342,9 @@ clean-binPROGRAMS:
 extract$(EXEEXT): $(extract_OBJECTS) $(extract_DEPENDENCIES) 
 	@rm -f extract$(EXEEXT)
 	$(LINK) $(extract_LDFLAGS) $(extract_OBJECTS) $(extract_LDADD) $(LIBS)
+genbands$(EXEEXT): $(genbands_OBJECTS) $(genbands_DEPENDENCIES) 
+	@rm -f genbands$(EXEEXT)
+	$(LINK) $(genbands_LDFLAGS) $(genbands_OBJECTS) $(genbands_LDADD) $(LIBS)
 genlsp$(EXEEXT): $(genlsp_OBJECTS) $(genlsp_DEPENDENCIES) 
 	@rm -f genlsp$(EXEEXT)
 	$(LINK) $(genlsp_LDFLAGS) $(genlsp_OBJECTS) $(genlsp_LDADD) $(LIBS)
@@ -322,9 +363,15 @@ tnlp$(EXEEXT): $(tnlp_OBJECTS) $(tnlp_DEPENDENCIES)
 tquant$(EXEEXT): $(tquant_OBJECTS) $(tquant_DEPENDENCIES) 
 	@rm -f tquant$(EXEEXT)
 	$(LINK) $(tquant_LDFLAGS) $(tquant_OBJECTS) $(tquant_LDADD) $(LIBS)
+vq_clip_test$(EXEEXT): $(vq_clip_test_OBJECTS) $(vq_clip_test_DEPENDENCIES) 
+	@rm -f vq_clip_test$(EXEEXT)
+	$(LINK) $(vq_clip_test_LDFLAGS) $(vq_clip_test_OBJECTS) $(vq_clip_test_LDADD) $(LIBS)
 vqtrain$(EXEEXT): $(vqtrain_OBJECTS) $(vqtrain_DEPENDENCIES) 
 	@rm -f vqtrain$(EXEEXT)
 	$(LINK) $(vqtrain_LDFLAGS) $(vqtrain_OBJECTS) $(vqtrain_LDADD) $(LIBS)
+vqtrain_clip$(EXEEXT): $(vqtrain_clip_OBJECTS) $(vqtrain_clip_DEPENDENCIES) 
+	@rm -f vqtrain_clip$(EXEEXT)
+	$(LINK) $(vqtrain_clip_LDFLAGS) $(vqtrain_clip_OBJECTS) $(vqtrain_clip_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -339,6 +386,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extract.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fft.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genbands.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genlsp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genres.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interp.Po@am__quote@
@@ -355,7 +403,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tinterp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tnlp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tquant.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vq_clip_test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vqtrain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vqtrain_clip.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -377,6 +427,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+quantise.o: ../src/quantise.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT quantise.o -MD -MP -MF "$(DEPDIR)/quantise.Tpo" -c -o quantise.o `test -f '../src/quantise.c' || echo '$(srcdir)/'`../src/quantise.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/quantise.Tpo" "$(DEPDIR)/quantise.Po"; else rm -f "$(DEPDIR)/quantise.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/quantise.c' object='quantise.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o quantise.o `test -f '../src/quantise.c' || echo '$(srcdir)/'`../src/quantise.c
+
+quantise.obj: ../src/quantise.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT quantise.obj -MD -MP -MF "$(DEPDIR)/quantise.Tpo" -c -o quantise.obj `if test -f '../src/quantise.c'; then $(CYGPATH_W) '../src/quantise.c'; else $(CYGPATH_W) '$(srcdir)/../src/quantise.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/quantise.Tpo" "$(DEPDIR)/quantise.Po"; else rm -f "$(DEPDIR)/quantise.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/quantise.c' object='quantise.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o quantise.obj `if test -f '../src/quantise.c'; then $(CYGPATH_W) '../src/quantise.c'; else $(CYGPATH_W) '$(srcdir)/../src/quantise.c'; fi`
 
 lpc.o: ../src/lpc.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lpc.o -MD -MP -MF "$(DEPDIR)/lpc.Tpo" -c -o lpc.o `test -f '../src/lpc.c' || echo '$(srcdir)/'`../src/lpc.c; \
@@ -405,20 +469,6 @@ lsp.obj: ../src/lsp.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/lsp.c' object='lsp.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lsp.obj `if test -f '../src/lsp.c'; then $(CYGPATH_W) '../src/lsp.c'; else $(CYGPATH_W) '$(srcdir)/../src/lsp.c'; fi`
-
-quantise.o: ../src/quantise.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT quantise.o -MD -MP -MF "$(DEPDIR)/quantise.Tpo" -c -o quantise.o `test -f '../src/quantise.c' || echo '$(srcdir)/'`../src/quantise.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/quantise.Tpo" "$(DEPDIR)/quantise.Po"; else rm -f "$(DEPDIR)/quantise.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/quantise.c' object='quantise.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o quantise.o `test -f '../src/quantise.c' || echo '$(srcdir)/'`../src/quantise.c
-
-quantise.obj: ../src/quantise.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT quantise.obj -MD -MP -MF "$(DEPDIR)/quantise.Tpo" -c -o quantise.obj `if test -f '../src/quantise.c'; then $(CYGPATH_W) '../src/quantise.c'; else $(CYGPATH_W) '$(srcdir)/../src/quantise.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/quantise.Tpo" "$(DEPDIR)/quantise.Po"; else rm -f "$(DEPDIR)/quantise.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/quantise.c' object='quantise.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o quantise.obj `if test -f '../src/quantise.c'; then $(CYGPATH_W) '../src/quantise.c'; else $(CYGPATH_W) '$(srcdir)/../src/quantise.c'; fi`
 
 dump.o: ../src/dump.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dump.o -MD -MP -MF "$(DEPDIR)/dump.Tpo" -c -o dump.o `test -f '../src/dump.c' || echo '$(srcdir)/'`../src/dump.c; \
