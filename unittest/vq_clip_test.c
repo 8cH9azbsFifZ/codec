@@ -230,7 +230,9 @@ int main(int argc, char *argv[]) {
     else
 	phase_model = 0;
 
+#ifdef DUMP
     dump_on("test");
+#endif
 
     sum_av_err_low = sum_av_err_high = 0;
     sum_err_less_than_clip_low = sum_err_less_than_clip_high = 0;
@@ -251,7 +253,9 @@ int main(int argc, char *argv[]) {
 
 	resample_amp_fixed(&model, w, A, wres, Ares,
 			   AresdB_prev, AresdB, deltat);
+#ifdef DUMP
 	dump_resample(wres,Ares,RES_POINTS);
+#endif
 	//#define VQ
 #ifdef VQ
 	besti_low = quantise_clip(cblow->cb, deltat, cblow->k, cblow->m, clip, 
@@ -322,7 +326,9 @@ int main(int argc, char *argv[]) {
 		COMP    Sw[FFT_ENC];
 		dft_speech(Sw, c3->Sn, c3->w);
 
+#ifdef DUMP
 		dump_Sn(c3->Sn); dump_Sw(Sw); dump_model(&model);
+#endif
 	    }
 
 	    //	    #define TIME_DOM
@@ -334,11 +340,15 @@ int main(int argc, char *argv[]) {
 		autocorrelate(Wn,R,M,LPC_ORD);
 	    }
 	    levinson_durbin(R, aks, LPC_ORD);
+#ifdef DUMP
 	    dump_ak(aks, LPC_ORD);
+#endif
 #else
 	    autocorrelate_freq(Pph, wph, R, PHASE_POINTS, LPC_ORD);
 	    levinson_durbin(R, aks, LPC_ORD);
+#ifdef DUMP
 	    dump_ak(aks, LPC_ORD);
+#endif
 #endif
 
 	    for(i=0; i<=LPC_ORD; i++)
