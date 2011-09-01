@@ -84,7 +84,7 @@ codebookdvq.c
 libcodec2_la_CFLAGS = $(AM_CFLAGS)
 libcodec2_la_LDFLAGS = $(LIBS)
 
-library_includedir = $(prefix)
+library_includedir = $(prefix)/include
 library_include_HEADERS	= codec2.h \
 defines.h \
 kiss_fft.h\
